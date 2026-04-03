@@ -1,0 +1,7 @@
+aiogram
+sqlalchemy
+python-dotenv
+openai
+psycopg[binary]
+fastapi
+uvicorn

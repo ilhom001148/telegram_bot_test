@@ -1,0 +1,65 @@
+from sqlalchemy import (
+    Column,
+    Integer,
+    BigInteger,
+    String,
+    Text,
+    Boolean,
+    ForeignKey,
+    DateTime,
+)
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
+
+from bot.db import Base
+
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    username = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    messages = relationship("Message", back_populates="group")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_message_id = Column(Integer, nullable=False, index=True)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    user_id = Column(BigInteger, nullable=True, index=True)
+    full_name = Column(String(255), nullable=True)
+    username = Column(String(255), nullable=True)
+    text = Column(Text, nullable=True)
+
+    is_question = Column(Boolean, default=False)
+    is_answered = Column(Boolean, default=False)
+    answered_by_bot = Column(Boolean, default=False)
+
+    reply_to_message_id = Column(Integer, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    group = relationship("Group", back_populates="messages")
+
+
+class KnowledgeBase(Base):
+    __tablename__ = "knowledge_base"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question = Column(Text, nullable=False)
+    answer = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Admin(Base):
+    __tablename__ = "admins"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
