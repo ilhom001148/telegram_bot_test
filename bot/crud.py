@@ -1,6 +1,47 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from bot.models import Group, Message, KnowledgeBase
+from bot.models import Group, Message, KnowledgeBase, Setting, User
+
+
+def get_or_create_user(
+    db: Session,
+    telegram_id: int,
+    full_name: str | None = None,
+    username: str | None = None,
+) -> User:
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+
+    if user:
+        updated = False
+        if user.full_name != full_name:
+            user.full_name = full_name
+            updated = True
+        if user.username != username:
+            user.username = username
+            updated = True
+        if updated:
+            db.commit()
+            db.refresh(user)
+        return user
+
+    user = User(
+        telegram_id=telegram_id,
+        full_name=full_name,
+        username=username,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user_language(db: Session, telegram_id: int, lang_code: str) -> User | None:
+    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    if user:
+        user.language_code = lang_code
+        db.commit()
+        db.refresh(user)
+    return user
 
 
 def get_or_create_group(
@@ -13,19 +54,15 @@ def get_or_create_group(
 
     if group:
         updated = False
-
         if group.title != title:
             group.title = title
             updated = True
-
         if group.username != username:
             group.username = username
             updated = True
-
         if updated:
             db.commit()
             db.refresh(group)
-
         return group
 
     group = Group(
@@ -99,7 +136,6 @@ def get_all_knowledge(db: Session):
 
 
 def search_knowledge(db: Session, query_text: str) -> KnowledgeBase | None:
-    # A simple search via ILIKE (for more complex cases, full-text search or pgvector is recommended)
     search_term = f"%{query_text.lower()}%"
     return db.query(KnowledgeBase).filter(
         or_(
@@ -115,3 +151,48 @@ def create_knowledge(db: Session, question: str, answer: str) -> KnowledgeBase:
     db.commit()
     db.refresh(kb)
     return kb
+
+
+def get_setting(db: Session, key: str, default: str = "") -> str:
+    setting = db.query(Setting).filter(Setting.key == key).first()
+    return setting.value if setting else default
+
+
+def get_broadcast_targets(db: Session):
+    groups = db.query(Group.telegram_id).all()
+    group_ids = [g[0] for g in groups]
+    users = db.query(Message.user_id).filter(Message.user_id.isnot(None)).distinct().all()
+    user_ids = [u[0] for u in users]
+    return {
+        "groups": group_ids,
+        "users": list(set(user_ids))
+    }
+
+
+def get_group_question_count(db: Session, group_id: int) -> int:
+    return db.query(Message).filter(
+        Message.group_id == group_id,
+        Message.is_question.is_(True)
+    ).count()
+
+
+def get_group_stats(db: Session, group_id: int) -> dict:
+    """Guruh statistikasini hisoblaydi: jami, javob berilgan va javobsiz savollar."""
+    total_questions = db.query(Message).filter(
+        Message.group_id == group_id,
+        Message.is_question.is_(True)
+    ).count()
+
+    answered_questions = db.query(Message).filter(
+        Message.group_id == group_id,
+        Message.is_question.is_(True),
+        Message.is_answered.is_(True)
+    ).count()
+
+    unanswered_questions = total_questions - answered_questions
+
+    return {
+        "total_questions": total_questions,
+        "answered_questions": answered_questions,
+        "unanswered_questions": unanswered_questions
+    }

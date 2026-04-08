@@ -1,57 +1,201 @@
 import os
-from openai import OpenAI
+import json
+from pathlib import Path
+from openai import OpenAI, AsyncOpenAI
+import google.generativeai as genai
+import warnings
+# Google deprecated warningini vaqtinchalik o'chirib turish (FutureWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 from dotenv import load_dotenv
+from bot.db import SessionLocal
+from bot.models import Setting
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+def get_db_setting(key: str, default: str = "") -> str:
+    db = SessionLocal()
+    try:
+        setting = db.query(Setting).filter(Setting.key == key).first()
+        return setting.value if setting else default
+    finally:
+        db.close()
 
 def detect_question(text: str) -> bool:
+    """Keyword-based question and help request detection (Fast)."""
     if not text:
         return False
-
-    question_words = [
-        "?", "nima", "qanday", "nega", "qachon", "kim", "qancha", "qaysi", 
-        "qanaqa", "nechta", "qayerda", "nimaga", "qilib", "ber", 
-        "ishlamayapti", "chiqmayapti", "xato", "error", "bug", "maslahat", "yordam"
+    
+    # 1. Belgilar orqali (Signs)
+    if "?" in text or "!" in text: # ! ham ko'pincha yordam so'rashni bildiradi
+        return True
+    
+    # 2. Savol va yordam so'zlari (Uzbek & Russian)
+    question_keywords = [
+        # Uzbek
+        "nima", "qanday", "nega", "qachon", "kim", "qancha", "qaysi", "qanaqa", 
+        "nechta", "qayerda", "nimaga", "qilib", "ber", "yordam", "maslahat",
+        "ishlamayapti", "xato", "chiqmayapti", "error", "bug", "muammo", "tushunmadim",
+        "tushuntir", "ayt", "gapir", "qanday", "qilsam", "bo'ladi", "qilsa",
+        # Russian
+        "что", "как", "почему", "когда", "кто", "сколько", "какой", "где",
+        "помоги", "совет", "ошибка", "проблема", "баг", "не работает", "почему",
+        "скажи", "объясни", "подскажи"
     ]
-    text_lower = text.lower()
+    
+    text_lower = text.lower().strip()
+    words = text_lower.split()
+    
+    # Faqat bitta so'z bo'lsa va u savol bo'lmasa (masalan: "Salom")
+    if len(words) <= 1 and not ("?" in text_lower):
+        return False
 
-    return any(word in text_lower for word in question_words)
+    return any(word in text_lower for word in question_keywords)
 
+async def is_question_ai(text: str) -> bool:
+    """AI-based verification to see if the message is worth responding (Smart)."""
+    # 1. Avval tezkor filtrdan o'tkazamiz
+    if detect_question(text):
+        return True
+    
+    # 2. Agar noaniq bo'lsa, AI dan juda qisqa so'raymiz
+    provider = get_db_setting("ai_provider", "openai")
+    prompt = (
+        "TASK: Analyze the user message and determine if it requires a helpful response from an AI assistant. "
+        "Return 'TRUE' if the message is: a question, a help request, a technical problem report, or a request for a task. "
+        "Return 'FALSE' if the message is: just a greeting (Salom/Hi), a thank you (Rahmat/Thanks), "
+        "a simple agreement (Ok/Xo'p), social small talk, or random noise. "
+        "Only respond with 'TRUE' or 'FALSE'."
+    )
+    
+    try:
+        if provider == "groq":
+            api_key = get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
+            client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+            response = await client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "system", "content": prompt}, {"role": "user", "content": text}],
+                max_tokens=5
+            )
+            return "TRUE" in response.choices[0].message.content.upper()
+        
+        elif provider == "gemini":
+            api_key = get_db_setting("gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=prompt)
+            response = await model.generate_content_async(text)
+            return "TRUE" in response.text.upper()
+            
+        else: # Default OpenAI
+            api_key = get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+            client = AsyncOpenAI(api_key=api_key)
+            response = await client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "system", "content": prompt}, {"role": "user", "content": text}],
+                max_tokens=5
+            )
+            return "TRUE" in response.choices[0].message.content.upper()
+    except:
+        return False
 
-def get_ai_answer(question: str, context: str = None) -> str:
+async def get_ai_answer_async(question: str, context: str = None) -> str:
+    # 1. Sozlamalarni DB dan olish
+    provider = get_db_setting("ai_provider", "openai")
+    custom_system_prompt = get_db_setting("system_prompt", "")
+    company_info = get_db_setting("company_info", "")
+
+    # 2. System Promptni shakllantirish
     if context:
         system_prompt = (
-            "Sen foydali, xushmuomala yordamchi botsan. Quyida senga adminlar tomonidan maxsus o'rgatilgan (Knowledge Base) tayyor bilim berilgan. "
+            "Sen foydali, xushmuomala yordamchi botsan. Quyida senga maxsus o'rgatilgan (Knowledge Base) tayyor bilim berilgan. "
             "Mavzu IT yoki boshqa soha bo'lishidan QAT'IY NAZAR, agar ushbu maxsus baza o'zida foydalanuvchining savoliga mos javobni ishora qilsa, "
-            "chiroyli va insonlardek qilib o'sha bilimlarni yetkaz. Hech qanday holatda 'IGNORE' qilib suhbatni e'tiborsiz qoldirma!\n\n"
+            "o'sha bilimlarni yetkaz.\n\n"
+            f"Kompaniya haqida umumiy ma'lumot: {company_info}\n\n"
             f"Senga o'rgatilgan MAXSUS BAZA ma'lumotlari:\n{context}"
         )
+    elif custom_system_prompt:
+        system_prompt = f"{custom_system_prompt}\n\nKompaniya ma'lumotlari: {company_info}"
     else:
-        # Original strict IT prompt
         system_prompt = (
-            "Sen jahondagi eng yuqori malakali, professional Dasturlash, IT va Sun'iy Intellekt (AI) bo'yicha ekspert botsan. "
-            "Sening yagona vazifang: har bir dasturlash tili (Python, JavaScript, Java, C++, Go, Rust, PHP va h.k), "
-            "dasturiy arxitekturalar, bazalar, turli AI/ML modellari xaqida o'ta chuqur darajada va to'liq yordam berish! "
-            "Xususan, berilgan savollarga iloji boricha 'best practice' darajasidagi toza va mukammal **kod namunalari (code snippets)** bilan, qadam-baqadam erinmasdan javob ber. "
-            "MUHIM QOIDA: Agar foydalanuvchi yozgan narsaning DASTURLASH, IT YOKI TEXNOLOGIYAga umuman aloqasi bo'lmasa "
-            "(masalan: kundalik suhbatlar, siyosat, taomlar, salomlashish), suhbatga aralashmaslik uchun mutlaqo xat yozma, faqatgina 'IGNORE' xabarini qaytar (uzr ham so'rama). "
-            "Faqat IT va kod yozish haqidagina eng to'liq Full rejimda chiroyli javob qaytar."
+            "Sen jahondagi eng yuqori malakali, aqlli va professional AI yordamchisan. "
+            f"Kompaniya ma'lumotlari: {company_info}\n"
+            "Sening vazifang: Har qanday mavzuda foydalanuvchi savollariga aniq, lisoniy to'g'ri va foydali javob berish! "
+            "Agar savolga javob berish uchun maxsus bazada ma'lumot bo'lmasa, o'zingning umumiy bilimlaringdan foydalan."
         )
 
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": question
-            }
-        ]
-    )
-    return response.choices[0].message.content
+    try:
+        # 3. Provayderga qarab so'rov yuborish
+        if provider == "groq":
+            api_key = get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
+            client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+            response = await client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}]
+            )
+            return response.choices[0].message.content
+
+        elif provider == "gemini":
+            api_key = get_db_setting("gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_prompt)
+            response = await model.generate_content_async(question)
+            return response.text
+
+        else: # Default: OpenAI
+            api_key = get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+            client = AsyncOpenAI(api_key=api_key)
+            response = await client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}]
+            )
+            return response.choices[0].message.content
+
+    except Exception as e:
+        print(f"AI Error ({provider}):", e)
+        return f"Kechirasiz, {provider} orqali javob olishda xatolik yuz berdi. Iltimos keyinroq urinib ko'ring."
+
+async def transcribe_audio(file_path: str) -> str:
+    # 1. Sozlamalarni DB dan olish
+    provider = get_db_setting("ai_provider", "openai")
+    
+    try:
+        if provider == "groq":
+            api_key = get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
+            client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+            
+            with open(file_path, "rb") as audio_file:
+                transcription = await client.audio.transcriptions.create(
+                    model="whisper-large-v3",
+                    file=audio_file
+                )
+            return transcription.text
+            
+        else: # Default OpenAI for Audio transcription
+            api_key = get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+            client = AsyncOpenAI(api_key=api_key)
+            
+            with open(file_path, "rb") as audio_file:
+                transcription = await client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file
+                )
+            return transcription.text
+
+    except Exception as e:
+        print(f"STT Error ({provider}):", e)
+        return ""
+
+# Sinxron versiya (backward compatibility uchun)
+def get_ai_answer(question: str, context: str = None) -> str:
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
+    if loop.is_running():
+        # Handle async running loop if called from main bot
+        import nest_asyncio
+        nest_asyncio.apply()
+    
+    return loop.run_until_complete(get_ai_answer_async(question, context))

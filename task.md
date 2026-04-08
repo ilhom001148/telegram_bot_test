@@ -1,0 +1,13 @@
+- `[x]` **1. CRM Modeli - Faol Mijozlar ro'yxati**
+  - `[x]` Backend: `api/routes/users.py` ni yaratish (Userlarning umumiy statistikasi).
+  - `[x]` Backend: `api/main.py` ga ushbu yo'nalishni ulash.
+  - `[/]` Formatted App.jsx: Frontend admin-panel'da "Mijozlar" sahifasi va menyuni qo'shish.
+- `[/]` **2. Yuklab olish (Export to Excel/CSV)**
+  - `[x]` Backend: `api/routes/export.py` ni CSV stream qilish mexanizmi bilan yaratish.
+  - `[x]` Backend: `api/main.py` ga export route'ni ulash.
+  - `[ ]` Frontend: Muloqotlar va O'qitish oynalariga yuklab olish tugmasini qo'shish.
+- `[x]` **3. Xabar yuborishni rejalashtirish (Scheduled Broadcast)**
+  - `[x]` `bot/models.py`: `ScheduledBroadcast` jadvalini qo'shish va DB yaratish scriptini yangilash.
+  - `[x]` Backend: `api/routes/admin.py` dagi `/broadcast` endpointni vaqt qabul qiladigan qilish.
+  - `[x]` Bot Engine (`bot/main.py`): Avtomatik taymer bo'yicha fon jarayonini (background worker) ishga tushirish.
+  - `[x]` Frontend: `Broadcast.jsx` komponentiga kalendar/vaqt tanlash elementini va holatlarni qoshish.

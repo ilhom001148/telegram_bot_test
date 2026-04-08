@@ -7,19 +7,26 @@ def get_password_hash(password):
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
+from bot.config import ADMIN_USERNAME, ADMIN_PASSWORD
+
 def init_admin():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        admin = db.query(Admin).filter(Admin.username == "admin").first()
+        # Mevjud admin bo'lsa uni .env dagi yangi ma'lumot bilan tekshirish/yangilash
+        admin = db.query(Admin).filter(Admin.username == ADMIN_USERNAME).first()
+        hashed_pw = get_password_hash(ADMIN_PASSWORD)
+        
         if not admin:
-            hashed_pw = get_password_hash("12345")
-            new_admin = Admin(username="admin", hashed_password=hashed_pw)
+            new_admin = Admin(username=ADMIN_USERNAME, hashed_password=hashed_pw)
             db.add(new_admin)
             db.commit()
-            print("Admin user created successfully.")
+            print(f"Admin user '{ADMIN_USERNAME}' created from .env.")
         else:
-            print("Admin user already exists.")
+            # Agar parol o'zgargan bo'lsa yangilash
+            admin.hashed_password = hashed_pw
+            db.commit()
+            print(f"Admin user '{ADMIN_USERNAME}' updated from .env.")
     finally:
         db.close()
 

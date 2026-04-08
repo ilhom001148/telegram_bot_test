@@ -1,7 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
+import io
+import os
+import json
+import docx2txt
+from pypdf import PdfReader
+from openai import OpenAI
 
 from api.dependencies import get_db, get_current_admin
 from bot.models import KnowledgeBase
@@ -12,6 +18,9 @@ class KnowledgeCreate(BaseModel):
     question: str
     answer: str
 
+class BulkKnowledgeCreate(BaseModel):
+    items: List[KnowledgeCreate]
+
 class KnowledgeResponse(BaseModel):
     id: int
     question: str
@@ -20,9 +29,106 @@ class KnowledgeResponse(BaseModel):
     class Config:
         orm_mode = True
 
+def extract_text_from_file(file_path: str, filename: str) -> str:
+    ext = filename.lower().split('.')[-1]
+    if ext == 'pdf':
+        reader = PdfReader(file_path)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() or ""
+        return text
+    elif ext == 'docx':
+        return docx2txt.process(file_path)
+    elif ext == 'txt':
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    else:
+        raise ValueError(f"Qo'llab-quvvatlanmaydigan fayl formati: {ext}")
+
+async def extract_knowledge_api(text: str, db: Session):
+    # 1. Sozlamalarni DB dan olish
+    from bot.crud import get_setting
+    provider_raw = get_setting(db, "ai_provider", "openai")
+    provider = provider_raw.lower() if provider_raw else "openai"
+    
+    text = text[:60000] # Text limit oshirildi (60k belgi)
+    
+    prompt = (
+        "Senga quyida bir nechta sahifali text beriladi. Ushbu textdan eng muhim SAVOL va JAVOBlarni ajratib ol. "
+        "Matn mazmunini to'liq qamrab oluvchi 15-20 ta savol-javob bo'lsin. "
+        "Javoblar aniq, tushunarli va qisqa bo'lsin. "
+        "Natijani FAQAT JSON formatida qaytar: {\"knowledge\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
+    )
+
+    try:
+        content = ""
+        if provider == "groq":
+            from openai import AsyncOpenAI
+            api_key = get_setting(db, "groq_api_key", os.getenv("GROQ_API_KEY", ""))
+            # Timeoutni constructorga beramiz (Groq uchun)
+            client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1", timeout=120.0)
+            response = await client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are a professional knowledge extractor. Return only a JSON object with a 'knowledge' key containing a list of Q&A pairs."},
+                    {"role": "user", "content": f"{prompt}\n\nTEXT:\n{text}"}
+                ],
+                response_format={ "type": "json_object" }
+            )
+            content = response.choices[0].message.content
+
+        elif provider == "gemini":
+            import google.generativeai as genai
+            api_key = get_setting(db, "gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            # Gemini uchun request_options orqali timeout beramiz
+            response = await model.generate_content_async(
+                f"{prompt}\n\nTEXT:\n{text}",
+                generation_config={"response_mime_type": "application/json"},
+                request_options={"timeout": 120}
+            )
+            content = response.text
+
+        else: # OpenAI
+            from openai import OpenAI as SyncOpenAI
+            api_key = get_setting(db, "openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+            client = SyncOpenAI(api_key=api_key, timeout=120.0)
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a professional knowledge extractor. Return only a JSON object with a 'knowledge' key containing a list of Q&A pairs."},
+                    {"role": "user", "content": f"{prompt}\n\nTEXT:\n{text}"}
+                ],
+                response_format={ "type": "json_object" }
+            )
+            content = response.choices[0].message.content
+
+        # JSONni aqlli parslash
+        data = json.loads(content)
+        if isinstance(data, dict):
+            if "knowledge" in data:
+                return data["knowledge"]
+            if "items" in data:
+                return data["items"]
+            # To'g'ridan-to'g'ri lug'at bo'lsa, qidirib ko'ramiz
+            for key in data:
+                if isinstance(data[key], list) and len(data[key]) > 0:
+                    return data[key]
+        if isinstance(data, list):
+            return data
+            
+        return []
+
+    except Exception as e:
+        print(f"Extraction API Error ({provider}): {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"AI tahlilida xatolik ({provider}): {str(e)}"
+        )
+
 @router.get("/", response_model=List[KnowledgeResponse])
 def get_knowledge_list(db: Session = Depends(get_db)):
-    # optionally auth check here if needed: _ = Depends(get_current_user)
     return db.query(KnowledgeBase).order_by(KnowledgeBase.id.desc()).all()
 
 @router.post("/", response_model=KnowledgeResponse)
@@ -32,6 +138,44 @@ def create_knowledge(item: KnowledgeCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(kb)
     return kb
+
+@router.post("/bulk")
+def bulk_create_knowledge(data: BulkKnowledgeCreate, db: Session = Depends(get_db), current_admin=Depends(get_current_admin)):
+    for item in data.items:
+        kb = KnowledgeBase(question=item.question, answer=item.answer)
+        db.add(kb)
+    db.commit()
+    return {"status": "success", "count": len(data.items)}
+
+@router.post("/extract")
+async def extract_knowledge_from_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    temp_path = f"temp_{file.filename}"
+    try:
+        # 1. Faylni vaqtincha saqlash
+        with open(temp_path, "wb") as f:
+            f.write(await file.read())
+        
+        # 2. Matnni ajratib olish
+        text = extract_text_from_file(temp_path, file.filename)
+        
+        if not text or len(text.strip()) < 20:
+            raise HTTPException(status_code=400, detail="Fayldan yetarli matn topilmadi.")
+
+        # 3. AI orqali tahlil qilish
+        knowledge = await extract_knowledge_api(text, db)
+        
+        return knowledge
+
+    except Exception as e:
+        print(f"Extraction Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Faylni tahlil qilishda xatolik: {str(e)}")
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 @router.delete("/{kb_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_knowledge(kb_id: int, db: Session = Depends(get_db)):
