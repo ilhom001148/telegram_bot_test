@@ -322,24 +322,39 @@ async def broadcast_scheduler_worker():
 
 async def start_bot():
     from bot.bot_instance import get_bot
+    from bot.config import TELEGRAM_TOKEN
     
     # Rejalashtirilgan ishlar orqa fonda parallel ishlaydi
     asyncio.create_task(broadcast_scheduler_worker())
     
     while True:
-        bot = get_bot()
         try:
-            print("Bot started...")
+            if not TELEGRAM_TOKEN or "YOUR_TOKEN" in TELEGRAM_TOKEN:
+                print("❌ CRITICAL ERROR: TELEGRAM_TOKEN topilmadi yoki noto'g'ri! Render Dashboard -> Environment Variables bo'limini tekshiring.")
+                await asyncio.sleep(10)
+                continue
+                
+            bot = get_bot()
+            # Botni tekshirish
+            me = await bot.get_me()
+            print(f"✅ Bot successfully connected: @{me.username}")
+            
             # Pollingni barqarorlashtirish
+            print("⏳ Pollingga tayyorlanmoqda...")
             await dp.start_polling(bot, skip_updates=True)
             break # Normal exit
         except Exception as e:
-            print(f"Bot Polling Error: {e}")
-            print("Tarmoq xatosi. 5 soniyadan so'ng qayta urinib ko'ramiz...")
-            await asyncio.sleep(5)
+            print(f"❌ Bot Polling Error: {e}")
+            if "Conflict" in str(e):
+                print("⚠️ OGOHLANTIRISH: Botning boshqa nusxasi ishlayapti (local machine yoki boshqa server). Bir vaqtda faqat bitta bot ishlay oladi!")
+            print("🔄 10 soniyadan so'ng qayta urinib ko'ramiz...")
+            await asyncio.sleep(10)
         finally:
-            if bot.session:
-                await bot.session.close()
+            try:
+                if 'bot' in locals() and bot.session:
+                    await bot.session.close()
+            except:
+                pass
 
 if __name__ == "__main__":
     try:

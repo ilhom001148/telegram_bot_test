@@ -71,6 +71,28 @@ from fastapi.responses import FileResponse
 def root():
     return {"message": "API is running"}
 
+@app.get("/bot-status")
+async def bot_status():
+    from bot.bot_instance import get_bot
+    from bot.config import TELEGRAM_TOKEN
+    
+    if not TELEGRAM_TOKEN or "YOUR_TOKEN" in TELEGRAM_TOKEN:
+        return {"status": "error", "message": "TELEGRAM_TOKEN not configured in environment variables"}
+    
+    try:
+        bot = get_bot()
+        me = await bot.get_me()
+        await bot.session.close()
+        return {
+            "status": "online",
+            "bot_username": me.username,
+            "bot_id": me.id,
+            "can_join_groups": me.can_join_groups,
+            "can_read_all_group_messages": me.can_read_all_group_messages
+        }
+    except Exception as e:
+        return {"status": "offline", "error": str(e)}
+
 # Serve the pre-built React Admin Panel
 base_dir = os.path.dirname(__file__)
 dist_path = os.path.join(base_dir, "..", "admin-panel", "dist")
