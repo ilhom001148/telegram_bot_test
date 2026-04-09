@@ -13,3 +13,5 @@ gunicorn
 httpx
 jinja2
 python-dateutil
+bcrypt
+python-jose[cryptography]
