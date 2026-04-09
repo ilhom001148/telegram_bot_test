@@ -908,14 +908,40 @@ function Groups({ token }) {
 function GroupHistory({ token, group, onBack }) {
   const [msgs, setMsgs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [answeringId, setAnsweringId] = useState(null);
+  const [answerText, setAnswerText] = useState('');
+  const [sending, setSending] = useState(false);
 
-  useEffect(() => { 
+  const fetchMessages = () => {
     setLoading(true);
     fetch(`${API_URL}/groups/${group.id}/messages?limit=50`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => res.json())
       .then(d => { setMsgs(d.items || []); setLoading(false); })
       .catch(() => { setLoading(false); }); 
+  };
+
+  useEffect(() => { 
+    fetchMessages();
   }, [group, token]);
+
+  const handleSendAnswer = (e, qId) => {
+    e.preventDefault();
+    if (!answerText.trim()) return;
+    setSending(true);
+    fetch(`${API_URL}/questions/${qId}/answer`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+       body: JSON.stringify({ text: answerText })
+    })
+    .then(res => res.json())
+    .then(() => {
+       setSending(false);
+       setAnsweringId(null);
+       setAnswerText('');
+       fetchMessages();
+    })
+    .catch(() => { setSending(false); });
+  };
 
   return (<>
     <div className="flex-between" style={{marginBottom:'2rem'}}>
@@ -923,7 +949,7 @@ function GroupHistory({ token, group, onBack }) {
        <button className="btn btn-sm" onClick={onBack}>⬅️ Orqaga qaytish</button>
     </div>
     
-    {loading ? <div className="loader"></div> : (
+    {loading && msgs.length === 0 ? <div className="loader"></div> : (
       <div className="glass-card table-wrapper">
         <table>
           <thead>
@@ -955,7 +981,29 @@ function GroupHistory({ token, group, onBack }) {
                            </div>
                            {m.answer_text}
                         </div>
-                     ) : <span style={{color:'var(--text-muted)', fontStyle:'italic'}}>Javob berilmagan</span>
+                     ) : (
+                        answeringId === m.id ? (
+                           <form onSubmit={(e) => handleSendAnswer(e, m.id)} style={{marginTop: '5px'}}>
+                             <textarea 
+                               rows="3" 
+                               value={answerText} 
+                               onChange={e => setAnswerText(e.target.value)}
+                               placeholder="Javobingizni yozing..."
+                               style={{width:'100%', padding:'10px', fontSize:'0.9rem', marginBottom:'10px', borderRadius:'8px', border:'1px solid var(--card-border)', background:'rgba(0,0,0,0.2)', color:'#fff'}}
+                               required
+                             />
+                             <div className="flex-between">
+                                <button type="button" className="btn btn-sm btn-danger" onClick={() => {setAnsweringId(null); setAnswerText('');}}>Bekor qilish</button>
+                                <button type="submit" className="btn btn-sm" disabled={sending}>{sending ? 'Yuborilmoqda...' : 'Yuborish'}</button>
+                             </div>
+                           </form>
+                        ) : (
+                           <div>
+                              <span style={{color:'var(--text-muted)', fontStyle:'italic', display:'block', marginBottom:'8px'}}>Kutilmoqda...</span>
+                              <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}}>Javob berish</button>
+                           </div>
+                        )
+                     )
                    ) : <span style={{color:'var(--text-muted)', fontSize:'0.8rem'}}>Oddiy xabar</span>}
                 </td>
                 <td>

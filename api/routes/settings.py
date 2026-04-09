@@ -31,9 +31,10 @@ def update_setting(data: SettingUpdate, current_admin=Depends(get_current_admin)
 
 @router.delete("/clear-history")
 def clear_history(current_admin=Depends(get_current_admin), db: Session = Depends(get_db)):
-    from bot.models import User, Group, Message
+    from bot.models import User, Group, Message, ScheduledBroadcast
     
     # Faqat muloqotga oid jadvallarni tozalash (KnowledgeBase va Setting saqlanib qoladi)
+    db.query(ScheduledBroadcast).delete()  # Group'ga bog'langan bo'lishi mumkin!
     db.query(Message).delete()
     db.query(Group).delete()
     db.query(User).delete()
@@ -43,12 +44,14 @@ def clear_history(current_admin=Depends(get_current_admin), db: Session = Depend
 
 @router.delete("/clear-all")
 def clear_all(current_admin=Depends(get_current_admin), db: Session = Depends(get_db)):
-    from bot.models import User, Group, Message, KnowledgeBase, Setting
+    from bot.models import User, Group, Message, KnowledgeBase, Setting, ScheduledBroadcast, TelegramAdmin
     
     # Barcha jadvallarni tozalash (Butunlay format qilish)
+    db.query(ScheduledBroadcast).delete()
     db.query(Message).delete()
     db.query(Group).delete()
     db.query(User).delete()
+    db.query(TelegramAdmin).delete()
     db.query(KnowledgeBase).delete()
     db.query(Setting).delete()
     
