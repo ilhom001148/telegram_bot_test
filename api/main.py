@@ -44,6 +44,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import asyncio
+from bot.main import start_bot
+
+@app.on_event("startup")
+async def startup_event():
+    print("🚀 Starting Telegram Bot in the background...")
+    asyncio.create_task(start_bot())
+
+
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(groups_router)
