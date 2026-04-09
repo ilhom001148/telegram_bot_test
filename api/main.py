@@ -55,8 +55,22 @@ app.include_router(admin_router)
 app.include_router(tg_admins_router)
 app.include_router(users_router)
 app.include_router(export_router)
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
-
-@app.get("/")
+@app.get("/api-status")
 def root():
     return {"message": "API is running"}
+
+# Serve the pre-built React Admin Panel
+base_dir = os.path.dirname(__file__)
+dist_path = os.path.join(base_dir, "..", "admin-panel", "dist")
+
+if os.path.isdir(os.path.join(dist_path, "assets")):
+    app.mount("/assets", StaticFiles(directory=os.path.join(dist_path, "assets")), name="assets")
+
+@app.get("/{full_path:path}")
+def serve_react_app(full_path: str):
+    if not os.path.exists(os.path.join(dist_path, "index.html")):
+        return {"detail": "Admin panel not built. API is running."}
+    return FileResponse(os.path.join(dist_path, "index.html"))
