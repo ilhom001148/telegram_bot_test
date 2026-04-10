@@ -1,6 +1,6 @@
 @echo off
 echo ==========================================
-echo UySot Bot Tizimi Ishga Tushirilmoqda...
+echo UyQur Bot Tizimi Ishga Tushirilmoqda...
 echo ==========================================
 
 echo.

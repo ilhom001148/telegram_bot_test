@@ -402,7 +402,7 @@ function App() {
     <div className="app-container">
       <div className="sidebar">
         <div className="brand">
-          <Icons.Bot /> <span>UySot AI</span>
+          <Icons.Bot /> <span>UyQur AI</span>
         </div>
         <div className="nav-links">
           <div className="nav-group">
@@ -1604,7 +1604,7 @@ function Login({ onLogin }) {
   };
   return (<div className="login-screen"><div className="glass-card login-card">
     <div className="stat-icon-wrapper" style={{margin:'0 auto 2rem', background:'var(--primary)', width:60, height:60}}><svg style={{width:32, height:32, fill:'#fff'}} viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg></div>
-    <h2>UySot Tizimi</h2><p>Admin panelga kirish</p>{error && <div className="error-msg">{error}</div>}
+    <h2>UyQur Tizimi</h2><p>Admin panelga kirish</p>{error && <div className="error-msg">{error}</div>}
     <form onSubmit={handleSubmit} style={{textAlign:'left'}}>
       <div className="form-group"><label>Foydalanuvchi nomi</label><input type="text" value={form.username} onChange={e => setForm({...form, username: e.target.value})} placeholder="Login..." /></div>
       <div className="form-group"><label>Parol</label><input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="••••••••" /></div>
