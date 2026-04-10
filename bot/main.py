@@ -88,32 +88,58 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
 async def handle_voice(message: TgMessage):
     db = SessionLocal()
     try:
-        user = get_or_create_user(db, message.from_user.id)
-        lang = user.language_code
-        
         # 1. Ovozli xabarni yuklab olish
-        wait_msg = await message.reply(get_string("processing", lang))
-        
         file_id = message.voice.file_id
         file = await message.bot.get_file(file_id)
         file_path = f"voice_{file_id}.oga"
         await message.bot.download_file(file.file_path, file_path)
         
-        # 2. Transkripsiya qilish
+        # 2. Transkripsiya qilish (Matnga aylantirish)
         text = await transcribe_audio(file_path)
         
-        # 3. Faylni o'chirish
+        # 3. Vaqtinchalik faylni o'chirish
         if os.path.exists(file_path):
             os.remove(file_path)
             
         if not text:
-            await wait_msg.edit_text("❌ Audio tahlil qilib bo'lmadi.")
-            return
+            return # Tushunib bo'lmasa, saqlashning imkoni yo'q
             
-        # 4. AI ga yuborish
-        await wait_msg.delete()
-        await process_text_message(message, text, db, lang)
+        # 4. Bazaga saqlash
+        # Guruh yoki shaxsiy chatligini aniqlaymiz
+        is_group = message.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]
         
+        if is_group:
+            group = get_or_create_group(
+                db=db,
+                telegram_id=message.chat.id,
+                title=message.chat.title or "Unknown Group",
+                username=getattr(message.chat, "username", None),
+            )
+            group_id = group.id
+        else:
+            # Shaxsiy chatlar uchun ham guruh moduli kabi ishlashi mumkin yoki user_id bilan
+            # Hozirgi bot arxitekturasida guruhlar orqali kuzatiladi, shuning uchun shaxsiy chatni ham 'guruh' sifatida saqlaymiz
+            group = get_or_create_group(db, message.chat.id, message.from_user.full_name)
+            group_id = group.id
+
+        is_question = await is_question_ai(text)
+        
+        create_message(
+            db=db,
+            telegram_message_id=message.message_id,
+            group_id=group_id,
+            user_id=message.from_user.id if message.from_user else None,
+            full_name=message.from_user.full_name if message.from_user else None,
+            username=message.from_user.username if message.from_user else None,
+            text=f"[Ovozli xabar]: {text}",
+            is_question=is_question,
+            reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
+        )
+        
+        # AI ga yubormaymiz va javob bermaymiz - faqat baza uchun.
+        
+    except Exception as e:
+        print("VOICE ERROR:", e)
     finally:
         db.close()
 
