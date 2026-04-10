@@ -429,11 +429,10 @@ function App() {
           </div>
 
           <div className="nav-group">
-            <div className={`nav-link ${(activeTab === 'settings' || activeTab === 'database' || activeTab === 'tg_admins' || activeTab === 'profile') ? 'active' : ''}`}><Icons.Settings /> <span>Tizim & Sozlamalar ▾</span></div>
+            <div className={`nav-link ${(activeTab === 'settings' || activeTab === 'database' || activeTab === 'profile') ? 'active' : ''}`}><Icons.Settings /> <span>Tizim & Sozlamalar ▾</span></div>
             <div className="nav-sub-menu">
               <div className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}><Icons.Settings /> <span>Sozlamalar</span></div>
               <div className={`nav-link ${activeTab === 'database' ? 'active' : ''}`} onClick={() => setActiveTab('database')}><Icons.Database /> <span>Ma'lumotlar bazasi</span></div>
-              <div className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}><Icons.Profile /> <span>Profil</span></div>
               <div className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}><Icons.Profile /> <span>Profil</span></div>
             </div>
           </div>
