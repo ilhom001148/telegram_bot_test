@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.toast
+.lucid
+.ipynb_checkpoints
+
+# Node / React
+node_modules/
+admin-panel/node_modules/
+admin-panel/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.*
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
