@@ -402,7 +402,7 @@ function App() {
     <div className="app-container">
       <div className="sidebar">
         <div className="brand">
-          <Icons.Bot /> <span>UyQur AI</span>
+          <Icons.Bot /> <span>UyQur</span>
         </div>
         <div className="nav-links">
           <div className="nav-group">
