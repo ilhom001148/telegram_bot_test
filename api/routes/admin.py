@@ -11,7 +11,7 @@ router = APIRouter(prefix="/admin", tags=["Admin Tools"])
 
 class BroadcastMessage(BaseModel):
     text: str
-    target: str # "all", "groups", "users", "specific_group"
+    target: str
     group_id: int | None = None
     scheduled_at: str | None = None # ISO format (Y-m-d H:M)
 

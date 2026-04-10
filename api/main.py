@@ -71,6 +71,20 @@ from fastapi.responses import FileResponse
 def root():
     return {"message": "API is running"}
 
+@app.post("/webhook/bot")
+async def telegram_webhook(update: dict):
+    """
+    Telegram webhook endpoint.
+    """
+    from bot.main import dp
+    from bot.bot_instance import get_bot
+    from aiogram.types import Update
+    
+    bot = get_bot()
+    telegram_update = Update(**update)
+    await dp.feed_update(bot, telegram_update)
+    return {"ok": True}
+
 @app.get("/bot-status")
 async def bot_status():
     from bot.bot_instance import get_bot

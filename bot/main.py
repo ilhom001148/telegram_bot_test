@@ -322,7 +322,7 @@ async def broadcast_scheduler_worker():
 
 async def start_bot():
     from bot.bot_instance import get_bot
-    from bot.config import TELEGRAM_TOKEN
+    from bot.config import TELEGRAM_TOKEN, WEBHOOK_URL
     
     # Rejalashtirilgan ishlar orqa fonda parallel ishlaydi
     asyncio.create_task(broadcast_scheduler_worker())
@@ -330,31 +330,39 @@ async def start_bot():
     while True:
         try:
             if not TELEGRAM_TOKEN or "YOUR_TOKEN" in TELEGRAM_TOKEN:
-                print("❌ CRITICAL ERROR: TELEGRAM_TOKEN topilmadi yoki noto'g'ri! Render Dashboard -> Environment Variables bo'limini tekshiring.")
+                print("❌ CRITICAL ERROR: TELEGRAM_TOKEN topilmadi!")
                 await asyncio.sleep(10)
                 continue
                 
             bot = get_bot()
-            # Botni tekshirish
             me = await bot.get_me()
-            print(f"✅ Bot successfully connected: @{me.username}")
+            print(f"✅ Bot connected: @{me.username}")
             
-            # Pollingni barqarorlashtirish
-            print("⏳ Pollingga tayyorlanmoqda...")
-            await dp.start_polling(bot, skip_updates=True)
-            break # Normal exit
+            if WEBHOOK_URL:
+                webhook_path = "/webhook/bot"
+                url = f"{WEBHOOK_URL.rstrip('/')}{webhook_path}"
+                print(f"📡 Setting Webhook to: {url}")
+                await bot.set_webhook(url=url, drop_pending_updates=True)
+                # Webhook rejimida polling kerak emas, shunchaki kutib turamiz
+                print("✅ Webhook muvaffaqiyatli sozlandi. Bot xabarlarni kutmoqda...")
+                # Bu yerda cheksiz kutish kerak, aks holda funksiya tugab qoladi
+                while True:
+                    await asyncio.sleep(3600)
+            else:
+                print("⚠️ WEBHOOK_URL topilmadi. Polling rejimida boshlanmoqda...")
+                await dp.start_polling(bot, skip_updates=True)
+                break
         except Exception as e:
-            print(f"❌ Bot Polling Error: {e}")
-            if "Conflict" in str(e):
-                print("⚠️ OGOHLANTIRISH: Botning boshqa nusxasi ishlayapti (local machine yoki boshqa server). Bir vaqtda faqat bitta bot ishlay oladi!")
-            print("🔄 10 soniyadan so'ng qayta urinib ko'ramiz...")
+            print(f"❌ Bot Error: {e}")
             await asyncio.sleep(10)
         finally:
-            try:
-                if 'bot' in locals() and bot.session:
-                    await bot.session.close()
-            except:
-                pass
+            # Webhook rejimida session-ni yopmaslik kerak, chunki u FastAPI orqali ishlatiladi
+            if not WEBHOOK_URL:
+                try:
+                    if 'bot' in locals() and bot.session:
+                        await bot.session.close()
+                except:
+                    pass
 
 if __name__ == "__main__":
     try:

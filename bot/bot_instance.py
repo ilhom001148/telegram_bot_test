@@ -3,17 +3,19 @@ from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from bot.config import TELEGRAM_TOKEN, TELEGRAM_PROXY
 
+_bot_instance = None
+
 def get_bot() -> Bot:
     """
-    Returns a Bot instance with proxy support if configured.
-    Note: This creates a new session each time if not carefully managed.
-    For simple API calls, it's safer to use this way and close the session afterwards.
+    Returns a global Bot instance with proxy support if configured.
     """
-    session = None
-    if TELEGRAM_PROXY:
-        session = AiohttpSession(proxy=TELEGRAM_PROXY)
-    
-    return Bot(token=TELEGRAM_TOKEN, session=session)
+    global _bot_instance
+    if _bot_instance is None:
+        session = None
+        if TELEGRAM_PROXY:
+            session = AiohttpSession(proxy=TELEGRAM_PROXY)
+        _bot_instance = Bot(token=TELEGRAM_TOKEN, session=session)
+    return _bot_instance
 
 async def close_bot_session(bot: Bot):
     """Closes the bot session if it exists."""

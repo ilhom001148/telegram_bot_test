@@ -22,3 +22,6 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 
 # Telegram API ulanish uchun Proxy
 TELEGRAM_PROXY = os.getenv("TELEGRAM_PROXY", None)
+
+# Webhook sozlamalari
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
