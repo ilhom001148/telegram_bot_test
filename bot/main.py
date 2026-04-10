@@ -95,14 +95,14 @@ async def handle_voice(message: TgMessage):
         await message.bot.download_file(file.file_path, file_path)
         
         # 2. Transkripsiya qilish (Matnga aylantirish)
+        print(f"🎙 Processing voice from {message.from_user.id}...")
         text = await transcribe_audio(file_path)
         
         # 3. Vaqtinchalik faylni o'chirish
         if os.path.exists(file_path):
             os.remove(file_path)
             
-        if not text:
-            return # Tushunib bo'lmasa, saqlashning imkoni yo'q
+        final_text = f"[Ovozli xabar]: {text}" if text else "[Ovozli xabar: Tahlil qilib bo'lmadi yoki bo'sh]"
             
         # 4. Bazaga saqlash
         # Guruh yoki shaxsiy chatligini aniqlaymiz
@@ -117,12 +117,10 @@ async def handle_voice(message: TgMessage):
             )
             group_id = group.id
         else:
-            # Shaxsiy chatlar uchun ham guruh moduli kabi ishlashi mumkin yoki user_id bilan
-            # Hozirgi bot arxitekturasida guruhlar orqali kuzatiladi, shuning uchun shaxsiy chatni ham 'guruh' sifatida saqlaymiz
             group = get_or_create_group(db, message.chat.id, message.from_user.full_name)
             group_id = group.id
 
-        is_question = await is_question_ai(text)
+        is_question = await is_question_ai(text) if text else False
         
         create_message(
             db=db,
@@ -131,10 +129,11 @@ async def handle_voice(message: TgMessage):
             user_id=message.from_user.id if message.from_user else None,
             full_name=message.from_user.full_name if message.from_user else None,
             username=message.from_user.username if message.from_user else None,
-            text=f"[Ovozli xabar]: {text}",
+            text=final_text,
             is_question=is_question,
             reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
         )
+        print(f"✅ Voice saved to DB: {message.from_user.id}")
         
         # AI ga yubormaymiz va javob bermaymiz - faqat baza uchun.
         
