@@ -10,20 +10,9 @@ from bot.config import SUPERADMINS
 router = Router()
 
 
-from bot.models import TelegramAdmin
-
 def is_superadmin(user_id: int) -> bool:
-    # 1. .env dagi hardcoded adminlarni tekshirish
-    if user_id in SUPERADMINS:
-        return True
-    
-    # 2. Bazadan tekshirish
-    db = SessionLocal()
-    try:
-        admin = db.query(TelegramAdmin).filter(TelegramAdmin.telegram_id == user_id).first()
-        return admin is not None
-    finally:
-        db.close()
+    # Faqat .env dagi hardcoded adminlarni tekshirish
+    return user_id in SUPERADMINS
 
 
 @router.message(Command("stats"))

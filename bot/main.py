@@ -350,6 +350,8 @@ async def start_bot():
                     await asyncio.sleep(3600)
             else:
                 print("⚠️ WEBHOOK_URL topilmadi. Polling rejimida boshlanmoqda...")
+                # Lokal ishga tushirishda Webhook bilan konflikt bo'lmasligi uchun uni o'chiramiz
+                await bot.delete_webhook(drop_pending_updates=True)
                 await dp.start_polling(bot, skip_updates=True)
                 break
         except Exception as e:

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 from bot.db import engine, Base, SessionLocal
-from bot.models import Group, Message, KnowledgeBase, Admin, Setting, User, TelegramAdmin
+from bot.models import Group, Message, KnowledgeBase, Admin, Setting, User
 from api.auth import hash_password
 from api.routes.auth import router as auth_router
 from api.routes.dashboard import router as dashboard_router
@@ -13,7 +13,6 @@ from api.routes.questions import router as questions_router
 from api.routes.knowledge import router as knowledge_router
 from api.routes.settings import router as settings_router
 from api.routes.admin import router as admin_router
-from api.routes.telegram_admins import router as tg_admins_router
 from api.routes.users import router as users_router
 from api.routes.export import router as export_router
 
@@ -61,7 +60,6 @@ app.include_router(questions_router)
 app.include_router(knowledge_router)
 app.include_router(settings_router)
 app.include_router(admin_router)
-app.include_router(tg_admins_router)
 app.include_router(users_router)
 app.include_router(export_router)
 from fastapi.staticfiles import StaticFiles

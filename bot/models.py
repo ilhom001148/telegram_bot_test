@@ -96,15 +96,6 @@ class KnowledgeBase(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
-class TelegramAdmin(Base):
-    __tablename__ = "telegram_admins"
-
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
-    full_name = Column(String(255), nullable=True)
-    username = Column(String(255), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
 
 class Admin(Base):
     __tablename__ = "admins"

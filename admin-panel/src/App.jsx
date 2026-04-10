@@ -433,7 +433,7 @@ function App() {
             <div className="nav-sub-menu">
               <div className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}><Icons.Settings /> <span>Sozlamalar</span></div>
               <div className={`nav-link ${activeTab === 'database' ? 'active' : ''}`} onClick={() => setActiveTab('database')}><Icons.Database /> <span>Ma'lumotlar bazasi</span></div>
-              <div className={`nav-link ${activeTab === 'tg_admins' ? 'active' : ''}`} onClick={() => setActiveTab('tg_admins')}><Icons.Profile /> <span>Telegram Adminlar</span></div>
+              <div className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}><Icons.Profile /> <span>Profil</span></div>
               <div className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}><Icons.Profile /> <span>Profil</span></div>
             </div>
           </div>
@@ -453,7 +453,6 @@ function App() {
         {activeTab === 'broadcast' && <BroadcastManager token={token} showFlash={showFlash} />}
         {activeTab === 'monitoring' && <MonitoringManager token={token} showFlash={showFlash} />}
         {activeTab === 'settings' && <BotSettings token={token} showFlash={showFlash} askConfirm={askConfirm} />}
-        {activeTab === 'tg_admins' && <TelegramAdmins token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'profile' && <Profile token={token} setUsername={setUsername} showFlash={showFlash} />}
         {activeTab === 'database' && <DatabaseManager token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'archive' && <ArchiveManager token={token} />}
@@ -1379,151 +1378,6 @@ function Broadcast({ token, showFlash }) {
   );
 }
 
-function TelegramAdmins({ token, showFlash, askConfirm }) {
-  const [admins, setAdmins] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ telegram_id: '', full_name: '', username: '' });
-
-  const fetchAdmins = () => {
-    setLoading(true);
-    fetch(`${API_URL}/tg-admins/`, { headers: { 'Authorization': `Bearer ${token}` } })
-      .then(res => res.json()).then(data => { setAdmins(data || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  };
-
-  useEffect(() => fetchAdmins(), [token]);
-
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!form.telegram_id) return;
-    setSaving(true);
-    fetch(`${API_URL}/tg-admins/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ 
-        telegram_id: parseInt(form.telegram_id), 
-        full_name: form.full_name || null, 
-        username: form.username || null 
-      })
-    })
-    .then(res => res.json()).then(data => {
-      setSaving(false);
-      if (data.id) {
-        showFlash("Telegram admin qo'shildi");
-        setForm({ telegram_id: '', full_name: '', username: '' });
-        fetchAdmins();
-      } else {
-        showFlash(data.detail || "Xatolik yuz berdi", "error");
-      }
-    }).catch(() => { setSaving(false); showFlash("Server xatosi", "error"); });
-  };
-
-  const handleDelete = (id, name) => {
-    askConfirm(
-      "Adminni o'chirish",
-      `${name} ni adminlar ro'yxatidan o'chirib tashlamoqchimisiz?`,
-      () => {
-        fetch(`${API_URL}/tg-admins/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
-          .then(res => res.json()).then(data => {
-            if (data.status === 'success') {
-              showFlash("Admin o'chirildi");
-              fetchAdmins();
-            }
-          });
-      }
-    );
-  };
-
-  if (loading) return <div className="loader"></div>;
-
-  return (
-    <div style={{animation: 'fadeIn 0.5s ease-out'}}>
-      <h2 className="header-title">Telegram SuperAdminlar</h2>
-      
-      <div className="grid-cards" style={{gridTemplateColumns: 'minmax(350px, 1fr) 2fr', gap: '2rem'}}>
-        <div className="glass-card">
-          <div className="summary-title" style={{marginBottom:'1.5rem'}}>Yangi admin qo'shish</div>
-          <form onSubmit={handleAdd}>
-            <div className="form-group">
-              <label>Telegram ID (Raqamli)</label>
-              <input 
-                type="number" 
-                value={form.telegram_id} 
-                onChange={e => setForm({...form, telegram_id: e.target.value})} 
-                placeholder="Masalan: 12345678"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>To'liq ismi (Ixtiyoriy)</label>
-              <input 
-                type="text" 
-                value={form.full_name} 
-                onChange={e => setForm({...form, full_name: e.target.value})} 
-                placeholder="Ism..."
-              />
-            </div>
-            <div className="form-group">
-              <label>Username (Ixtiyoriy)</label>
-              <input 
-                type="text" 
-                value={form.username} 
-                onChange={e => setForm({...form, username: e.target.value})} 
-                placeholder="@username..."
-              />
-            </div>
-            <button type="submit" className="btn btn-primary" style={{width:'100%'}} disabled={saving}>
-              {saving ? 'Qo\'shilmoqda...' : 'Admin sifatida saqlash'}
-            </button>
-          </form>
-          <div style={{marginTop:'1.5rem', fontSize:'0.75rem', color:'var(--text-muted)', lineHeight:'1.4'}}>
-            💡 <strong>Eslatma:</strong> Bu yerga qo'shilgan foydalanuvchilar Telegram guruhlarida <code>/stats</code> kabi maxsus buyruqlardan foydalana oladilar.
-          </div>
-        </div>
-
-        <div className="glass-card">
-          <div className="summary-title" style={{marginBottom:'1rem'}}>Mavjud Telegram adminlar</div>
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Ism / Username</th>
-                  <th>Sana</th>
-                  <th>Amal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {admins.length > 0 ? admins.map(a => (
-                  <tr key={a.id}>
-                    <td style={{fontSize:'0.85rem', fontWeight:'600'}}>{a.telegram_id}</td>
-                    <td>
-                      <div style={{fontSize:'0.9rem'}}>{a.full_name || 'Noma\'lum'}</div>
-                      <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{a.username ? `@${a.username}` : ''}</div>
-                    </td>
-                    <td style={{fontSize:'0.75rem'}}>{new Date(a.created_at).toLocaleDateString()}</td>
-                    <td>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(a.id, a.full_name || a.telegram_id)}>
-                        🗑️
-                      </button>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan="4" style={{textAlign:'center', padding:'2rem', color:'var(--text-muted)'}}>
-                      Telegram adminlar hali qo'shilmagan.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function DatabaseManager({ token, showFlash, askConfirm }) {
   const [groups, setGroups] = useState([]);

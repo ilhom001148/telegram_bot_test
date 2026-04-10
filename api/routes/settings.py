@@ -42,16 +42,13 @@ def clear_history(current_admin=Depends(get_current_admin), db: Session = Depend
     db.commit()
     return {"status": "success", "message": "Muloqotlar tarixi tozalandi. AI bilimlari saqlab qolindi."}
 
-@router.delete("/clear-all")
-def clear_all(current_admin=Depends(get_current_admin), db: Session = Depends(get_db)):
-    from bot.models import User, Group, Message, KnowledgeBase, Setting, ScheduledBroadcast, TelegramAdmin
+    from bot.models import User, Group, Message, KnowledgeBase, Setting, ScheduledBroadcast
     
     # Barcha jadvallarni tozalash (Butunlay format qilish)
     db.query(ScheduledBroadcast).delete()
     db.query(Message).delete()
     db.query(Group).delete()
     db.query(User).delete()
-    db.query(TelegramAdmin).delete()
     db.query(KnowledgeBase).delete()
     db.query(Setting).delete()
     
