@@ -12,13 +12,15 @@ from bot.models import Setting
 
 load_dotenv()
 
-def get_db_setting(key: str, default: str = "") -> str:
-    db = SessionLocal()
-    try:
-        setting = db.query(Setting).filter(Setting.key == key).first()
-        return setting.value if setting else default
-    finally:
-        db.close()
+async def get_db_setting(key: str, default: str = "") -> str:
+    async with SessionLocal() as db:
+        try:
+            from sqlalchemy import select
+            result = await db.execute(select(Setting).filter(Setting.key == key))
+            setting = result.scalars().first()
+            return setting.value if setting else default
+        finally:
+            await db.close()
 
 def detect_question(text: str) -> bool:
     """Keyword-based question and help request detection (Fast)."""
@@ -58,7 +60,7 @@ async def is_question_ai(text: str) -> bool:
         return True
     
     # 2. Agar noaniq bo'lsa, AI dan juda qisqa so'raymiz
-    provider = get_db_setting("ai_provider", "openai")
+    provider = await get_db_setting("ai_provider", "openai")
     prompt = (
         "TASK: Analyze the user message and determine if it requires a helpful response from an AI assistant. "
         "Return 'TRUE' if the message is: a question, a help request, a technical problem report, or a request for a task. "
@@ -69,7 +71,7 @@ async def is_question_ai(text: str) -> bool:
     
     try:
         if provider == "groq":
-            api_key = get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
+            api_key = await get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
             client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
             response = await client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
@@ -79,14 +81,14 @@ async def is_question_ai(text: str) -> bool:
             return "TRUE" in response.choices[0].message.content.upper()
         
         elif provider == "gemini":
-            api_key = get_db_setting("gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
+            api_key = await get_db_setting("gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=prompt)
             response = await model.generate_content_async(text)
             return "TRUE" in response.text.upper()
             
         else: # Default OpenAI
-            api_key = get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+            api_key = await get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
             client = AsyncOpenAI(api_key=api_key)
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -99,9 +101,9 @@ async def is_question_ai(text: str) -> bool:
 
 async def get_ai_answer_async(question: str, context: str = None) -> str:
     # 1. Sozlamalarni DB dan olish
-    provider = get_db_setting("ai_provider", "openai")
-    custom_system_prompt = get_db_setting("system_prompt", "")
-    company_info = get_db_setting("company_info", "")
+    provider = await get_db_setting("ai_provider", "openai")
+    custom_system_prompt = await get_db_setting("system_prompt", "")
+    company_info = await get_db_setting("company_info", "")
 
     # 2. System Promptni shakllantirish
     if context:
@@ -125,7 +127,7 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
     try:
         # 3. Provayderga qarab so'rov yuborish
         if provider == "groq":
-            api_key = get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
+            api_key = await get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
             client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
             response = await client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
@@ -134,14 +136,14 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
             return response.choices[0].message.content
 
         elif provider == "gemini":
-            api_key = get_db_setting("gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
+            api_key = await get_db_setting("gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_prompt)
             response = await model.generate_content_async(question)
             return response.text
 
         else: # Default: OpenAI
-            api_key = get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+            api_key = await get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
             client = AsyncOpenAI(api_key=api_key)
             response = await client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -155,11 +157,11 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
 
 async def transcribe_audio(file_path: str) -> str:
     # 1. Sozlamalarni DB dan olish
-    provider = get_db_setting("ai_provider", "openai")
+    provider = await get_db_setting("ai_provider", "openai")
     
     try:
         if provider == "groq":
-            api_key = get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
+            api_key = await get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
             client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
             
             with open(file_path, "rb") as audio_file:
@@ -170,7 +172,7 @@ async def transcribe_audio(file_path: str) -> str:
             return transcription.text
             
         else: # Default OpenAI for Audio transcription
-            api_key = get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+            api_key = await get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
             client = AsyncOpenAI(api_key=api_key)
             
             with open(file_path, "rb") as audio_file:
@@ -184,18 +186,4 @@ async def transcribe_audio(file_path: str) -> str:
         print(f"STT Error ({provider}):", e)
         return ""
 
-# Sinxron versiya (backward compatibility uchun)
-def get_ai_answer(question: str, context: str = None) -> str:
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    
-    if loop.is_running():
-        # Handle async running loop if called from main bot
-        import nest_asyncio
-        nest_asyncio.apply()
-    
-    return loop.run_until_complete(get_ai_answer_async(question, context))
+# Sinxron versiya o'chirildi, chunki bot to'liq asinxron bo'ldi.

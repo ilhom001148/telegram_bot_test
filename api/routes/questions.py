@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session, joinedload
-from bot.db import SessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from sqlalchemy.orm import joinedload
 from bot.models import Message, Group
 from bot.crud import create_message, mark_question_answered
-from bot.config import TELEGRAM_TOKEN
 from api.dependencies import get_db, get_current_admin
 from pydantic import BaseModel
-from aiogram import Bot
 
 router = APIRouter(prefix="/questions", tags=["Questions"])
 
@@ -16,7 +15,7 @@ class AnswerRequest(BaseModel):
 def serialize_question(q):
     return {
         "id": q.id,
-        "telegram_link": q.telegram_link,
+                "telegram_link": q.telegram_link,
         "telegram_app_link": q.telegram_app_link,
         "telegram_message_id": q.telegram_message_id,
         "group_id": q.group_id,
@@ -31,14 +30,24 @@ def serialize_question(q):
     }
 
 @router.get("/")
-def get_all_questions(
+async def get_all_questions(
+    db: AsyncSession = Depends(get_db),
     limit: int = 15,
     offset: int = 0,
-    db: Session = Depends(get_db)
 ):
-    query = db.query(Message).options(joinedload(Message.group)).filter(Message.is_question == True)
-    total = query.count()
-    questions = query.order_by(Message.id.desc()).offset(offset).limit(limit).all()
+    query = select(Message).options(joinedload(Message.group)).filter(Message.is_question == True)
+    
+    count_query = select(func.count()).select_from(query.alias())
+    total_res = await db.execute(count_query)
+    total = total_res.scalar() or 0
+    
+    questions_res = await db.execute(
+        query.order_by(Message.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    questions = questions_res.scalars().all()
+    
     return {
         "total": total,
         "limit": limit,
@@ -47,17 +56,27 @@ def get_all_questions(
     }
 
 @router.get("/unanswered")
-def get_unanswered_questions(
+async def get_unanswered_questions(
+    db: AsyncSession = Depends(get_db),
     limit: int = 10,
     offset: int = 0,
-    db: Session = Depends(get_db)
 ):
-    query = db.query(Message).options(joinedload(Message.group)).filter(
+    query = select(Message).options(joinedload(Message.group)).filter(
         Message.is_question == True,
         Message.is_answered == False
     )
-    total = query.count()
-    questions = query.order_by(Message.id.desc()).offset(offset).limit(limit).all()
+    
+    count_query = select(func.count()).select_from(query.alias())
+    total_res = await db.execute(count_query)
+    total = total_res.scalar() or 0
+    
+    questions_res = await db.execute(
+        query.order_by(Message.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    questions = questions_res.scalars().all()
+    
     return {
         "total": total,
         "limit": limit,
@@ -70,13 +89,16 @@ async def answer_question(
     question_id: int,
     data: AnswerRequest,
     current_admin=Depends(get_current_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     # 1. Savolni topish
-    question = db.query(Message).options(joinedload(Message.group)).filter(
-        Message.id == question_id,
-        Message.is_question == True
-    ).first()
+    result = await db.execute(
+        select(Message).options(joinedload(Message.group)).filter(
+            Message.id == question_id,
+            Message.is_question == True
+        )
+    )
+    question = result.scalars().first()
 
     if not question:
         raise HTTPException(status_code=404, detail="Savol topilmadi")
@@ -101,7 +123,7 @@ async def answer_question(
             await close_bot_session(bot)
 
         # 3. Bazada javobni saqlash
-        create_message(
+        await create_message(
             db=db,
             telegram_message_id=sent_msg.message_id,
             group_id=question.group_id,
@@ -114,7 +136,7 @@ async def answer_question(
         )
 
         # 4. Savolni 'answered' deb belgilash
-        mark_question_answered(db, question, answered_by_bot=True)
+        await mark_question_answered(db, question, answered_by_bot=True)
 
         return {"status": "success", "message": "Javob muvaffaqiyatli yuborildi"}
     except Exception as e:
@@ -122,13 +144,16 @@ async def answer_question(
         raise HTTPException(status_code=500, detail=f"Telegramga javob yuborishda xatolik: {str(e)}")
 
 @router.get("/{question_id}")
-def get_question_detail(question_id: int, db: Session = Depends(get_db)):
-    question = db.query(Message).options(joinedload(Message.group)).filter(
-        Message.id == question_id,
-        Message.is_question == True
-    ).first()
+async def get_question_detail(question_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Message).options(joinedload(Message.group)).filter(
+            Message.id == question_id,
+            Message.is_question == True
+        )
+    )
+    question = result.scalars().first()
 
     if not question:
         raise HTTPException(status_code=404, detail="Savol topilmadi")
 
-    return serialize_question(question)
+    return serialize_question(question)

@@ -1,6 +1,8 @@
-from fastapi import APIRouter
-from sqlalchemy import func
+from fastapi import APIRouter, Depends
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.dependencies import get_db
 from bot.db import SessionLocal
 from bot.models import Group, Message
 
@@ -8,58 +10,57 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
 @router.get("/stats")
-def get_dashboard_stats():
-    db = SessionLocal()
-
+async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
     try:
-        total_groups = db.query(func.count(Group.id)).scalar() or 0
-        total_messages = db.query(func.count(Message.id)).scalar() or 0
-        total_users = db.query(func.count(Message.user_id.distinct())).scalar() or 0
+        total_groups_result = await db.execute(select(func.count(Group.id)))
+        total_groups = total_groups_result.scalar() or 0
+        
+        total_messages_result = await db.execute(select(func.count(Message.id)))
+        total_messages = total_messages_result.scalar() or 0
+        
+        total_users_result = await db.execute(select(func.count(Message.user_id.distinct())))
+        total_users = total_users_result.scalar() or 0
 
-        total_questions = (
-            db.query(func.count(Message.id))
+        total_questions_result = await db.execute(
+            select(func.count(Message.id))
             .filter(Message.is_question == True)
-            .scalar()
-            or 0
         )
+        total_questions = total_questions_result.scalar() or 0
 
-        answered_questions = (
-            db.query(func.count(Message.id))
+        answered_questions_result = await db.execute(
+            select(func.count(Message.id))
             .filter(
                 Message.is_question == True,
                 Message.is_answered == True
             )
-            .scalar()
-            or 0
         )
+        answered_questions = answered_questions_result.scalar() or 0
 
-        unanswered_questions = (
-            db.query(func.count(Message.id))
+        unanswered_questions_result = await db.execute(
+            select(func.count(Message.id))
             .filter(
                 Message.is_question == True,
                 Message.is_answered == False
             )
-            .scalar()
-            or 0
         )
+        unanswered_questions = unanswered_questions_result.scalar() or 0
 
-        bot_answers = (
-            db.query(func.count(Message.id))
+        bot_answers_result = await db.execute(
+            select(func.count(Message.id))
             .filter(
                 Message.answered_by_bot == True
             )
-            .scalar()
-            or 0
         )
+        bot_answers = bot_answers_result.scalar() or 0
 
-        latest_unanswered_raw = (
-            db.query(Message, Group)
+        latest_unanswered_query = await db.execute(
+            select(Message, Group)
             .join(Group, Message.group_id == Group.id)
             .filter(Message.is_question == True, Message.is_answered == False)
             .order_by(Message.id.desc())
             .limit(5)
-            .all()
         )
+        latest_unanswered_raw = latest_unanswered_query.all()
 
         unanswered_formatted = []
         for msg, grp in latest_unanswered_raw:
@@ -83,26 +84,28 @@ def get_dashboard_stats():
                 "created_at": msg.created_at.isoformat() if msg.created_at else None
             })
 
-        most_active_group_raw = (
-            db.query(Group.title, func.count(Message.id).label('msg_count'))
+        most_active_group_query = await db.execute(
+            select(Group.title, func.count(Message.id).label('msg_count'))
             .join(Message, Group.id == Message.group_id)
-            .group_by(Group.id)
+            .group_by(Group.id, Group.title)
             .order_by(func.count(Message.id).desc())
-            .first()
+            .limit(1)
         )
+        most_active_group_raw = most_active_group_query.first()
 
         most_active_group = {
             "title": most_active_group_raw[0] if most_active_group_raw else "N/A",
             "messages": most_active_group_raw[1] if most_active_group_raw else 0
         }
 
-        most_active_user_raw = (
-            db.query(Message.full_name, Message.username, func.count(Message.id).label('q_count'))
+        most_active_user_query = await db.execute(
+            select(Message.full_name, Message.username, func.count(Message.id).label('q_count'))
             .filter(Message.is_question == True)
             .group_by(Message.user_id, Message.full_name, Message.username)
             .order_by(func.count(Message.id).desc())
-            .first()
+            .limit(1)
         )
+        most_active_user_raw = most_active_user_query.first()
 
         most_active_user = {
             "full_name": most_active_user_raw[0] if most_active_user_raw else "N/A",
@@ -110,11 +113,11 @@ def get_dashboard_stats():
             "count": most_active_user_raw[2] if most_active_user_raw else 0
         }
 
-        # AI-Powered Trending Topics (Semantic Clustering) - Multi-provider
+        # AI-Powered Trending Topics (Semantic Clustering) - Multi-provider (ASYNCHRONOUS)
         import os, json, time
         from bot.crud import get_setting
         
-        provider_raw = get_setting(db, "ai_provider", "openai")
+        provider_raw = await get_setting(db, "ai_provider", "openai")
         provider = provider_raw.lower() if provider_raw else "openai"
         
         # Global cache for topics
@@ -127,7 +130,8 @@ def get_dashboard_stats():
             trending_formatted = globals()['topics_cache']["data"]
         else:
             try:
-                recent_qs = db.query(Message.text).filter(Message.is_question == True).order_by(Message.id.desc()).limit(50).all()
+                recent_qs_query = await db.execute(select(Message.text).filter(Message.is_question == True).order_by(Message.id.desc()).limit(50))
+                recent_qs = recent_qs_query.all()
                 if not recent_qs:
                     trending_formatted = []
                 else:
@@ -140,23 +144,23 @@ def get_dashboard_stats():
                     
                     content = ""
                     if provider == "groq":
-                         from openai import OpenAI as SyncOpenAI
-                         api_key = get_setting(db, "groq_api_key", os.getenv("GROQ_API_KEY", ""))
-                         client = SyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
-                         response = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"})
+                         from openai import AsyncOpenAI
+                         api_key = await get_setting(db, "groq_api_key", os.getenv("GROQ_API_KEY", ""))
+                         client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+                         response = await client.chat.completions.create(model="llama-3.3-70b-versatile", messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"})
                          content = response.choices[0].message.content
                     elif provider == "gemini":
                          import google.generativeai as genai
-                         api_key = get_setting(db, "gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
+                         api_key = await get_setting(db, "gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
                          genai.configure(api_key=api_key)
                          model = genai.GenerativeModel('gemini-1.5-flash')
-                         response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                         response = await model.generate_content_async(prompt, generation_config={"response_mime_type": "application/json"})
                          content = response.text
                     else: # OpenAI
-                         from openai import OpenAI as SyncOpenAI
-                         api_key = get_setting(db, "openai_api_key", os.getenv("OPEN_AI_API_KEY", ""))
-                         client = SyncOpenAI(api_key=api_key)
-                         response = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"})
+                         from openai import AsyncOpenAI
+                         api_key = await get_setting(db, "openai_api_key", os.getenv("OPEN_AI_API_KEY", ""))
+                         client = AsyncOpenAI(api_key=api_key)
+                         response = await client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"})
                          content = response.choices[0].message.content
 
                     ai_data = json.loads(content)
@@ -173,19 +177,24 @@ def get_dashboard_stats():
             date = datetime.now() - timedelta(days=i)
             start_date = date.replace(hour=0, minute=0, second=0, microsecond=0)
             end_date = date.replace(hour=23, minute=59, second=59, microsecond=999999)
-            msgs_count = db.query(func.count(Message.id)).filter(Message.created_at >= start_date, Message.created_at <= end_date).scalar() or 0
-            qs_count = db.query(func.count(Message.id)).filter(Message.is_question == True, Message.created_at >= start_date, Message.created_at <= end_date).scalar() or 0
+            
+            msgs_count_result = await db.execute(select(func.count(Message.id)).filter(Message.created_at >= start_date, Message.created_at <= end_date))
+            msgs_count = msgs_count_result.scalar() or 0
+            
+            qs_count_result = await db.execute(select(func.count(Message.id)).filter(Message.is_question == True, Message.created_at >= start_date, Message.created_at <= end_date))
+            qs_count = qs_count_result.scalar() or 0
+            
             daily_activity.append({"day": date.strftime("%a"), "messages": msgs_count, "questions": qs_count})
 
         # Top 5 most active groups for charts
-        top_groups = (
-            db.query(Group.title, func.count(Message.id).label('msg_count'))
+        top_groups_query = await db.execute(
+            select(Group.title, func.count(Message.id).label('msg_count'))
             .join(Message, Group.id == Message.group_id)
             .group_by(Group.id, Group.title)
             .order_by(func.count(Message.id).desc())
             .limit(5)
-            .all()
         )
+        top_groups = top_groups_query.all()
         top_groups_formatted = [{"title": g[0], "messages": g[1]} for g in top_groups]
 
         return {
@@ -205,4 +214,5 @@ def get_dashboard_stats():
         }
 
     finally:
-        db.close()
+        # Dependency Depends(get_db) will handle session closure
+        pass

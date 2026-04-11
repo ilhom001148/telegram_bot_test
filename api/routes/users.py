@@ -1,25 +1,37 @@
-from fastapi import APIRouter
-from bot.db import SessionLocal
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from api.dependencies import get_db
 from bot.models import User, Message
-from sqlalchemy import func
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.get("/")
-def get_all_users():
-    db = SessionLocal()
+async def get_all_users(db: AsyncSession = Depends(get_db)):
     try:
         # User jadvalidagi barcha ma'lumotlarni oshamiz va habarlar stastikasini yuklaymiz
-        users = db.query(User).order_by(User.created_at.desc()).all()
+        u_result = await db.execute(select(User).order_by(User.created_at.desc()))
+        users = u_result.scalars().all()
         
         # Osonroq so'rov qilish qatorlari:
         # Barcha xabarlarni user_id bilan sanash
-        msg_counts_raw = db.query(Message.user_id, func.count(Message.id).label('total')).filter(Message.user_id.isnot(None)).group_by(Message.user_id).all()
-        msg_counts = {str(item[0]): item[1] for item in msg_counts_raw}
+        msg_counts_query = (
+            select(Message.user_id, func.count(Message.id).label('total'))
+            .filter(Message.user_id.isnot(None))
+            .group_by(Message.user_id)
+        )
+        msg_counts_res = await db.execute(msg_counts_query)
+        msg_counts = {str(row[0]): row[1] for row in msg_counts_res.all()}
         
         # Barcha so'rovlar(savollarni) user_id bilan sanash 
-        q_counts_raw = db.query(Message.user_id, func.count(Message.id).label('questions')).filter(Message.is_question == True).filter(Message.user_id.isnot(None)).group_by(Message.user_id).all()
-        q_counts = {str(item[0]): item[1] for item in q_counts_raw}
+        q_counts_query = (
+            select(Message.user_id, func.count(Message.id).label('questions'))
+            .filter(Message.is_question == True)
+            .filter(Message.user_id.isnot(None))
+            .group_by(Message.user_id)
+        )
+        q_counts_res = await db.execute(q_counts_query)
+        q_counts = {str(row[0]): row[1] for row in q_counts_res.all()}
 
         result = []
         for u in users:
@@ -42,4 +54,4 @@ def get_all_users():
         result.sort(key=lambda x: x["total_messages"], reverse=True)
         return result
     finally:
-        db.close()
+        pass

@@ -1,14 +1,17 @@
-from sqlalchemy.orm import Session, joinedload
-from bot.db import SessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, delete, cast, Date
+from sqlalchemy.orm import joinedload
+from api.dependencies import get_db
 from bot.models import Message, Group
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
 
 @router.get("/")
-def get_messages(
+async def get_messages(
+    db: AsyncSession = Depends(get_db),
     search: str | None = None,
     is_question: bool | None = None,
     is_answered: bool | None = None,
@@ -16,10 +19,8 @@ def get_messages(
     limit: int = 10,
     offset: int = 0,
 ):
-    db = SessionLocal()
-
     try:
-        query = db.query(Message)
+        query = select(Message)
 
         if search:
             query = query.filter(Message.text.ilike(f"%{search}%"))
@@ -33,14 +34,16 @@ def get_messages(
         if group_id is not None:
             query = query.filter(Message.group_id == group_id)
 
-        total = query.count()
+        count_query = select(func.count()).select_from(query.alias())
+        total_res = await db.execute(count_query)
+        total = total_res.scalar() or 0
 
-        messages = (
+        messages_res = await db.execute(
             query.order_by(Message.id.desc())
             .offset(offset)
             .limit(limit)
-            .all()
         )
+        messages = messages_res.scalars().all()
 
         result = []
         for message in messages:
@@ -66,16 +69,14 @@ def get_messages(
         }
 
     finally:
-        db.close()
-
+        pass
 
 
 @router.get("/{message_id}")
-def get_message_detail(message_id: int):
-    db = SessionLocal()
-
+async def get_message_detail(message_id: int, db: AsyncSession = Depends(get_db)):
     try:
-        message = db.query(Message).filter(Message.id == message_id).first()
+        result = await db.execute(select(Message).filter(Message.id == message_id))
+        message = result.scalars().first()
 
         if not message:
             raise HTTPException(status_code=404, detail="Message not found")
@@ -95,47 +96,44 @@ def get_message_detail(message_id: int):
         }
 
     finally:
-        db.close()
+        pass
+
 
 @router.delete("/{message_id}")
-def delete_message(message_id: int):
-    db = SessionLocal()
+async def delete_message(message_id: int, db: AsyncSession = Depends(get_db)):
     try:
-        message = db.query(Message).filter(Message.id == message_id).first()
+        result = await db.execute(select(Message).filter(Message.id == message_id))
+        message = result.scalars().first()
         if not message:
             raise HTTPException(status_code=404, detail="Message not found")
         
-        db.delete(message)
-        db.commit()
+        await db.delete(message)
+        await db.commit()
         return {"status": "success", "message": "Xabar o'chirildi"}
     finally:
-        db.close()
+        pass
 
-from sqlalchemy import func, cast, Date
 
 @router.get("/archive/summary")
-def get_archive_summary():
-    db = SessionLocal()
+async def get_archive_summary(db: AsyncSession = Depends(get_db)):
     try:
         # Sanalar bo'yicha guruhlash va statistikani hisoblash
         # cast(Message.created_at, Date) sanani olish uchun ishlatiladi
-        stats = (
-            db.query(
+        stats_query = (
+            select(
                 cast(Message.created_at, Date).label("date"),
                 func.count(Message.id).label("total"),
-                func.count(func.nullif(Message.is_answered, False)).label("answered"),
-                func.count(func.nullif(Message.is_answered, True)).label("unanswered")
+                func.sum(cast(Message.is_answered, func.Integer)).label("answered")
             )
             .filter(Message.is_question == True)
             .group_by(cast(Message.created_at, Date))
             .order_by(cast(Message.created_at, Date).desc())
-            .all()
         )
+        stats_res = await db.execute(stats_query)
+        stats = stats_res.all()
         
         result = []
         for s in stats:
-            # unanswered hisoblashi biroz xato bo'lishi mumkin nullif bilan, 
-            # aniqroq variant: total - answered
             ans = s.answered or 0
             tot = s.total or 0
             result.append({
@@ -146,11 +144,11 @@ def get_archive_summary():
             })
         return result
     finally:
-        db.close()
+        pass
+
 
 @router.get("/archive/questions-by-date/{date}")
-def get_questions_by_date(date: str):
-    db = SessionLocal()
+async def get_questions_by_date(date: str, db: AsyncSession = Depends(get_db)):
     try:
         from datetime import datetime
         # String sanani date obyektiga o'tkazamiz (xato bo'lmasligi uchun)
@@ -160,25 +158,26 @@ def get_questions_by_date(date: str):
             target_date = date
 
         # Savollarni olish
-        questions = (
-            db.query(Message)
+        qs_query = (
+            select(Message)
             .options(joinedload(Message.group))
             .filter(Message.is_question == True)
             .filter(cast(Message.created_at, Date) == target_date)
             .order_by(Message.id.desc())
-            .all()
         )
+        qs_res = await db.execute(qs_query)
+        questions = qs_res.scalars().all()
         
         result = []
         for q in questions:
             # Ushbu savolga berilgan javobni qidirish
-            # Agar bot yoki admin reply qilib javob bergan bo'lsa
-            answer = (
-                db.query(Message)
+            ans_res = await db.execute(
+                select(Message)
                 .filter(Message.group_id == q.group_id)
                 .filter(Message.reply_to_message_id == q.telegram_message_id)
-                .first()
+                .limit(1)
             )
+            answer = ans_res.scalars().first()
             
             result.append({
                 "id": q.id,
@@ -194,4 +193,4 @@ def get_questions_by_date(date: str):
             })
         return result
     finally:
-        db.close()
+        pass

@@ -6,12 +6,13 @@ from api.auth import verify_access_token
 
 security = HTTPBearer()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with SessionLocal() as db:
+        try:
+            yield db
+        finally:
+            await db.close()
+
 
 
 def get_current_admin(

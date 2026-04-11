@@ -33,7 +33,8 @@ def verify_access_token(token: str):
 
 
 from fastapi import APIRouter, HTTPException, status, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from api.auth import create_access_token, verify_password, hash_password
 from api.schemas import LoginRequest, TokenResponse, AdminMeResponse
 from api.dependencies import get_current_admin, get_db
@@ -47,8 +48,9 @@ class ProfileUpdateRequest(BaseModel):
     password: str | None = None
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    admin = db.query(Admin).filter(Admin.username == data.username).first()
+async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Admin).filter(Admin.username == data.username))
+    admin = result.scalars().first()
     if not admin or not verify_password(data.password, admin.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -61,20 +63,22 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     }
 
 @router.get("/me", response_model=AdminMeResponse)
-def me(current_admin=Depends(get_current_admin)):
+async def me(current_admin=Depends(get_current_admin)):
     return {
         "username": current_admin["username"]
     }
 
 @router.put("/me")
-def update_profile(data: ProfileUpdateRequest, current_admin=Depends(get_current_admin), db: Session = Depends(get_db)):
-    admin = db.query(Admin).filter(Admin.username == current_admin["username"]).first()
+async def update_profile(data: ProfileUpdateRequest, current_admin=Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Admin).filter(Admin.username == current_admin["username"]))
+    admin = result.scalars().first()
     if not admin:
         raise HTTPException(status_code=404, detail="Admin not found")
     
     if data.username:
         # Check if username already exists
-        existing = db.query(Admin).filter(Admin.username == data.username, Admin.id != admin.id).first()
+        eb_result = await db.execute(select(Admin).filter(Admin.username == data.username, Admin.id != admin.id))
+        existing = eb_result.scalars().first()
         if existing:
             raise HTTPException(status_code=400, detail="Username already taken")
         admin.username = data.username
@@ -82,5 +86,5 @@ def update_profile(data: ProfileUpdateRequest, current_admin=Depends(get_current
     if data.password:
         admin.hashed_password = hash_password(data.password)
         
-    db.commit()
+    await db.commit()
     return {"status": "success", "new_username": admin.username}

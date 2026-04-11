@@ -16,22 +16,24 @@ from api.routes.admin import router as admin_router
 from api.routes.users import router as users_router
 from api.routes.export import router as export_router
 
-# Jadvallarni yaratish va Initial Admin qo'shish
-Base.metadata.create_all(bind=engine)
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-def init_admin():
-    db = SessionLocal()
-    try:
-        if db.query(Admin).count() == 0:
-            username = os.getenv("ADMIN_USERNAME", "admin")
-            password = os.getenv("ADMIN_PASSWORD", "12345")
-            db.add(Admin(username=username, hashed_password=hash_password(password)))
-            db.commit()
-            print(f"Initial admin created: {username}")
-    finally:
-        db.close()
-
-init_admin()
+async def init_admin():
+    async with SessionLocal() as db:
+        try:
+            from sqlalchemy import select, func
+            result = await db.execute(select(func.count(Admin.id)))
+            count = result.scalar()
+            if count == 0:
+                username = os.getenv("ADMIN_USERNAME", "admin")
+                password = os.getenv("ADMIN_PASSWORD", "12345")
+                db.add(Admin(username=username, hashed_password=hash_password(password)))
+                await db.commit()
+                print(f"Initial admin created: {username}")
+        finally:
+            await db.close()
 
 app = FastAPI(title="Telegram Bot Admin API")
 
@@ -48,6 +50,8 @@ from bot.main import start_bot
 
 @app.on_event("startup")
 async def startup_event():
+    await init_db()
+    await init_admin()
     print("🚀 Starting Telegram Bot in the background...")
     asyncio.create_task(start_bot())
 

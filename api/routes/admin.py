@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, func
 from api.dependencies import get_db, get_current_admin
 from bot.crud import get_broadcast_targets
-from bot.models import Group
+from bot.models import Group, Message, KnowledgeBase, User, ScheduledBroadcast
 from bot.bot_instance import get_bot, close_bot_session
 from pydantic import BaseModel
 import asyncio
+from datetime import datetime
 
 router = APIRouter(prefix="/admin", tags=["Admin Tools"])
 
@@ -36,20 +38,17 @@ async def send_broadcast_task(target_ids: list, text: str):
     finally:
         await close_bot_session(bot)
 
-from datetime import datetime
-from bot.models import ScheduledBroadcast
-
 @router.post("/broadcast")
 async def broadcast_message(
     data: BroadcastMessage,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_admin = Depends(get_current_admin)
 ):
     if data.scheduled_at:
         try:
             # Parse datetime
-            scheduled_dt = datetime.fromisoformat(data.scheduled_at.replace("Z", "+00:00"))
+            scheduled_dt = datetime.fromisoformat(data.scheduled_at.replace("Z", "+00:00")).replace(tzinfo=None)
             new_schedule = ScheduledBroadcast(
                 text=data.text,
                 target_group_id=data.group_id if data.target == "specific_group" else None,
@@ -57,7 +56,7 @@ async def broadcast_message(
                 status="pending"
             )
             db.add(new_schedule)
-            db.commit()
+            await db.commit()
             return {
                 "status": "success",
                 "message": f"Xabar rejalashtirildi: {scheduled_dt.strftime('%Y-%m-%d %H:%M')}"
@@ -66,13 +65,14 @@ async def broadcast_message(
              return {"status": "error", "message": "Noto'g'ri sana formati."}
 
     # Zudlik bilan yuborish:
-    targets = get_broadcast_targets(db)
+    targets = await get_broadcast_targets(db)
     ids_to_send = []
     
     if data.target == "specific_group":
         if not data.group_id:
              return {"status": "error", "message": "Guruh tanlanmagan."}
-        group = db.query(Group).filter(Group.id == data.group_id).first()
+        result = await db.execute(select(Group).filter(Group.id == data.group_id))
+        group = result.scalars().first()
         if not group:
              return {"status": "error", "message": "Xato: Guruh bazadan topilmadi."}
         ids_to_send.append(group.telegram_id)
@@ -95,10 +95,10 @@ async def broadcast_message(
 
 @router.get("/broadcast/count")
 async def get_broadcast_counts(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_admin = Depends(get_current_admin)
 ):
-    targets = get_broadcast_targets(db)
+    targets = await get_broadcast_targets(db)
     return {
         "total_groups": len(targets["groups"]),
         "total_users": len(targets["users"])
@@ -106,15 +106,20 @@ async def get_broadcast_counts(
 
 @router.get("/stats/extended")
 async def get_extended_stats(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_admin = Depends(get_current_admin)
 ):
-    # Bu yerda kelajakda chuqurroq statistika funksiyalarini yozish mumkin
-    from bot.models import Message, Group
-    total_messages = db.query(Message).count()
-    total_questions = db.query(Message).filter(Message.is_question == True).count()
-    total_groups = db.query(Group).count()
-    total_users = db.query(Message.user_id).distinct().count()
+    msg_count_res = await db.execute(select(func.count(Message.id)))
+    total_messages = msg_count_res.scalar() or 0
+    
+    qs_count_res = await db.execute(select(func.count(Message.id)).filter(Message.is_question == True))
+    total_questions = qs_count_res.scalar() or 0
+    
+    grp_count_res = await db.execute(select(func.count(Group.id)))
+    total_groups = grp_count_res.scalar() or 0
+    
+    usr_count_res = await db.execute(select(func.count(Message.user_id.distinct())))
+    total_users = usr_count_res.scalar() or 0
     
     return {
         "total_messages": total_messages,
@@ -126,31 +131,28 @@ async def get_extended_stats(
 @router.post("/clear-data")
 async def clear_data(
     data: dict, # {"type": "messages" | "knowledge" | "all"}
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_admin = Depends(get_current_admin)
 ):
-    from bot.models import Message, Group, KnowledgeBase, User
-    
     data_type = data.get("type")
     
     if data_type == "messages":
-        db.query(Message).delete()
-        db.commit()
+        await db.execute(delete(Message))
+        await db.commit()
         return {"status": "success", "message": "Xabarlar tarixi tozalandi."}
     
     elif data_type == "knowledge":
-        db.query(KnowledgeBase).delete()
-        db.commit()
+        await db.execute(delete(KnowledgeBase))
+        await db.commit()
         return {"status": "success", "message": "Bilimlar bazasi tozalandi."}
     
     elif data_type == "all":
         # Hammasini tozalash (Adminlar va Sozlamalardan tashqari)
-        db.query(Message).delete()
-        db.query(Group).delete()
-        db.query(User).delete()
-        # Bilimlarni ham o'chiramizmi? Ha, 'all' deganda hammasi tushuniladi.
-        db.query(KnowledgeBase).delete()
-        db.commit()
+        await db.execute(delete(Message))
+        await db.execute(delete(Group))
+        await db.execute(delete(User))
+        await db.execute(delete(KnowledgeBase))
+        await db.commit()
         return {"status": "success", "message": "Barcha ma'lumotlar muvaffaqiyatli o'chirildi."}
     
     else:

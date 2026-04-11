@@ -1,17 +1,19 @@
 import csv
 import io
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from bot.db import SessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from api.dependencies import get_db
 from bot.models import KnowledgeBase, Message, User
 
 router = APIRouter(prefix="/export", tags=["Export"])
 
 @router.get("/knowledge")
-def export_knowledge():
-    db = SessionLocal()
+async def export_knowledge(db: AsyncSession = Depends(get_db)):
     try:
-        data = db.query(KnowledgeBase).order_by(KnowledgeBase.id.desc()).all()
+        result = await db.execute(select(KnowledgeBase).order_by(KnowledgeBase.id.desc()))
+        data = result.scalars().all()
         
         output = io.StringIO()
         writer = csv.writer(output)
@@ -32,14 +34,14 @@ def export_knowledge():
             headers={"Content-Disposition": "attachment; filename=bilimlar_bazasi.csv"}
         )
     finally:
-        db.close()
+        pass
 
 
 @router.get("/messages")
-def export_messages():
-    db = SessionLocal()
+async def export_messages(db: AsyncSession = Depends(get_db)):
     try:
-        data = db.query(Message).order_by(Message.id.desc()).all()
+        result = await db.execute(select(Message).order_by(Message.id.desc()))
+        data = result.scalars().all()
         
         output = io.StringIO()
         writer = csv.writer(output)
@@ -63,15 +65,14 @@ def export_messages():
             headers={"Content-Disposition": "attachment; filename=barcha_xabarlar.csv"}
         )
     finally:
-        db.close()
+        pass
 
 @router.get("/users")
-def export_users():
-    db = SessionLocal()
+async def export_users(db: AsyncSession = Depends(get_db)):
     try:
-        users = db.query(User).order_by(User.id.desc()).all()
+        result = await db.execute(select(User).order_by(User.id.desc()))
+        users = result.scalars().all()
         
-        # Barcha xabarlarni sanash qismi users routeda bor edi. Biz oddiy export qilamiz qulayroq
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(["ID", "Telegram ID", "Ismi", "Username", "Ro'yxatdan o'tgan sana"])
@@ -92,4 +93,4 @@ def export_users():
             headers={"Content-Disposition": "attachment; filename=mijozlar_royxati.csv"}
         )
     finally:
-        db.close()
+        pass

@@ -1,15 +1,15 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import or_, select, func
 from bot.models import Group, Message, KnowledgeBase, Setting, User
 
-
-def get_or_create_user(
-    db: Session,
+async def get_or_create_user(
+    db: AsyncSession,
     telegram_id: int,
     full_name: str | None = None,
     username: str | None = None,
 ) -> User:
-    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+    result = await db.execute(select(User).filter(User.telegram_id == telegram_id))
+    user = result.scalars().first()
 
     if user:
         updated = False
@@ -20,8 +20,8 @@ def get_or_create_user(
             user.username = username
             updated = True
         if updated:
-            db.commit()
-            db.refresh(user)
+            await db.commit()
+            await db.refresh(user)
         return user
 
     user = User(
@@ -30,27 +30,29 @@ def get_or_create_user(
         username=username,
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    await db.commit()
+    await db.refresh(user)
     return user
 
 
-def update_user_language(db: Session, telegram_id: int, lang_code: str) -> User | None:
-    user = db.query(User).filter(User.telegram_id == telegram_id).first()
+async def update_user_language(db: AsyncSession, telegram_id: int, lang_code: str) -> User | None:
+    result = await db.execute(select(User).filter(User.telegram_id == telegram_id))
+    user = result.scalars().first()
     if user:
         user.language_code = lang_code
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
     return user
 
 
-def get_or_create_group(
-    db: Session,
+async def get_or_create_group(
+    db: AsyncSession,
     telegram_id: int,
     title: str,
     username: str | None = None,
 ) -> Group:
-    group = db.query(Group).filter(Group.telegram_id == telegram_id).first()
+    result = await db.execute(select(Group).filter(Group.telegram_id == telegram_id))
+    group = result.scalars().first()
 
     if group:
         updated = False
@@ -61,8 +63,8 @@ def get_or_create_group(
             group.username = username
             updated = True
         if updated:
-            db.commit()
-            db.refresh(group)
+            await db.commit()
+            await db.refresh(group)
         return group
 
     group = Group(
@@ -71,13 +73,13 @@ def get_or_create_group(
         username=username,
     )
     db.add(group)
-    db.commit()
-    db.refresh(group)
+    await db.commit()
+    await db.refresh(group)
     return group
 
 
-def create_message(
-    db: Session,
+async def create_message(
+    db: AsyncSession,
     telegram_message_id: int,
     group_id: int,
     user_id: int | None,
@@ -98,96 +100,112 @@ def create_message(
         reply_to_message_id=reply_to_message_id,
     )
     db.add(msg)
-    db.commit()
-    db.refresh(msg)
+    await db.commit()
+    await db.refresh(msg)
     return msg
 
 
-def find_question_by_telegram_message_id(
-    db: Session,
+async def find_question_by_telegram_message_id(
+    db: AsyncSession,
     group_id: int,
     telegram_message_id: int,
 ) -> Message | None:
-    return (
-        db.query(Message)
+    result = await db.execute(
+        select(Message)
         .filter(
             Message.group_id == group_id,
             Message.telegram_message_id == telegram_message_id,
             Message.is_question.is_(True),
         )
-        .first()
     )
+    return result.scalars().first()
 
 
-def mark_question_answered(
-    db: Session,
+async def mark_question_answered(
+    db: AsyncSession,
     question: Message,
     answered_by_bot: bool = False,
 ) -> Message:
     question.is_answered = True
     question.answered_by_bot = answered_by_bot
-    db.commit()
-    db.refresh(question)
+    await db.commit()
+    await db.refresh(question)
     return question
 
 
-def get_all_knowledge(db: Session):
-    return db.query(KnowledgeBase).all()
+async def get_all_knowledge(db: AsyncSession):
+    result = await db.execute(select(KnowledgeBase))
+    return result.scalars().all()
 
 
-def search_knowledge(db: Session, query_text: str) -> KnowledgeBase | None:
+async def search_knowledge(db: AsyncSession, query_text: str) -> KnowledgeBase | None:
     search_term = f"%{query_text.lower()}%"
-    return db.query(KnowledgeBase).filter(
-        or_(
-            KnowledgeBase.question.ilike(search_term),
-            KnowledgeBase.answer.ilike(search_term)
+    result = await db.execute(
+        select(KnowledgeBase).filter(
+            or_(
+                KnowledgeBase.question.ilike(search_term),
+                KnowledgeBase.answer.ilike(search_term)
+            )
         )
-    ).first()
+    )
+    return result.scalars().first()
 
 
-def create_knowledge(db: Session, question: str, answer: str) -> KnowledgeBase:
+async def create_knowledge(db: AsyncSession, question: str, answer: str) -> KnowledgeBase:
     kb = KnowledgeBase(question=question, answer=answer)
     db.add(kb)
-    db.commit()
-    db.refresh(kb)
+    await db.commit()
+    await db.refresh(kb)
     return kb
 
 
-def get_setting(db: Session, key: str, default: str = "") -> str:
-    setting = db.query(Setting).filter(Setting.key == key).first()
+async def get_setting(db: AsyncSession, key: str, default: str = "") -> str:
+    result = await db.execute(select(Setting).filter(Setting.key == key))
+    setting = result.scalars().first()
     return setting.value if setting else default
 
 
-def get_broadcast_targets(db: Session):
-    groups = db.query(Group.telegram_id).all()
-    group_ids = [g[0] for g in groups]
-    users = db.query(Message.user_id).filter(Message.user_id.isnot(None)).distinct().all()
-    user_ids = [u[0] for u in users]
+async def get_broadcast_targets(db: AsyncSession):
+    g_result = await db.execute(select(Group.telegram_id))
+    group_ids = [g for g in g_result.scalars().all()]
+    
+    u_result = await db.execute(select(Message.user_id).filter(Message.user_id.isnot(None)).distinct())
+    user_ids = [u for u in u_result.scalars().all()]
+    
     return {
         "groups": group_ids,
         "users": list(set(user_ids))
     }
 
 
-def get_group_question_count(db: Session, group_id: int) -> int:
-    return db.query(Message).filter(
-        Message.group_id == group_id,
-        Message.is_question.is_(True)
-    ).count()
+async def get_group_question_count(db: AsyncSession, group_id: int) -> int:
+    result = await db.execute(
+        select(func.count(Message.id)).filter(
+            Message.group_id == group_id,
+            Message.is_question.is_(True)
+        )
+    )
+    return result.scalar()
 
 
-def get_group_stats(db: Session, group_id: int) -> dict:
+async def get_group_stats(db: AsyncSession, group_id: int) -> dict:
     """Guruh statistikasini hisoblaydi: jami, javob berilgan va javobsiz savollar."""
-    total_questions = db.query(Message).filter(
-        Message.group_id == group_id,
-        Message.is_question.is_(True)
-    ).count()
+    total_result = await db.execute(
+        select(func.count(Message.id)).filter(
+            Message.group_id == group_id,
+            Message.is_question.is_(True)
+        )
+    )
+    total_questions = total_result.scalar()
 
-    answered_questions = db.query(Message).filter(
-        Message.group_id == group_id,
-        Message.is_question.is_(True),
-        Message.is_answered.is_(True)
-    ).count()
+    answered_result = await db.execute(
+        select(func.count(Message.id)).filter(
+            Message.group_id == group_id,
+            Message.is_question.is_(True),
+            Message.is_answered.is_(True)
+        )
+    )
+    answered_questions = answered_result.scalar()
 
     unanswered_questions = total_questions - answered_questions
 

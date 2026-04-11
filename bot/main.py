@@ -33,22 +33,22 @@ dp.include_router(stats_router)
 
 @dp.message(CommandStart())
 async def handle_start(message: TgMessage):
-    db = SessionLocal()
-    try:
-        user = get_or_create_user(
-            db, 
-            message.from_user.id, 
-            message.from_user.full_name, 
-            message.from_user.username
-        )
-        # Tilni har doim o'zbekcha qilib belgilaymiz
-        if not user.language_code:
-            update_user_language(db, user.telegram_id, "uz")
-            
-        welcome_text = get_string("welcome", "uz")
-        await message.answer(welcome_text)
-    finally:
-        db.close()
+    async with SessionLocal() as db:
+        try:
+            user = await get_or_create_user(
+                db, 
+                message.from_user.id, 
+                message.from_user.full_name, 
+                message.from_user.username
+            )
+            # Tilni har doim o'zbekcha qilib belgilaymiz
+            if not user.language_code:
+                await update_user_language(db, user.telegram_id, "uz")
+                
+            welcome_text = get_string("welcome", "uz")
+            await message.answer(welcome_text)
+        finally:
+            await db.close()
 
 
 # handle_lang_cmd and handle_lang_callback removed as per user request
@@ -56,9 +56,9 @@ async def handle_start(message: TgMessage):
 
 async def process_text_message(message: TgMessage, text: str, db, user_lang: str):
     # Maintenance mode tekshirish
-    is_maint = get_setting(db, "maintenance_mode", "false") == "true"
+    is_maint = await get_setting(db, "maintenance_mode", "false") == "true"
     if is_maint:
-        maint_text = get_setting(db, "maintenance_text", get_string("maintenance", user_lang))
+        maint_text = await get_setting(db, "maintenance_text", get_string("maintenance", user_lang))
         await message.reply(f"🛠 {maint_text}")
         return
 
@@ -70,11 +70,11 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
         return
         
     # [NEW] Tracking Mode (Faqat sanash rejimi)
-    if get_setting(db, "tracking_mode", "false") == "true":
+    if await get_setting(db, "tracking_mode", "false") == "true":
         return
         
     # Avval bazadan qidiramiz
-    kb_match = search_knowledge(db, text)
+    kb_match = await search_knowledge(db, text)
     context = kb_match.answer if kb_match else None
     
     ai_answer = await get_ai_answer_async(text, context=context)
@@ -86,75 +86,76 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
 
 @dp.message(F.voice)
 async def handle_voice(message: TgMessage):
-    db = SessionLocal()
-    try:
-        # 1. Ovozli xabarni yuklab olish
-        file_id = message.voice.file_id
-        file = await message.bot.get_file(file_id)
-        file_path = f"voice_{file_id}.oga"
-        await message.bot.download_file(file.file_path, file_path)
-        
-        # 2. Transkripsiya qilish (Matnga aylantirish)
-        print(f"🎙 Processing voice from {message.from_user.id}...")
-        text = await transcribe_audio(file_path)
-        
-        # 3. Vaqtinchalik faylni o'chirish
-        if os.path.exists(file_path):
-            os.remove(file_path)
+    async with SessionLocal() as db:
+        try:
+            # 1. Ovozli xabarni yuklab olish
+            file_id = message.voice.file_id
+            file = await message.bot.get_file(file_id)
+            file_path = f"voice_{file_id}.oga"
+            await message.bot.download_file(file.file_path, file_path)
             
-        final_text = f"[Ovozli xabar]: {text}" if text else "[Ovozli xabar: Tahlil qilib bo'lmadi yoki bo'sh]"
+            # 2. Transkripsiya qilish (Matnga aylantirish)
+            print(f"🎙 Processing voice from {message.from_user.id}...")
+            text = await transcribe_audio(file_path)
             
-        # 4. Bazaga saqlash
-        # Guruh yoki shaxsiy chatligini aniqlaymiz
-        is_group = message.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]
-        
-        if is_group:
-            group = get_or_create_group(
+            # 3. Vaqtinchalik faylni o'chirish
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                
+            final_text = f"[Ovozli xabar]: {text}" if text else "[Ovozli xabar: Tahlil qilib bo'lmadi yoki bo'sh]"
+                
+            # 4. Bazaga saqlash
+            # Guruh yoki shaxsiy chatligini aniqlaymiz
+            is_group = message.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]
+            
+            if is_group:
+                group = await get_or_create_group(
+                    db=db,
+                    telegram_id=message.chat.id,
+                    title=message.chat.title or "Unknown Group",
+                    username=getattr(message.chat, "username", None),
+                )
+                group_id = group.id
+            else:
+                group = await get_or_create_group(db, message.chat.id, message.from_user.full_name)
+                group_id = group.id
+    
+            is_question = await is_question_ai(text) if text else False
+            
+            await create_message(
                 db=db,
-                telegram_id=message.chat.id,
-                title=message.chat.title or "Unknown Group",
-                username=getattr(message.chat, "username", None),
+                telegram_message_id=message.message_id,
+                group_id=group_id,
+                user_id=message.from_user.id if message.from_user else None,
+                full_name=message.from_user.full_name if message.from_user else None,
+                username=message.from_user.username if message.from_user else None,
+                text=final_text,
+                is_question=is_question,
+                reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             )
-            group_id = group.id
-        else:
-            group = get_or_create_group(db, message.chat.id, message.from_user.full_name)
-            group_id = group.id
-
-        is_question = await is_question_ai(text) if text else False
-        
-        create_message(
-            db=db,
-            telegram_message_id=message.message_id,
-            group_id=group_id,
-            user_id=message.from_user.id if message.from_user else None,
-            full_name=message.from_user.full_name if message.from_user else None,
-            username=message.from_user.username if message.from_user else None,
-            text=final_text,
-            is_question=is_question,
-            reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
-        )
-        print(f"✅ Voice saved to DB: {message.from_user.id}")
-        
-        # AI ga yubormaymiz va javob bermaymiz - faqat baza uchun.
-        
-    except Exception as e:
-        print("VOICE ERROR:", e)
-    finally:
-        db.close()
+            print(f"✅ Voice saved to DB: {message.from_user.id}")
+            
+            # AI ga yubormaymiz va javob bermaymiz - faqat baza uchun.
+            
+        except Exception as e:
+            print("VOICE ERROR:", e)
+        finally:
+            await db.close()
 
 
 @dp.message(F.chat.type == ChatType.PRIVATE)
 async def handle_private_message(message: TgMessage):
-    db = SessionLocal()
-    try:
-        user = get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
-        text = message.text or message.caption or ""
-        # Bot buyruqlarini o'tkazib yuborish
-        if text.strip().startswith("/"):
-            return
-        await process_text_message(message, text, db, user.language_code)
-    finally:
-        db.close()
+    async with SessionLocal() as db:
+        try:
+            user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
+            text = message.text or message.caption or ""
+            # Bot buyruqlarini o'tkazib yuborish
+            if text.strip().startswith("/"):
+                return
+            await process_text_message(message, text, db, user.language_code)
+        finally:
+            await db.close()
+close()
 
 
 @dp.message(F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
@@ -164,144 +165,144 @@ async def handle_group_message(message: TgMessage):
             message.new_chat_photo, message.delete_chat_photo, message.group_chat_created]):
         return
 
-    db = SessionLocal()
-    try:
-        group = get_or_create_group(
-            db=db,
-            telegram_id=message.chat.id,
-            title=message.chat.title or "Unknown Group",
-            username=getattr(message.chat, "username", None),
-        )
-
-        text = message.text or message.caption or ""
-        if not text.strip():
-            return
-
-        # Bot buyruqlarini (/stats, /start va h.k.) savol sifatida saqlashdan to'xtatish
-        if text.strip().startswith("/"):
-            return
-
-        is_question = await is_question_ai(text)
-        # Xabarni saqlash
-        q_msg = create_message(
-            db=db,
-            telegram_message_id=message.message_id,
-            group_id=group.id,
-            user_id=message.from_user.id if message.from_user else None,
-            full_name=message.from_user.full_name if message.from_user else None,
-            username=message.from_user.username if message.from_user else None,
-            text=text,
-            is_question=is_question,
-            reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
-        )
-
-        # Savolga javob berilganligini tekshirish (Agar foydalanuvchi boshqa savolga reply qilib javob yozsa)
-        if message.reply_to_message:
-            replied_question = find_question_by_telegram_message_id(
-                db=db, group_id=group.id, telegram_message_id=message.reply_to_message.message_id
-            )
-            if replied_question and not replied_question.is_answered:
-                mark_question_answered(db=db, question=replied_question, answered_by_bot=message.from_user.is_bot)
-
-        # AI JAVOB BERISH
-        if is_question:
-            # Til (Guruhda bo'lsa ham foydalanuvchi tilini bazadan olamiz)
-            user = get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
-            lang = user.language_code
-            
-            # [NEW] Tracking Mode (Faqat sanash rejimi)
-            if get_setting(db, "tracking_mode", "false") == "true":
-                return
-            
-            # Knowledge base qidirish
-            kb_match = search_knowledge(db, text)
-            context = kb_match.answer if kb_match else None
-            
-            ai_answer = await get_ai_answer_async(text, context=context)
-            final_answer = ai_answer
-            sent_msg = await message.reply(final_answer)
-
-            # Bot javobini saqlash
-            create_message(
+    async with SessionLocal() as db:
+        try:
+            group = await get_or_create_group(
                 db=db,
-                telegram_message_id=sent_msg.message_id,
-                group_id=group.id,
-                user_id=None,
-                full_name="AI Bot",
-                username=None,
-                text=final_answer,
-                is_question=False,
-                reply_to_message_id=message.message_id,
+                telegram_id=message.chat.id,
+                title=message.chat.title or "Unknown Group",
+                username=getattr(message.chat, "username", None),
             )
-            
-            # Savolni bazada 'Javob berildi' deb belgilash
-            mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
-    except Exception as e:
-        print("ERROR:", e)
-    finally:
-        db.close()
+
+            text = message.text or message.caption or ""
+            if not text.strip():
+                return
+
+            # Bot buyruqlarini (/stats, /start va h.k.) savol sifatida saqlashdan to'xtatish
+            if text.strip().startswith("/"):
+                return
+
+            is_question = await is_question_ai(text)
+            # Xabarni saqlash
+            q_msg = await create_message(
+                db=db,
+                telegram_message_id=message.message_id,
+                group_id=group.id,
+                user_id=message.from_user.id if message.from_user else None,
+                full_name=message.from_user.full_name if message.from_user else None,
+                username=message.from_user.username if message.from_user else None,
+                text=text,
+                is_question=is_question,
+                reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
+            )
+
+            # Savolga javob berilganligini tekshirish (Agar foydalanuvchi boshqa savolga reply qilib javob yozsa)
+            if message.reply_to_message:
+                replied_question = await find_question_by_telegram_message_id(
+                    db=db, group_id=group.id, telegram_message_id=message.reply_to_message.message_id
+                )
+                if replied_question and not replied_question.is_answered:
+                    await mark_question_answered(db=db, question=replied_question, answered_by_bot=message.from_user.is_bot)
+
+            # AI JAVOB BERISH
+            if is_question:
+                # Til (Guruhda bo'lsa ham foydalanuvchi tilini bazadan olamiz)
+                user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
+                lang = user.language_code
+                
+                # [NEW] Tracking Mode (Faqat sanash rejimi)
+                if await get_setting(db, "tracking_mode", "false") == "true":
+                    return
+                
+                # Knowledge base qidirish
+                kb_match = await search_knowledge(db, text)
+                context = kb_match.answer if kb_match else None
+                
+                ai_answer = await get_ai_answer_async(text, context=context)
+                final_answer = ai_answer
+                sent_msg = await message.reply(final_answer)
+
+                # Bot javobini saqlash
+                await create_message(
+                    db=db,
+                    telegram_message_id=sent_msg.message_id,
+                    group_id=group.id,
+                    user_id=None,
+                    full_name="AI Bot",
+                    username=None,
+                    text=final_answer,
+                    is_question=False,
+                    reply_to_message_id=message.message_id,
+                )
+                
+                # Savolni bazada 'Javob berildi' deb belgilash
+                await mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
+        except Exception as e:
+            print("ERROR:", e)
+        finally:
+            await db.close()
 
 
 @dp.channel_post()
 async def handle_channel_post(message: TgMessage):
     """Kanal postlarini qabul qilish va admin panelga saqlash."""
-    db = SessionLocal()
-    try:
-        text = message.text or message.caption or ""
-        if not text.strip():
-            return
-
-        # Kanal guruh sifatida saqlanadi
-        group = get_or_create_group(
-            db=db,
-            telegram_id=message.chat.id,
-            title=message.chat.title or "Unknown Channel",
-            username=getattr(message.chat, "username", None),
-        )
-
-        is_question = await is_question_ai(text)
-
-        # Xabarni saqlash (kanalda from_user yo'q, shuning uchun kanal nomi ishlatiladi)
-        q_msg = create_message(
-            db=db,
-            telegram_message_id=message.message_id,
-            group_id=group.id,
-            user_id=None,
-            full_name=message.chat.title or "Kanal",
-            username=getattr(message.chat, "username", None),
-            text=text,
-            is_question=is_question,
-            reply_to_message_id=None,
-        )
-
-        # Agar savol bo'lsa va tracking rejimi o'chiq bo'lsa, AI javob beradi
-        if is_question:
-            if get_setting(db, "tracking_mode", "false") == "true":
+    async with SessionLocal() as db:
+        try:
+            text = message.text or message.caption or ""
+            if not text.strip():
                 return
-            
-            kb_match = search_knowledge(db, text)
-            context = kb_match.answer if kb_match else None
-            
-            ai_answer = await get_ai_answer_async(text, context=context)
-            sent_msg = await message.answer(ai_answer)
 
-            create_message(
+            # Kanal guruh sifatida saqlanadi
+            group = await get_or_create_group(
                 db=db,
-                telegram_message_id=sent_msg.message_id,
+                telegram_id=message.chat.id,
+                title=message.chat.title or "Unknown Channel",
+                username=getattr(message.chat, "username", None),
+            )
+
+            is_question = await is_question_ai(text)
+
+            # Xabarni saqlash (kanalda from_user yo'q, shuning uchun kanal nomi ishlatiladi)
+            q_msg = await create_message(
+                db=db,
+                telegram_message_id=message.message_id,
                 group_id=group.id,
                 user_id=None,
-                full_name="AI Bot",
-                username=None,
-                text=ai_answer,
-                is_question=False,
-                reply_to_message_id=message.message_id,
+                full_name=message.chat.title or "Kanal",
+                username=getattr(message.chat, "username", None),
+                text=text,
+                is_question=is_question,
+                reply_to_message_id=None,
             )
-            mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
 
-    except Exception as e:
-        print("CHANNEL ERROR:", e)
-    finally:
-        db.close()
+            # Agar savol bo'lsa va tracking rejimi o'chiq bo'lsa, AI javob beradi
+            if is_question:
+                if await get_setting(db, "tracking_mode", "false") == "true":
+                    return
+                
+                kb_match = await search_knowledge(db, text)
+                context = kb_match.answer if kb_match else None
+                
+                ai_answer = await get_ai_answer_async(text, context=context)
+                sent_msg = await message.answer(ai_answer)
+
+                await create_message(
+                    db=db,
+                    telegram_message_id=sent_msg.message_id,
+                    group_id=group.id,
+                    user_id=None,
+                    full_name="AI Bot",
+                    username=None,
+                    text=ai_answer,
+                    is_question=False,
+                    reply_to_message_id=message.message_id,
+                )
+                await mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
+
+        except Exception as e:
+            print("CHANNEL ERROR:", e)
+        finally:
+            await db.close()
 
 
 async def broadcast_scheduler_worker():
@@ -309,41 +310,47 @@ async def broadcast_scheduler_worker():
     from bot.models import ScheduledBroadcast, Group
     from datetime import datetime, timezone
     from bot.db import SessionLocal
+    from sqlalchemy import select
     while True:
         await asyncio.sleep(10)
-        db = SessionLocal()
-        try:
-            now_local = datetime.now()
-            pending = db.query(ScheduledBroadcast).filter(
-                ScheduledBroadcast.status == 'pending', 
-                ScheduledBroadcast.scheduled_at <= now_local
-            ).all()
-            
-            for p in pending:
-                p.status = 'processing'
-                db.commit()
-                bot = get_bot()
-                if p.target_group_id:
-                    group = db.query(Group).filter(Group.id == p.target_group_id).first()
-                    if group:
-                        try:
-                            await bot.send_message(group.telegram_id, p.text)
-                            p.status = 'sent'
-                        except:
-                            p.status = 'failed'
-                else:
-                    groups = db.query(Group).all()
-                    for grp in groups:
-                        try:
-                            await bot.send_message(grp.telegram_id, p.text)
-                        except:
-                            pass
-                    p.status = 'sent'
-                db.commit()
-        except Exception as e:
-            print("Scheduler Error:", e)
-        finally:
-            db.close()
+        async with SessionLocal() as db:
+            try:
+                now_local = datetime.now()
+                pending_query = await db.execute(
+                    select(ScheduledBroadcast).filter(
+                        ScheduledBroadcast.status == 'pending', 
+                        ScheduledBroadcast.scheduled_at <= now_local
+                    )
+                )
+                pending = pending_query.scalars().all()
+                
+                for p in pending:
+                    p.status = 'processing'
+                    await db.commit()
+                    bot = get_bot()
+                    if p.target_group_id:
+                        group_query = await db.execute(select(Group).filter(Group.id == p.target_group_id))
+                        group = group_query.scalars().first()
+                        if group:
+                            try:
+                                await bot.send_message(group.telegram_id, p.text)
+                                p.status = 'sent'
+                            except:
+                                p.status = 'failed'
+                    else:
+                        groups_query = await db.execute(select(Group))
+                        groups = groups_query.scalars().all()
+                        for grp in groups:
+                            try:
+                                await bot.send_message(grp.telegram_id, p.text)
+                            except:
+                                pass
+                        p.status = 'sent'
+                    await db.commit()
+            except Exception as e:
+                print("Scheduler Error:", e)
+            finally:
+                await db.close()
 
 async def start_bot():
     from bot.bot_instance import get_bot
