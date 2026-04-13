@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_db
 from bot.db import SessionLocal
 from bot.models import Group, Message
+from bot.crud import get_ai_usage_stats
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -197,6 +198,13 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
         top_groups = top_groups_query.all()
         top_groups_formatted = [{"title": g[0], "messages": g[1]} for g in top_groups]
 
+        # AI Usage Stats
+        ai_usage_raw = await get_ai_usage_stats(db)
+        ai_usage_formatted = [
+            {"provider": row[0], "tokens": row[1], "requests": row[2]}
+            for row in ai_usage_raw
+        ]
+
         return {
             "total_groups": total_groups,
             "total_messages": total_messages,
@@ -210,7 +218,8 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
             "most_active_user": most_active_user,
             "trending_topics": trending_formatted,
             "daily_activity": daily_activity,
-            "top_groups": top_groups_formatted
+            "top_groups": top_groups_formatted,
+            "ai_usage": ai_usage_formatted
         }
 
     finally:

@@ -224,3 +224,19 @@ async def get_group_stats(db: AsyncSession, group_id: int) -> dict:
         "answered_questions": answered_questions,
         "unanswered_questions": unanswered_questions
     }
+
+
+async def get_ai_usage_stats(db: AsyncSession, group_id: int | None = None) -> list:
+    """AI provayderlari bo'yicha token sarfi statistikasini hisoblaydi."""
+    query = select(
+        Message.ai_provider,
+        func.sum(Message.total_tokens).label("tokens"),
+        func.count(Message.id).label("requests")
+    ).filter(Message.ai_provider.isnot(None))
+
+    if group_id:
+        query = query.filter(Message.group_id == group_id)
+
+    query = query.group_by(Message.ai_provider)
+    result = await db.execute(query)
+    return result.all()

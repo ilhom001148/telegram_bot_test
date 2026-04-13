@@ -521,7 +521,7 @@ function Dashboard({ token }) {
   const [stats, setStats] = useState({ 
     total_groups: 0, total_questions: 0, answered_questions: 0, unanswered_questions: 0, bot_answers: 0, total_messages: 0,
     latest_unanswered: [], most_active_group: null, most_active_user: null, 
-    trending_topics: [], daily_activity: [], total_users: 0, top_groups: []
+    trending_topics: [], daily_activity: [], total_users: 0, top_groups: [], ai_usage: []
   });
   const [loading, setLoading] = useState(true);
   const [answeringId, setAnsweringId] = useState(null);
@@ -652,6 +652,27 @@ function Dashboard({ token }) {
                    <div style={{fontSize:'1.5rem', marginTop:'0.5rem'}}>{g.messages} <small style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>xabar</small></div>
                 </div>
              ))}
+         </div>
+      </div>
+
+      <div className="glass-card" style={{marginTop:'2rem'}}>
+         <div className="summary-title" style={{marginBottom:'1.5rem'}}>AI Provayderlar Sarfi (Umumiy)</div>
+         <div className="grid-cards" style={{gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:'1.5rem'}}>
+             {stats.ai_usage && stats.ai_usage.length > 0 ? stats.ai_usage.map((ai, i) => (
+                <div key={i} className="glass-card" style={{margin:0, padding:'1.5rem', borderLeft:'4px solid var(--primary)', position:'relative', overflow:'hidden'}}>
+                   <div style={{position:'absolute', top:'-10px', right:'-10px', opacity:0.1}}><Icons.Bot /></div>
+                   <div style={{fontSize:'1.1rem', fontWeight:700, textTransform:'uppercase', color:'var(--primary)', marginBottom:'0.5rem'}}>{ai.provider}</div>
+                   <div style={{fontSize:'1.8rem', fontWeight:800}}>{ai.tokens.toLocaleString()} <span style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>token</span></div>
+                   <div style={{marginTop:'10px', fontSize:'0.85rem', color:'var(--text-muted)'}}>
+                      <div className="flex-between"><span>Jami so'rovlar:</span> <b>{ai.requests} ta</b></div>
+                      <div className="flex-between" style={{marginTop:'5px'}}><span>O'rtacha / so'rov:</span> <b>{Math.round(ai.tokens/ai.requests) || 0} tkn</b></div>
+                   </div>
+                </div>
+             )) : (
+                <div style={{gridColumn:'1/-1', textAlign:'center', padding:'2rem', color:'var(--text-muted)'}}>
+                   AI sarfi haqida ma'lumotlar mavjud emas.
+                </div>
+             )}
          </div>
       </div>
     </div>
