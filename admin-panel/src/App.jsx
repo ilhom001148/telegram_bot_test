@@ -474,11 +474,8 @@ function CustomersManager({ token }) {
 
   return (
     <>
-      <div className="flex-between" style={{marginBottom:'2rem'}}>
+      <div className="flex-between" style={{marginBottom:'2rem', justifyContent: 'flex-start'}}>
          <h2 className="header-title" style={{margin:0}}>Mijozlar ro'yxati (CRM)</h2>
-         <a href={`${API_URL}/export/users`} className="btn btn-sm" style={{background:'var(--primary)'}}>
-            📥 Excel yuklab olish
-         </a>
       </div>
       
       {loading ? <div className="loader"></div> : (
