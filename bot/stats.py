@@ -4,7 +4,7 @@ from aiogram.enums import ChatType
 from aiogram.types import Message as TgMessage
 
 from bot.db import SessionLocal
-from bot.crud import get_group_stats, get_or_create_group, get_ai_usage_stats
+from bot.crud import get_group_stats, get_or_create_group
 from bot.config import SUPERADMINS
 
 router = Router()
@@ -41,21 +41,8 @@ async def group_stats(message: TgMessage):
                 f"📊 Guruh statistikasi\n\n"
                 f"Jami savollar: {stats['total_questions']}\n"
                 f"Javob berilgan: {stats['answered_questions']}\n"
-                f"Javobsiz qolgan: {stats['unanswered_questions']}\n\n"
+                f"Javobsiz qolgan: {stats['unanswered_questions']}"
             )
-
-            # AI Usage Stats qo'shish
-            ai_stats = await get_ai_usage_stats(db, group.id)
-            if ai_stats:
-                text += "🤖 AI Provayderlar sarfi:\n"
-                text += "-----------------------\n"
-                for row in ai_stats:
-                    provider = row[0].capitalize()
-                    tokens = f"{row[1]:,}"
-                    requests = row[2]
-                    text += f"🔹 {provider}: {tokens} token ({requests} ta javob)\n"
-            else:
-                text += "🤖 AI sarfi haqida ma'lumot yo'q."
 
             await message.answer(text)
 
