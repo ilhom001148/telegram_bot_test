@@ -17,8 +17,33 @@ from api.routes.users import router as users_router
 from api.routes.export import router as export_router
 
 async def init_db():
+    from sqlalchemy import text
     async with engine.begin() as conn:
+        # 1. Jadvallarni yaratish (mavjud bo'lmasa)
         await conn.run_sync(Base.metadata.create_all)
+        
+        # 2. Mavjud jadvallarga yangi ustunlarni qo'shish (Migratsiya)
+        columns = [
+            ("ai_provider", "VARCHAR(50)"),
+            ("ai_model", "VARCHAR(100)"),
+            ("prompt_tokens", "INTEGER DEFAULT 0"),
+            ("completion_tokens", "INTEGER DEFAULT 0"),
+            ("total_tokens", "INTEGER DEFAULT 0")
+        ]
+        
+        for col_name, col_type in columns:
+            try:
+                await conn.execute(text(f"ALTER TABLE messages ADD COLUMN {col_name} {col_type}"))
+                print(f"✅ Ustun qo'shildi (api/main): {col_name}")
+            except Exception:
+                # Ustun allaqachon bo'lsa xatoni o'tkazib yuboramiz
+                pass
+                
+        try:
+            await conn.execute(text("ALTER TABLE messages ALTER COLUMN user_id TYPE BIGINT"))
+            print("✅ user_id turi BIGINT ga o'zgartirildi (api/main).")
+        except Exception:
+            pass
 
 async def init_admin():
     async with SessionLocal() as db:
