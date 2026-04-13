@@ -155,7 +155,6 @@ async def handle_private_message(message: TgMessage):
             await process_text_message(message, text, db, user.language_code)
         finally:
             await db.close()
-close()
 
 
 @dp.message(F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
