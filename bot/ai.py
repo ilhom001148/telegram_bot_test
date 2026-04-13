@@ -9,6 +9,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 from dotenv import load_dotenv
 from bot.db import SessionLocal
 from bot.models import Setting
+import shutil
 
 try:
     from faster_whisper import WhisperModel # type: ignore
@@ -221,26 +222,40 @@ async def transcribe_audio(file_path: str) -> str:
     provider = await get_db_setting("ai_provider", "openai")
     stt_mode = await get_db_setting("stt_mode", "local") # default local
     
+    # FFMPEG borligini tekshiramiz
+    ffmpeg_available = shutil.which("ffmpeg") is not None
+    
     # 2. Local Whisper transkripsiyasi
     if stt_mode == "local" and WhisperModel:
-        model = await get_local_whisper_model()
-        if model:
-            try:
-                print(f"🎙 Lokal transkripsiya boshlandi: {file_path}")
-                # beam_size=5 aniqlikni oshiradi
-                segments, info = model.transcribe(file_path, beam_size=5, language="uz")
-                text = "".join([segment.text for segment in segments]).strip()
-                if text:
-                    print(f"✅ Lokal natija: {text}")
-                    return text
-            except Exception as e:
-                print(f"⚠️ Lokal transkripsiyada xato (Ehtimol FFMPEG yo'q): {e}")
-                print("🔄 Cloud API'ga (fallback) o'tilmoqda...")
+        if not ffmpeg_available:
+            print("⚠️ FFMPEG topilmadi! Lokal Whisper ishlay olmaydi. Cloud API (fallback) ishlatiladi.")
+        else:
+            model = await get_local_whisper_model()
+            if model:
+                try:
+                    print(f"🎙 Lokal transkripsiya boshlandi: {file_path}")
+                    # beam_size=5 aniqlikni oshiradi
+                    segments, info = model.transcribe(file_path, beam_size=5, language="uz")
+                    text = "".join([segment.text for segment in segments]).strip()
+                    if text:
+                        print(f"✅ Lokal natija: {text}")
+                        return text
+                except Exception as e:
+                    print(f"⚠️ Lokal transkripsiyada xato: {e}")
+                    print("🔄 Cloud API'ga (fallback) o'tilmoqda...")
     
     # 3. Cloud API (Fallback yoki Asosiy)
     try:
+        if not os.path.exists(file_path):
+            print(f"❌ XATO: Audio fayl topilmadi: {file_path}")
+            return ""
+
         if provider == "groq":
             api_key = await get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
+            if not api_key:
+                print("❌ GROQ_API_KEY topilmadi!")
+                return ""
+                
             client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
             
             with open(file_path, "rb") as audio_file:
@@ -252,6 +267,9 @@ async def transcribe_audio(file_path: str) -> str:
             
         else: # Default OpenAI for Audio transcription
             api_key = await get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+            if not api_key:
+                print("❌ OPENAI_API_KEY topilmadi!")
+                return ""
             client = AsyncOpenAI(api_key=api_key)
             
             with open(file_path, "rb") as audio_file:
