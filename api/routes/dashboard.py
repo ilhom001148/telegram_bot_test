@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_db
 from bot.db import SessionLocal
 from bot.models import Group, Message
-from bot.crud import get_ai_usage_stats
+from bot.crud import get_ai_usage_stats, get_ai_usage_by_groups
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -189,21 +189,34 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
 
         # Top 5 most active groups for charts
         top_groups_query = await db.execute(
-            select(Group.title, func.count(Message.id).label('msg_count'))
+            select(Group.title, func.count(Message.id).label('msg_count'), func.sum(Message.total_tokens).label('token_count'))
             .join(Message, Group.id == Message.group_id)
             .group_by(Group.id, Group.title)
             .order_by(func.count(Message.id).desc())
             .limit(5)
         )
         top_groups = top_groups_query.all()
-        top_groups_formatted = [{"title": g[0], "messages": g[1]} for g in top_groups]
+        top_groups_formatted = [{"title": g[0], "messages": g[1], "tokens": g[2] or 0} for g in top_groups]
 
-        # AI Usage Stats
+        # AI Usage Stats with Group Breakdown
         ai_usage_raw = await get_ai_usage_stats(db)
-        ai_usage_formatted = [
-            {"provider": row[0], "tokens": row[1], "requests": row[2]}
-            for row in ai_usage_raw
-        ]
+        ai_usage_by_groups = await get_ai_usage_by_groups(db)
+        
+        ai_usage_formatted = []
+        for row in ai_usage_raw:
+            provider = row[0]
+            # Filter groups for this provider
+            groups_for_provider = [
+                {"title": g[1], "tokens": g[2]}
+                for g in ai_usage_by_groups if g[0] == provider
+            ]
+            
+            ai_usage_formatted.append({
+                "provider": provider,
+                "tokens": row[1],
+                "requests": row[2],
+                "groups": groups_for_provider
+            })
 
         return {
             "total_groups": total_groups,

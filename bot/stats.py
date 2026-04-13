@@ -38,7 +38,7 @@ async def group_stats(message: TgMessage):
             stats = await get_group_stats(db, group.id)
 
             text = (
-                f"📊 Guruh statistikasi\n\n"
+                f"📊 {group.title} statistikasi\n\n"
                 f"Jami savollar: {stats['total_questions']}\n"
                 f"Javob berilgan: {stats['answered_questions']}\n"
                 f"Javobsiz qolgan: {stats['unanswered_questions']}"

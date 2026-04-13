@@ -240,3 +240,20 @@ async def get_ai_usage_stats(db: AsyncSession, group_id: int | None = None) -> l
     query = query.group_by(Message.ai_provider)
     result = await db.execute(query)
     return result.all()
+
+
+async def get_ai_usage_by_groups(db: AsyncSession) -> list:
+    """AI provayderlari bo'yicha token sarfini har bir guruh kesimida hisoblaydi."""
+    query = (
+        select(
+            Message.ai_provider,
+            Group.title,
+            func.sum(Message.total_tokens).label("tokens")
+        )
+        .join(Group, Message.group_id == Group.id)
+        .filter(Message.ai_provider.isnot(None))
+        .group_by(Message.ai_provider, Group.title)
+        .order_by(Message.ai_provider, func.sum(Message.total_tokens).desc())
+    )
+    result = await db.execute(query)
+    return result.all()

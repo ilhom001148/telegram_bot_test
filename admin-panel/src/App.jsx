@@ -649,7 +649,8 @@ function Dashboard({ token }) {
              {stats.top_groups && stats.top_groups.map((g, i) => (
                 <div key={i} className="glass-card" style={{margin:0, padding:'1rem', background:'rgba(255,255,255,0.03)'}}>
                    <div style={{fontSize:'0.9rem', fontWeight:600}}>{g.title}</div>
-                   <div style={{fontSize:'1.5rem', marginTop:'0.5rem'}}>{g.messages} <small style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>xabar</small></div>
+                   <div style={{fontSize:'1.3rem', marginTop:'0.5rem', fontWeight:'700'}}>{g.messages} <small style={{fontSize:'0.7rem', color:'var(--text-muted)', fontWeight:'normal'}}>xabar</small></div>
+                   <div style={{fontSize:'0.85rem', color:'var(--primary)', marginTop:'5px'}}>{g.tokens.toLocaleString()} <small style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>token</small></div>
                 </div>
              ))}
          </div>
@@ -661,7 +662,17 @@ function Dashboard({ token }) {
              {stats.ai_usage && stats.ai_usage.length > 0 ? stats.ai_usage.map((ai, i) => (
                 <div key={i} className="glass-card" style={{margin:0, padding:'1.5rem', borderLeft:'4px solid var(--primary)', position:'relative', overflow:'hidden'}}>
                    <div style={{position:'absolute', top:'-10px', right:'-10px', opacity:0.1}}><Icons.Bot /></div>
-                   <div style={{fontSize:'1.1rem', fontWeight:700, textTransform:'uppercase', color:'var(--primary)', marginBottom:'0.5rem'}}>{ai.provider}</div>
+                   <div style={{fontSize:'1.1rem', fontWeight:700, textTransform:'uppercase', color:'var(--primary)', marginBottom:'0.2rem'}}>{ai.provider}</div>
+                   {ai.groups && ai.groups.length > 0 && (
+                      <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginBottom:'0.8rem', display:'flex', flexWrap:'wrap', gap:'5px'}}>
+                         {ai.groups.map((g, idx) => (
+                            <span key={idx} style={{background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px'}}>
+                               {g.title}
+                            </span>
+                         ))}
+                      </div>
+                   )}
+                   
                    <div style={{fontSize:'1.8rem', fontWeight:800}}>{ai.tokens.toLocaleString()} <span style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>token</span></div>
                    <div style={{marginTop:'10px', fontSize:'0.85rem', color:'var(--text-muted)'}}>
                       <div className="flex-between"><span>Jami so'rovlar:</span> <b>{ai.requests} ta</b></div>
