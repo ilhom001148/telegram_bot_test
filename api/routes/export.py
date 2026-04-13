@@ -1,11 +1,7 @@
-import csv
-import io
-from fastapi import APIRouter, Depends
-from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, cast, Date
 from api.dependencies import get_db
 from bot.models import KnowledgeBase, Message, User
+from datetime import datetime
 
 router = APIRouter(prefix="/export", tags=["Export"])
 
@@ -91,6 +87,63 @@ async def export_users(db: AsyncSession = Depends(get_db)):
             iter([output.getvalue()]), 
             media_type="text/csv", 
             headers={"Content-Disposition": "attachment; filename=mijozlar_royxati.csv"}
+        )
+    finally:
+        pass
+
+
+@router.get("/daily-report")
+async def export_daily_report(date: str, db: AsyncSession = Depends(get_db)):
+    try:
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        except:
+            target_date = date
+
+        # Savollarni olish
+        qs_query = (
+            select(Message)
+            .filter(Message.is_question == True)
+            .filter(cast(Message.created_at, Date) == target_date)
+            .order_by(Message.id.asc())
+        )
+        qs_res = await db.execute(qs_query)
+        questions = qs_res.scalars().all()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Vaqti", "Kimdan", "Username", "Savol matni", "Holati", "Javob matni", "Javob berdi"])
+        
+        for q in questions:
+            # Javobni topish
+            ans_res = await db.execute(
+                select(Message)
+                .filter(Message.group_id == q.group_id)
+                .filter(Message.reply_to_message_id == q.telegram_message_id)
+                .limit(1)
+            )
+            answer = ans_res.scalars().first()
+            
+            status = "Javob berilgan" if q.is_answered else "Kutilmoqda"
+            ans_text = answer.text if answer else (q.text if q.is_answered and not q.answered_by_bot else "")
+            ans_by = answer.full_name if answer else ("Admin" if q.is_answered and not q.answered_by_bot else "")
+
+            writer.writerow([
+                q.created_at.strftime("%H:%M") if q.created_at else "",
+                q.full_name or "Noma'lum",
+                f"@{q.username}" if q.username else "anonim",
+                q.text,
+                status,
+                ans_text,
+                ans_by
+            ])
+            
+        output.seek(0)
+        filename = f"arxiv_{date}.csv"
+        return StreamingResponse(
+            iter([output.getvalue()]), 
+            media_type="text/csv", 
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
     finally:
         pass

@@ -1,5 +1,4 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete, cast, Date
+from sqlalchemy import select, func, delete, cast, Date, Integer
 from sqlalchemy.orm import joinedload
 from api.dependencies import get_db
 from bot.models import Message, Group
@@ -133,7 +132,7 @@ async def get_archive_summary(db: AsyncSession = Depends(get_db)):
             select(
                 cast(Message.created_at, Date).label("date"),
                 func.count(Message.id).label("total"),
-                func.sum(cast(Message.is_answered, func.Integer)).label("answered")
+                func.sum(cast(Message.is_answered, Integer)).label("answered")
             )
             .filter(Message.is_question == True)
             .group_by(cast(Message.created_at, Date))
@@ -173,21 +172,33 @@ async def get_questions_by_date(date: str, db: AsyncSession = Depends(get_db)):
             .options(joinedload(Message.group))
             .filter(Message.is_question == True)
             .filter(cast(Message.created_at, Date) == target_date)
-            .order_by(Message.id.desc())
+            .order_by(Message.id.asc())
         )
         qs_res = await db.execute(qs_query)
         questions = qs_res.scalars().all()
+
+        if not questions:
+            return []
+
+        # Barcha savollarning telegram_message_id'larini yig'amiz
+        q_msg_ids = [q.telegram_message_id for q in questions]
+        group_ids = list(set([q.group_id for q in questions]))
+
+        # Barcha javoblarni bir so'rovda olamiz (N+1 optimallashtirish)
+        ans_query = (
+            select(Message)
+            .filter(Message.group_id.in_(group_ids))
+            .filter(Message.reply_to_message_id.in_(q_msg_ids))
+        )
+        ans_res = await db.execute(ans_query)
+        answers = ans_res.scalars().all()
+        
+        # Javoblarni map qilib olamiz (key: {group_id}_{reply_id})
+        ans_map = {f"{a.group_id}_{a.reply_to_message_id}": a for a in answers}
         
         result = []
         for q in questions:
-            # Ushbu savolga berilgan javobni qidirish
-            ans_res = await db.execute(
-                select(Message)
-                .filter(Message.group_id == q.group_id)
-                .filter(Message.reply_to_message_id == q.telegram_message_id)
-                .limit(1)
-            )
-            answer = ans_res.scalars().first()
+            answer = ans_map.get(f"{q.group_id}_{q.telegram_message_id}")
             
             result.append({
                 "id": q.id,
@@ -198,8 +209,8 @@ async def get_questions_by_date(date: str, db: AsyncSession = Depends(get_db)):
                 "is_answered": q.is_answered,
                 "created_at": q.created_at.strftime("%H:%M"),
                 "username": q.username,
-                "answer_text": answer.text if answer else None,
-                "answered_by": answer.full_name if answer else None
+                "answer_text": answer.text if answer else (q.text if q.is_answered and not q.answered_by_bot else None),
+                "answered_by": answer.full_name if answer else ("Admin" if q.is_answered and not q.answered_by_bot else None)
             })
         return result
     finally:

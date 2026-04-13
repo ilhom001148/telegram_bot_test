@@ -49,16 +49,32 @@ function ArchiveManager({ token }) {
       {!selectedDate ? (
         <>
           <h2 className="header-title">Kunlik Arxiv (Savollar hisoboti)</h2>
-          <div className="grid-cards" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem'}}>
+          <div className="grid-cards" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem'}}>
             {summaries.length > 0 ? summaries.map((s, i) => (
-              <div key={i} className="glass-card archive-folder" onClick={() => openFolder(s.date)} 
-                   style={{cursor:'pointer', transition:'transform 0.2s', textAlign:'center', position:'relative', overflow:'hidden'}}>
-                <div style={{color:'var(--primary)', marginBottom:'1rem'}}><Icons.Folder /></div>
-                <div style={{fontWeight:'bold', fontSize:'1.1rem', marginBottom:'0.5rem'}}>{s.date}</div>
-                <div className="archive-stats" style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>
-                   <div className="flex-between" style={{marginBottom:'5px'}}><span>Jami:</span> <b>{s.total}</b></div>
-                   <div className="flex-between" style={{color:'var(--success)', marginBottom:'5px'}}><span>Javob berildi:</span> <b>{s.answered}</b></div>
-                   <div className="flex-between" style={{color: s.unanswered > 0 ? 'var(--danger)' : 'var(--text-muted)'}}><span>Kutilmoqda:</span> <b>{s.unanswered}</b></div>
+              <div key={i} className="glass-card archive-folder-card" onClick={() => openFolder(s.date)}>
+                <div className="folder-icon-glow">
+                   <Icons.Folder />
+                </div>
+                <div className="folder-content">
+                   <div className="folder-date">{new Date(s.date).toLocaleDateString('uz-UZ', {day:'2-digit', month:'long', year:'numeric'})}</div>
+                   <div className="folder-stats-grid">
+                      <div className="folder-stat">
+                         <span className="stat-num">{s.total}</span>
+                         <span className="stat-desc">Savol</span>
+                      </div>
+                      <div className="folder-stat">
+                         <span className="stat-num" style={{color:'var(--success)'}}>{s.answered}</span>
+                         <span className="stat-desc">Javob</span>
+                      </div>
+                      <div className="folder-stat">
+                         <span className="stat-num" style={{color: s.unanswered > 0 ? 'var(--danger)' : 'var(--text-muted)'}}>{s.unanswered}</span>
+                         <span className="stat-desc">Kutilmoqda</span>
+                      </div>
+                   </div>
+                </div>
+                <div className="folder-footer">
+                   <span>Hisobotni ochish</span>
+                   <Icons.Logout style={{width:14, transform:'rotate(0deg)'}} />
                 </div>
               </div>
             )) : <p style={{gridColumn:'1/-1', textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>Hozircha arxivda savollar mavjud emas.</p>}
@@ -67,12 +83,18 @@ function ArchiveManager({ token }) {
       ) : (
         <>
           <div className="flex-between" style={{marginBottom:'2rem'}}>
-             <h2 className="header-title" style={{margin:0}}>{selectedDate} kungi savollar (Hisobot)</h2>
-             <div style={{display:'flex', gap:'10px'}}>
+             <div>
+                <h2 className="header-title" style={{margin:0}}>{selectedDate} kungi savollar</h2>
+                <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'5px'}}>Kunlik faoliyat hisoboti</p>
+             </div>
+             <div style={{display:'flex', gap:'12px'}}>
+               <a href={`${API_URL}/export/daily-report?date=${selectedDate}`} className="btn btn-sm btn-outline" style={{borderColor:'var(--primary)', color:'var(--primary)'}}>
+                 📥 Excel
+               </a>
                <button className="btn btn-sm" onClick={() => window.print()} style={{background:'var(--primary)'}}>
-                 📄 PDF shaklida saqlash
+                 📄 PDF / Chop etish
                </button>
-               <button className="btn btn-sm" onClick={() => setSelectedDate(null)}>⬅️ Orqaga</button>
+               <button className="btn btn-sm btn-danger" onClick={() => setSelectedDate(null)}> Orqaga </button>
              </div>
           </div>
 
