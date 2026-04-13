@@ -669,7 +669,6 @@ function Dashboard({ token }) {
                 <div key={i} className="glass-card" style={{margin:0, padding:'1rem', background:'rgba(255,255,255,0.03)'}}>
                    <div style={{fontSize:'0.9rem', fontWeight:600}}>{g.title}</div>
                    <div style={{fontSize:'1.3rem', marginTop:'0.5rem', fontWeight:'700'}}>{g.messages} <small style={{fontSize:'0.7rem', color:'var(--text-muted)', fontWeight:'normal'}}>xabar</small></div>
-                   <div style={{fontSize:'0.85rem', color:'var(--primary)', marginTop:'5px'}}>{g.tokens.toLocaleString()} <small style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>token</small></div>
                 </div>
              ))}
          </div>
@@ -1074,7 +1073,7 @@ function GroupHistory({ token, group, onBack }) {
 function BotSettings({ token, showFlash, askConfirm }) {
   const [s, setS] = useState({ 
     system_prompt: '', company_info: '', maintenance_mode: 'false', maintenance_text: '',
-    ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
+    tracking_mode: 'false', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
@@ -1087,6 +1086,7 @@ function BotSettings({ token, showFlash, askConfirm }) {
           company_info: d.company_info || '',
           maintenance_mode: d.maintenance_mode || 'false',
           maintenance_text: d.maintenance_text || 'Hozirda tizimda texnik ishlar olib borilmoqda. Tez orada qaytamiz!',
+          tracking_mode: d.tracking_mode || 'false',
           ai_provider: d.ai_provider || 'openai',
           openai_api_key: d.openai_api_key || '',
           groq_api_key: d.groq_api_key || '',
@@ -1103,7 +1103,7 @@ function BotSettings({ token, showFlash, askConfirm }) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ key: k, value: v })
-    }).then(() => { setSaving(null); showFlash('Mualliflik saqlandi!'); }).catch(() => { setSaving(null); showFlash('Xatolik!', 'error'); });
+    }).then(() => { setSaving(null); showFlash('Muvaffaqiyatli saqlandi!'); }).catch(() => { setSaving(null); showFlash('Xatolik!', 'error'); });
   };
 
   const handleClearDB = () => {
@@ -1187,7 +1187,7 @@ function BotSettings({ token, showFlash, askConfirm }) {
 
        {/* Maintenance Mode Section */}
        <div className="glass-card" style={{margin:0, display:'flex', flexDirection:'column'}}>
-          <div className="flex-between" style={{marginBottom:'1.5rem'}}>
+          <div className="flex-between" style={{marginBottom:'1rem'}}>
              <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
                 <div className="stat-icon-wrapper" style={{margin:0, color:'var(--danger)', background:'rgba(239, 68, 68, 0.1)'}}><Icons.Settings /></div>
                 <div className="summary-title" style={{margin:0}}>Xizmat blokirovkasi</div>
@@ -1205,6 +1205,26 @@ function BotSettings({ token, showFlash, askConfirm }) {
                 <span className="slider round"></span>
              </label>
           </div>
+          
+          <div className="flex-between" style={{marginBottom:'1.5rem', paddingBottom:'1rem', borderBottom:'1px solid var(--card-border)'}}>
+             <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                <div className="stat-icon-wrapper" style={{margin:0, color:'var(--warning)', background:'rgba(245, 158, 11, 0.1)'}}><Icons.History /></div>
+                <div className="summary-title" style={{margin:0}}>Tracking Mode (Faqat sanash)</div>
+             </div>
+             <label className="switch">
+                <input 
+                  type="checkbox" 
+                  checked={s.tracking_mode === 'true'} 
+                  onChange={e => {
+                    const newVal = e.target.checked ? 'true' : 'false';
+                    setS({...s, tracking_mode: newVal});
+                    save('tracking_mode', newVal);
+                  }} 
+                />
+                <span className="slider round"></span>
+             </label>
+          </div>
+
           <div className="form-group" style={{marginTop:'auto'}}>
              <label style={{fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'0.05em'}}>Foydalanuvchilar uchun xabar</label>
              <textarea 
@@ -1520,7 +1540,7 @@ function DatabaseManager({ token, showFlash, askConfirm }) {
       'Haqiqatan ham barcha ma\'lumotlarni (AI bilimlari va API kalitlarni ham) butunlay o\'chirib tashlamoqchimisiz? Bu amalni ortga qaytarib bo\'lmaydi!',
       () => {
         setLoading(true);
-        fetch(`${API_URL}/settings/clear-all`, { 
+        fetch(`${API_URL}/settings/clear-everything`, { 
           method: 'DELETE', 
           headers: { 'Authorization': `Bearer ${token}` } 
         })
