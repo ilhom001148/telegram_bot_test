@@ -1,5 +1,6 @@
 from sqlalchemy import select, func, delete, cast, Date, Integer
 from sqlalchemy.orm import joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_db
 from bot.models import Message, Group
 from fastapi import APIRouter, HTTPException, Depends

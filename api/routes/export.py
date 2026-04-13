@@ -1,7 +1,12 @@
 from sqlalchemy import select, cast, Date
+from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_db
 from bot.models import KnowledgeBase, Message, User
 from datetime import datetime
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
+import io
+import csv
 
 router = APIRouter(prefix="/export", tags=["Export"])
 

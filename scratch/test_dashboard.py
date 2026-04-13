@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from bot.db import engine, SessionLocal
 from bot.models import Group, Message
 
-async def check_stats_empty():
+async def check_stats():
     async with SessionLocal() as db:
         try:
             print("Checking groups count (filtered for non-existent)...")
@@ -36,4 +36,4 @@ async def check_stats_empty():
             await db.close()
 
 if __name__ == "__main__":
-    asyncio.run(check_stats_empty())
+    asyncio.run(check_stats())
