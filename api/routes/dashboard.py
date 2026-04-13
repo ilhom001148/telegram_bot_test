@@ -213,6 +213,27 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
             "top_groups": top_groups_formatted
         }
 
+    except Exception as e:
+        import traceback
+        print(f"DASHBOARD STATS ERROR: {e}")
+        print(traceback.format_exc())
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "total_groups": 0,
+            "total_messages": 0,
+            "total_users": 0,
+            "total_questions": 0,
+            "answered_questions": 0,
+            "unanswered_questions": 0,
+            "bot_answers": 0,
+            "latest_unanswered": [],
+            "most_active_group": {"title": "N/A", "messages": 0},
+            "most_active_user": {"full_name": "N/A", "username": None, "count": 0},
+            "trending_topics": [],
+            "daily_activity": [],
+            "top_groups": []
+        }
     finally:
         # Dependency Depends(get_db) will handle session closure
         pass
