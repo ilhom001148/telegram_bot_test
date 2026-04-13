@@ -186,7 +186,7 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
     except Exception as e:
         print(f"AI Error ({provider}):", e)
         return {
-            "text": f"Kechirasiz, {provider} orqali javob olishda xatolik yuz berdi. Iltimos keyinroq urinib ko'ring.",
+            "text": "",  # Xatolikni ko'rsatmaslik uchun bo'sh matn qaytaramiz
             "usage": None
         }
 

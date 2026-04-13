@@ -102,6 +102,9 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
         await message.reply(get_string("only_it", user_lang))
         return
 
+    if not ai_text:
+        return
+
     sent_msg = await message.reply(ai_text)
     
     # [NEW] Shaxsiy xabarlarda ham bot javobini saqlash (Tokenlar bilan)
@@ -263,6 +266,9 @@ async def handle_group_message(message: TgMessage):
                 ai_text = ai_res.get("text", "")
                 usage = ai_res.get("usage")
                 
+                if not ai_text:
+                    return
+                
                 sent_msg = await message.reply(ai_text)
 
                 # Bot javobini saqlash
@@ -334,6 +340,9 @@ async def handle_channel_post(message: TgMessage):
                 ai_res = await get_ai_answer_async(text, context=context)
                 ai_text = ai_res.get("text", "")
                 usage = ai_res.get("usage")
+
+                if not ai_text:
+                    return
 
                 sent_msg = await message.answer(ai_text)
 
