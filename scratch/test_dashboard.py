@@ -36,4 +36,4 @@ async def check_stats_empty():
             await db.close()
 
 if __name__ == "__main__":
-    asyncio.run(check_stats())
+    asyncio.run(check_stats_empty())

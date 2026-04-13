@@ -1073,7 +1073,7 @@ function GroupHistory({ token, group, onBack }) {
 function BotSettings({ token, showFlash, askConfirm }) {
   const [s, setS] = useState({ 
     system_prompt: '', company_info: '', maintenance_mode: 'false', maintenance_text: '',
-    tracking_mode: 'false', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
+    tracking_mode: 'false', stt_mode: 'local', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
@@ -1087,6 +1087,7 @@ function BotSettings({ token, showFlash, askConfirm }) {
           maintenance_mode: d.maintenance_mode || 'false',
           maintenance_text: d.maintenance_text || 'Hozirda tizimda texnik ishlar olib borilmoqda. Tez orada qaytamiz!',
           tracking_mode: d.tracking_mode || 'false',
+          stt_mode: d.stt_mode || 'local',
           ai_provider: d.ai_provider || 'openai',
           openai_api_key: d.openai_api_key || '',
           groq_api_key: d.groq_api_key || '',
@@ -1182,6 +1183,18 @@ function BotSettings({ token, showFlash, askConfirm }) {
             <button className="btn btn-sm" style={{marginTop:'10px', width:'100%'}} onClick={() => save(`${s.ai_provider}_api_key`, s[`${s.ai_provider}_api_key`])}>
               Kalitni saqlash
             </button>
+          </div>
+
+          <div className="form-group" style={{marginTop:'1.5rem'}}>
+            <label>Ovozni aniqlash (STT) rejimi</label>
+            <select 
+              value={s.stt_mode} 
+              onChange={e => { setS({...s, stt_mode: e.target.value}); save('stt_mode', e.target.value); }}
+              style={{width:'100%', padding:'0.875rem', borderRadius:'0.75rem', background:'rgba(0,0,0,0.3)', color:'#fff', border:'1px solid var(--card-border)'}}
+            >
+              <option value="local">Lokal Whisper (Bepul, FFMPEG shart)</option>
+              <option value="cloud">Cloud API (Pullik, OpenAI/Groq)</option>
+            </select>
           </div>
        </div>
 
