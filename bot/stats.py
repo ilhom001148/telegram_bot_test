@@ -26,26 +26,27 @@ async def group_stats(message: TgMessage):
         await message.answer("Bu komanda faqat guruhda ishlaydi.")
         return
 
-    db = SessionLocal()
+    async with SessionLocal() as db:
+        try:
+            group = await get_or_create_group(
+                db=db,
+                telegram_id=message.chat.id,
+                title=message.chat.title or "Unknown Group",
+                username=getattr(message.chat, "username", None),
+            )
 
-    try:
-        group = get_or_create_group(
-            db=db,
-            telegram_id=message.chat.id,
-            title=message.chat.title or "Unknown Group",
-            username=getattr(message.chat, "username", None),
-        )
+            stats = await get_group_stats(db, group.id)
 
-        stats = get_group_stats(db, group.id)
+            text = (
+                f"📊 Guruh statistikasi\n\n"
+                f"Jami savollar: {stats['total_questions']}\n"
+                f"Javob berilgan: {stats['answered_questions']}\n"
+                f"Javobsiz qolgan: {stats['unanswered_questions']}"
+            )
 
-        text = (
-            f"📊 Guruh statistikasi\n\n"
-            f"Jami savollar: {stats['total_questions']}\n"
-            f"Javob berilgan: {stats['answered_questions']}\n"
-            f"Javobsiz qolgan: {stats['unanswered_questions']}"
-        )
+            await message.answer(text)
 
-        await message.answer(text)
-
-    finally:
-        db.close()
+        except Exception as e:
+            print(f"Stats Error: {e}")
+        finally:
+            await db.close()

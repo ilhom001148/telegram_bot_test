@@ -7,6 +7,47 @@ from bot.models import Group, Message
 router = APIRouter(prefix="/groups", tags=["Groups"])
 
 
+# AI Pricing (USD per 1 Million tokens)
+AI_PRICING = {
+    "openai": {"prompt": 0.15, "completion": 0.60},
+    "gemini": {"prompt": 0.075, "completion": 0.30},
+    "groq": {"prompt": 0.59, "completion": 0.79},
+}
+
+async def calculate_ai_cost(db: AsyncSession, group_id: int):
+    """Calculates total AI cost for a specific group."""
+    # Har bir provayder bo'yicha tokenlarni yig'ish
+    query = (
+        select(
+            Message.ai_provider,
+            func.sum(Message.prompt_tokens).label("p_sum"),
+            func.sum(Message.completion_tokens).label("c_sum"),
+            func.sum(Message.total_tokens).label("t_sum")
+        )
+        .filter(Message.group_id == group_id)
+        .group_by(Message.ai_provider)
+    )
+    result = await db.execute(query)
+    rows = result.all()
+    
+    total_cost = 0.0
+    total_tokens = 0
+    
+    for row in rows:
+        provider = (row[0] or "openai").lower()
+        p_tokens = row[1] or 0
+        c_tokens = row[2] or 0
+        t_tokens = row[3] or 0
+        
+        total_tokens += t_tokens
+        
+        # Narxni hisoblash
+        pricing = AI_PRICING.get(provider, AI_PRICING["openai"])
+        cost = (p_tokens * pricing["prompt"] / 1_000_000) + (c_tokens * pricing["completion"] / 1_000_000)
+        total_cost += cost
+        
+    return total_tokens, round(total_cost, 6)
+
 @router.get("/")
 async def get_groups(db: AsyncSession = Depends(get_db)):
     try:
@@ -26,6 +67,9 @@ async def get_groups(db: AsyncSession = Depends(get_db)):
             
             unanswered_questions = total_questions - answered_questions
 
+            # AI Sarfini hisoblash
+            tokens, cost = await calculate_ai_cost(db, group.id)
+
             final_result.append({
                 "id": group.id,
                 "telegram_id": group.telegram_id,
@@ -35,6 +79,8 @@ async def get_groups(db: AsyncSession = Depends(get_db)):
                 "total_questions": total_questions,
                 "answered_questions": answered_questions,
                 "unanswered_questions": unanswered_questions,
+                "total_tokens": tokens,
+                "total_ai_cost": cost,
             })
 
         return final_result
@@ -132,6 +178,9 @@ async def get_group_messages(
                 "created_at": message.created_at.isoformat() if message.created_at else None,
                 "answer_text": answer.text if answer else None,
                 "answered_by": answer.full_name if answer else None,
+                "ai_provider": answer.ai_provider if answer else None,
+                "ai_model": answer.ai_model if answer else None,
+                "total_tokens": answer.total_tokens if answer else 0,
             })
 
         return {

@@ -19,7 +19,7 @@ from bot.crud import (
     update_user_language,
     get_group_question_count
 )
-from bot.ai import detect_question, is_question_ai, get_ai_answer, get_ai_answer_async, transcribe_audio
+from bot.ai import detect_question, is_question_ai, get_ai_answer_async, transcribe_audio
 from bot.strings import get_string
 from bot.stats import router as stats_router
 
@@ -77,11 +77,36 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
     kb_match = await search_knowledge(db, text)
     context = kb_match.answer if kb_match else None
     
-    ai_answer = await get_ai_answer_async(text, context=context)
-    if ai_answer.strip() == "IGNORE":
+    ai_res = await get_ai_answer_async(text, context=context)
+    ai_text = ai_res.get("text", "")
+    usage = ai_res.get("usage")
+
+    if ai_text.strip() == "IGNORE":
         await message.reply(get_string("only_it", user_lang))
         return
-    await message.reply(ai_answer)
+
+    sent_msg = await message.reply(ai_text)
+    
+    # [NEW] Shaxsiy xabarlarda ham bot javobini saqlash (Tokenlar bilan)
+    if message.chat.type == ChatType.PRIVATE:
+        # Guruh ID sifatida foydalanuvchi ID si ishlatiladi (get_or_create_group mantiqi bo'yicha)
+        group = await get_or_create_group(db, message.chat.id, message.from_user.full_name)
+        await create_message(
+            db=db,
+            telegram_message_id=sent_msg.message_id,
+            group_id=group.id,
+            user_id=None,
+            full_name="AI Bot",
+            username=None,
+            text=ai_text,
+            is_question=False,
+            reply_to_message_id=message.message_id,
+            ai_provider=usage.get("provider") if usage else None,
+            ai_model=usage.get("model") if usage else None,
+            prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
+            completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
+            total_tokens=usage.get("total_tokens", 0) if usage else 0,
+        )
 
 
 @dp.message(F.voice)
@@ -217,9 +242,11 @@ async def handle_group_message(message: TgMessage):
                 kb_match = await search_knowledge(db, text)
                 context = kb_match.answer if kb_match else None
                 
-                ai_answer = await get_ai_answer_async(text, context=context)
-                final_answer = ai_answer
-                sent_msg = await message.reply(final_answer)
+                ai_res = await get_ai_answer_async(text, context=context)
+                ai_text = ai_res.get("text", "")
+                usage = ai_res.get("usage")
+                
+                sent_msg = await message.reply(ai_text)
 
                 # Bot javobini saqlash
                 await create_message(
@@ -229,9 +256,14 @@ async def handle_group_message(message: TgMessage):
                     user_id=None,
                     full_name="AI Bot",
                     username=None,
-                    text=final_answer,
+                    text=ai_text,
                     is_question=False,
                     reply_to_message_id=message.message_id,
+                    ai_provider=usage.get("provider") if usage else None,
+                    ai_model=usage.get("model") if usage else None,
+                    prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
+                    completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
+                    total_tokens=usage.get("total_tokens", 0) if usage else 0,
                 )
                 
                 # Savolni bazada 'Javob berildi' deb belgilash
@@ -282,8 +314,11 @@ async def handle_channel_post(message: TgMessage):
                 kb_match = await search_knowledge(db, text)
                 context = kb_match.answer if kb_match else None
                 
-                ai_answer = await get_ai_answer_async(text, context=context)
-                sent_msg = await message.answer(ai_answer)
+                ai_res = await get_ai_answer_async(text, context=context)
+                ai_text = ai_res.get("text", "")
+                usage = ai_res.get("usage")
+
+                sent_msg = await message.answer(ai_text)
 
                 await create_message(
                     db=db,
@@ -292,9 +327,14 @@ async def handle_channel_post(message: TgMessage):
                     user_id=None,
                     full_name="AI Bot",
                     username=None,
-                    text=ai_answer,
+                    text=ai_text,
                     is_question=False,
                     reply_to_message_id=message.message_id,
+                    ai_provider=usage.get("provider") if usage else None,
+                    ai_model=usage.get("model") if usage else None,
+                    prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
+                    completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
+                    total_tokens=usage.get("total_tokens", 0) if usage else 0,
                 )
                 await mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
 

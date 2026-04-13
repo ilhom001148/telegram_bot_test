@@ -133,14 +133,37 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
                 model="llama-3.3-70b-versatile",
                 messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}]
             )
-            return response.choices[0].message.content
+            return {
+                "text": response.choices[0].message.content,
+                "usage": {
+                    "provider": "groq",
+                    "model": response.model,
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens
+                }
+            }
 
         elif provider == "gemini":
             api_key = await get_db_setting("gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_prompt)
             response = await model.generate_content_async(question)
-            return response.text
+            
+            # Gemini tokenlarini olish
+            prompt_tokens = response.usage_metadata.prompt_token_count if hasattr(response, 'usage_metadata') else 0
+            completion_tokens = response.usage_metadata.candidates_token_count if hasattr(response, 'usage_metadata') else 0
+            
+            return {
+                "text": response.text,
+                "usage": {
+                    "provider": "gemini",
+                    "model": "gemini-1.5-flash", # Hozircha statik, lekin modelni sozlamadan olsa bo'ladi
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": prompt_tokens + completion_tokens
+                }
+            }
 
         else: # Default: OpenAI
             api_key = await get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
@@ -149,11 +172,23 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
                 model="gpt-4o-mini",
                 messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}]
             )
-            return response.choices[0].message.content
+            return {
+                "text": response.choices[0].message.content,
+                "usage": {
+                    "provider": "openai",
+                    "model": response.model,
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens
+                }
+            }
 
     except Exception as e:
         print(f"AI Error ({provider}):", e)
-        return f"Kechirasiz, {provider} orqali javob olishda xatolik yuz berdi. Iltimos keyinroq urinib ko'ring."
+        return {
+            "text": f"Kechirasiz, {provider} orqali javob olishda xatolik yuz berdi. Iltimos keyinroq urinib ko'ring.",
+            "usage": None
+        }
 
 async def transcribe_audio(file_path: str) -> str:
     # 1. Sozlamalarni DB dan olish

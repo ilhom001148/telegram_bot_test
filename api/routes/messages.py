@@ -59,6 +59,11 @@ async def get_messages(
                 "is_answered": message.is_answered,
                 "answered_by_bot": message.answered_by_bot,
                 "reply_to_message_id": message.reply_to_message_id,
+                "ai_provider": message.ai_provider,
+                "ai_model": message.ai_model,
+                "prompt_tokens": message.prompt_tokens,
+                "completion_tokens": message.completion_tokens,
+                "total_tokens": message.total_tokens,
             })
 
         return {
@@ -93,6 +98,11 @@ async def get_message_detail(message_id: int, db: AsyncSession = Depends(get_db)
             "is_answered": message.is_answered,
             "answered_by_bot": message.answered_by_bot,
             "reply_to_message_id": message.reply_to_message_id,
+            "ai_provider": message.ai_provider,
+            "ai_model": message.ai_model,
+            "prompt_tokens": message.prompt_tokens,
+            "completion_tokens": message.completion_tokens,
+            "total_tokens": message.total_tokens,
         }
 
     finally:

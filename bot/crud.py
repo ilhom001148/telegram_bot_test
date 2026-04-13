@@ -88,6 +88,11 @@ async def create_message(
     text: str | None,
     is_question: bool,
     reply_to_message_id: int | None = None,
+    ai_provider: str | None = None,
+    ai_model: str | None = None,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+    total_tokens: int = 0,
 ) -> Message:
     msg = Message(
         telegram_message_id=telegram_message_id,
@@ -98,6 +103,11 @@ async def create_message(
         text=text,
         is_question=is_question,
         reply_to_message_id=reply_to_message_id,
+        ai_provider=ai_provider,
+        ai_model=ai_model,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
     )
     db.add(msg)
     await db.commit()

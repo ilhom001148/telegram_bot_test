@@ -896,8 +896,8 @@ function Groups({ token }) {
     <>
       <h2 className="header-title">Guruhlar ro'yxati</h2>
       <div className="glass-card table-wrapper">
-        <table><thead><tr><th>Guruh nomi</th><th>Jami xabarlar</th><th>So'rovlar</th><th>Aniqlik %</th><th>Kutilmoqda</th></tr></thead>
-        <tbody>{groups.map(g => (<tr key={g.id} className="clickable-row" onClick={() => setSelectedGroup(g)}><td>{g.title}</td><td>{g.total_messages}</td><td>{g.total_questions}</td><td>{Math.round((g.answered_questions / (g.total_questions || 1)) * 100)}%</td><td><span className="badge badge-unanswered">{g.unanswered_questions}</span></td></tr>))}</tbody></table>
+        <table><thead><tr><th>Guruh nomi</th><th>Xabarlar</th><th>So'rovlar</th><th>Tokenlar</th><th>Sarf ($)</th><th>Kutilmoqda</th></tr></thead>
+        <tbody>{groups.map(g => (<tr key={g.id} className="clickable-row" onClick={() => setSelectedGroup(g)}><td>{g.title}</td><td>{g.total_messages}</td><td>{g.total_questions}</td><td>{g.total_tokens?.toLocaleString()}</td><td style={{color:'var(--success)', fontWeight:'600'}}>${g.total_ai_cost?.toFixed(4)}</td><td><span className="badge badge-unanswered">{g.unanswered_questions}</span></td></tr>))}</tbody></table>
       </div>
     </>
   );
@@ -974,8 +974,9 @@ function GroupHistory({ token, group, onBack }) {
                    {m.is_question ? (
                      m.answer_text ? (
                         <div>
-                           <div style={{color:'var(--primary)', fontWeight:'600', fontSize:'0.7rem', textTransform:'uppercase', marginBottom:'4px'}}>
-                              {m.answered_by || 'Bot'} javobi:
+                           <div style={{color:'var(--primary)', fontWeight:'600', fontSize:'0.7rem', textTransform:'uppercase', marginBottom:'4px', display:'flex', justifyContent:'space-between'}}>
+                              <span>{m.answered_by || 'Bot'} javobi:</span>
+                              {m.total_tokens > 0 && <span style={{color:'var(--text-muted)', textTransform:'none', fontWeight:'normal'}}>{m.ai_provider} • {m.total_tokens} tokens</span>}
                            </div>
                            {m.answer_text}
                         </div>

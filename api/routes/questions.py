@@ -27,6 +27,11 @@ def serialize_question(q):
         "is_answered": q.is_answered,
         "answered_by_bot": q.answered_by_bot,
         "reply_to_message_id": q.reply_to_message_id,
+        "ai_provider": q.ai_provider,
+        "ai_model": q.ai_model,
+        "prompt_tokens": q.prompt_tokens,
+        "completion_tokens": q.completion_tokens,
+        "total_tokens": q.total_tokens,
     }
 
 @router.get("/")

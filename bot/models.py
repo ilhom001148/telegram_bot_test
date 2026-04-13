@@ -52,6 +52,13 @@ class Message(Base):
     is_answered = Column(Boolean, default=False)
     answered_by_bot = Column(Boolean, default=False)
 
+    # [NEW] AI Usage Tracking
+    ai_provider = Column(String(50), nullable=True) # openai, groq, gemini
+    ai_model = Column(String(100), nullable=True)
+    prompt_tokens = Column(Integer, default=0)
+    completion_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+
     reply_to_message_id = Column(Integer, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
