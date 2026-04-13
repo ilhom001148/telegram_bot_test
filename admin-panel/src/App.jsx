@@ -676,7 +676,6 @@ function Dashboard({ token }) {
                    <div style={{fontSize:'1.8rem', fontWeight:800}}>{ai.tokens.toLocaleString()} <span style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>token</span></div>
                    <div style={{marginTop:'10px', fontSize:'0.85rem', color:'var(--text-muted)'}}>
                       <div className="flex-between"><span>Jami so'rovlar:</span> <b>{ai.requests} ta</b></div>
-                      <div className="flex-between" style={{marginTop:'5px'}}><span>O'rtacha / so'rov:</span> <b>{Math.round(ai.tokens/ai.requests) || 0} tkn</b></div>
                    </div>
                 </div>
              )) : (
