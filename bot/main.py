@@ -2,7 +2,7 @@ import asyncio
 import os
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ChatType
-from aiogram.types import Message as TgMessage, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import Message as TgMessage, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatMemberUpdated
 from aiogram.filters import CommandStart, Command
 from aiogram.client.session.aiohttp import AiohttpSession
 
@@ -26,6 +26,23 @@ from bot.stats import router as stats_router
 # Bot va Dispatcher obyektlarini yaratish (session keyinroq qo'shiladi)
 dp = Dispatcher()
 dp.include_router(stats_router)
+
+
+@dp.my_chat_member()
+async def handle_my_chat_member(update: ChatMemberUpdated):
+    """Bot guruhga qo'shilganda yoki uning huquqlari o'zgarganda ishlaydi."""
+    if update.new_chat_member.status in ["member", "administrator"]:
+        async with SessionLocal() as db:
+            try:
+                await get_or_create_group(
+                    db=db,
+                    telegram_id=update.chat.id,
+                    title=update.chat.title or "Unknown Group",
+                    username=getattr(update.chat, "username", None)
+                )
+                print(f"📡 Bot yangi guruhga qo'shildi: {update.chat.title}")
+            finally:
+                await db.close()
 
 
 # Language selection keyboard removed as per user request
