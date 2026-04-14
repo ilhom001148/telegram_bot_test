@@ -22,6 +22,7 @@ class User(Base):
     language_code = Column(String(5), default="uz")  # 'uz', 'ru', 'en'
     full_name = Column(String(255), nullable=True)
     username = Column(String(255), nullable=True)
+    is_staff = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -51,6 +52,7 @@ class Message(Base):
     is_question = Column(Boolean, default=False)
     is_answered = Column(Boolean, default=False)
     answered_by_bot = Column(Boolean, default=False)
+    is_staff = Column(Boolean, default=False)
 
     # [NEW] AI Usage Tracking
     ai_provider = Column(String(50), nullable=True) # openai, groq, gemini

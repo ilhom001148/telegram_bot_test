@@ -424,7 +424,7 @@ function App() {
         <ConfirmModal {...modal} onCancel={() => setModal({ ...modal, isOpen: false })} />
         {activeTab === 'dashboard' && <Dashboard token={token} />}
         {activeTab === 'messages' && <Messages token={token} />}
-        {activeTab === 'groups' && <Groups token={token} />}
+        {activeTab === 'groups' && <Groups token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'knowledge' && <KnowledgeBase token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'broadcast' && <BroadcastManager token={token} showFlash={showFlash} />}
         {activeTab === 'settings' && <BotSettings token={token} showFlash={showFlash} askConfirm={askConfirm} />}
@@ -879,7 +879,7 @@ function Messages({ token }) {
   );
 }
 
-function Groups({ token }) {
+function Groups({ token, showFlash, askConfirm }) {
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -890,6 +890,29 @@ function Groups({ token }) {
       .then(res => res.json()).then(data => { setGroups(data); setLoading(false); })
       .catch(() => setLoading(false));
   };
+
+  const handleDeleteGroup = (id, title) => {
+    askConfirm(
+      'Guruhni o\'chirish', 
+      `Haqiqatan ham "${title}" guruhini va uning barcha xabarlarini o'chirib tashlamoqchimisiz?`, 
+      () => {
+        fetch(`${API_URL}/groups/${id}`, { 
+          method: 'DELETE', 
+          headers: { 'Authorization': `Bearer ${token}` } 
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            showFlash('Guruh o\'chirildi', 'error');
+            fetchGroups();
+          } else {
+            showFlash('Xatolik yuz berdi', 'error');
+          }
+        })
+        .catch(() => showFlash('Xatolik yuz berdi', 'error'));
+      }
+    );
+  };
   useEffect(() => { if(!selectedGroup) fetchGroups(); }, [token, selectedGroup]);
 
   if (loading) return <div className="loader"></div>;
@@ -899,8 +922,26 @@ function Groups({ token }) {
     <>
       <h2 className="header-title">Guruhlar ro'yxati</h2>
       <div className="glass-card table-wrapper">
-        <table><thead><tr><th>Guruh nomi</th><th>Xabarlar</th><th>So'rovlar</th><th>Tokenlar</th><th>Sarf ($)</th><th>Kutilmoqda</th></tr></thead>
-        <tbody>{groups.map(g => (<tr key={g.id} className="clickable-row" onClick={() => setSelectedGroup(g)}><td>{g.title}</td><td>{g.total_messages}</td><td>{g.total_questions}</td><td>{g.total_tokens?.toLocaleString()}</td><td style={{color:'var(--success)', fontWeight:'600'}}>${g.total_ai_cost?.toFixed(4)}</td><td><span className="badge badge-unanswered">{g.unanswered_questions}</span></td></tr>))}</tbody></table>
+        <table><thead><tr><th>Guruh nomi</th><th>Xabarlar</th><th>So'rovlar</th><th>Tokenlar</th><th>Sarf ($)</th><th>Kutilmoqda</th><th style={{textAlign:'center'}}>Amallar</th></tr></thead>
+        <tbody>{groups.map(g => (
+          <tr key={g.id} className="clickable-row" onClick={() => setSelectedGroup(g)}>
+            <td>{g.title}</td>
+            <td>{g.total_messages}</td>
+            <td>{g.total_questions}</td>
+            <td>{g.total_tokens?.toLocaleString()}</td>
+            <td style={{color:'var(--success)', fontWeight:'600'}}>${g.total_ai_cost?.toFixed(4)}</td>
+            <td><span className="badge badge-unanswered">{g.unanswered_questions}</span></td>
+            <td style={{textAlign:'center'}}>
+              <button 
+                className="btn btn-sm btn-danger" 
+                onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id, g.title); }}
+                style={{padding:'5px 10px'}}
+              >
+                O'chirish
+              </button>
+            </td>
+          </tr>
+        ))}</tbody></table>
       </div>
     </>
   );

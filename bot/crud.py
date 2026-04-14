@@ -7,6 +7,7 @@ async def get_or_create_user(
     telegram_id: int,
     full_name: str | None = None,
     username: str | None = None,
+    is_staff: bool | None = None,
 ) -> User:
     result = await db.execute(select(User).filter(User.telegram_id == telegram_id))
     user = result.scalars().first()
@@ -19,6 +20,9 @@ async def get_or_create_user(
         if user.username != username:
             user.username = username
             updated = True
+        if is_staff is not None and user.is_staff != is_staff:
+            user.is_staff = is_staff
+            updated = True
         if updated:
             await db.commit()
             await db.refresh(user)
@@ -28,6 +32,7 @@ async def get_or_create_user(
         telegram_id=telegram_id,
         full_name=full_name,
         username=username,
+        is_staff=is_staff if is_staff is not None else False,
     )
     db.add(user)
     await db.commit()
@@ -93,6 +98,7 @@ async def create_message(
     prompt_tokens: int = 0,
     completion_tokens: int = 0,
     total_tokens: int = 0,
+    is_staff: bool = False,
 ) -> Message:
     msg = Message(
         telegram_message_id=telegram_message_id,
@@ -108,6 +114,7 @@ async def create_message(
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         total_tokens=total_tokens,
+        is_staff=is_staff,
     )
     db.add(msg)
     await db.commit()

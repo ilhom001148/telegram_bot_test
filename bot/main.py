@@ -1,12 +1,12 @@
-import asyncio
 import os
+import time
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ChatType
 from aiogram.types import Message as TgMessage, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatMemberUpdated
 from aiogram.filters import CommandStart, Command
 from aiogram.client.session.aiohttp import AiohttpSession
 
-from bot.config import TELEGRAM_TOKEN, TELEGRAM_PROXY
+from bot.config import TELEGRAM_TOKEN, TELEGRAM_PROXY, SUPERADMINS
 from bot.db import SessionLocal
 from bot.crud import (
     get_or_create_group,
@@ -46,6 +46,34 @@ async def handle_my_chat_member(update: ChatMemberUpdated):
 
 
 # Language selection keyboard removed as per user request
+
+# [NEW] Admin Cache (Simple TTL cache for group admins)
+# Structure: {(chat_id, user_id): (is_staff, timestamp)}
+admin_cache = {}
+ADMIN_CACHE_TTL = 86400 # 1 day (24 hours)
+
+async def is_user_staff(chat_id: int, user_id: int) -> bool:
+    """Checks if a user is an admin, creator, or superadmin."""
+    # 1. Superadmin check
+    if str(user_id) in SUPERADMINS:
+        return True
+    
+    # 2. Cache check
+    now = time.time()
+    if (chat_id, user_id) in admin_cache:
+        is_staff, ts = admin_cache[(chat_id, user_id)]
+        if now - ts < ADMIN_CACHE_TTL:
+            return is_staff
+
+    # 3. Telegram API check
+    try:
+        member = await bot.get_chat_member(chat_id, user_id)
+        is_staff = member.status in ["administrator", "creator"]
+        admin_cache[(chat_id, user_id)] = (is_staff, now)
+        return is_staff
+    except Exception as e:
+        print(f"Error checking admin status: {e}")
+        return False
 
 
 @dp.message(CommandStart())
@@ -164,6 +192,11 @@ async def handle_voice(message: TgMessage):
             else:
                 group = await get_or_create_group(db, message.chat.id, message.from_user.full_name)
                 group_id = group.id
+            
+            # [NEW] Staff/Admin check
+            is_staff = False
+            if is_group and message.from_user:
+                is_staff = await is_user_staff(message.chat.id, message.from_user.id)
     
             is_question = await is_question_ai(text) if text else False
             
@@ -175,7 +208,8 @@ async def handle_voice(message: TgMessage):
                 full_name=message.from_user.full_name if message.from_user else None,
                 username=message.from_user.username if message.from_user else None,
                 text=final_text,
-                is_question=is_question,
+                is_question=is_question if not is_staff else False, # Count as question only if NOT staff
+                is_staff=is_staff,
                 reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             )
             print(f"✅ Voice saved to DB: {message.from_user.id}")
@@ -226,6 +260,9 @@ async def handle_group_message(message: TgMessage):
             if text.strip().startswith("/"):
                 return
 
+            # [NEW] Staff/Admin check
+            is_staff = await is_user_staff(message.chat.id, message.from_user.id) if message.from_user else False
+
             is_question = await is_question_ai(text)
             # Xabarni saqlash
             q_msg = await create_message(
@@ -236,7 +273,8 @@ async def handle_group_message(message: TgMessage):
                 full_name=message.from_user.full_name if message.from_user else None,
                 username=message.from_user.username if message.from_user else None,
                 text=text,
-                is_question=is_question,
+                is_question=is_question if not is_staff else False, # Count as question only if NOT staff
+                is_staff=is_staff,
                 reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             )
 
@@ -248,8 +286,8 @@ async def handle_group_message(message: TgMessage):
                 if replied_question and not replied_question.is_answered:
                     await mark_question_answered(db=db, question=replied_question, answered_by_bot=message.from_user.is_bot)
 
-            # AI JAVOB BERISH
-            if is_question:
+            # AI JAVOB BERISH (Faqat xodim bo'lmasa)
+            if is_question and not is_staff:
                 # Til (Guruhda bo'lsa ham foydalanuvchi tilini bazadan olamiz)
                 user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
                 lang = user.language_code

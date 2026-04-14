@@ -24,7 +24,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
 
         total_questions_result = await db.execute(
             select(func.count(Message.id))
-            .filter(Message.is_question == True)
+            .filter(Message.is_question == True, Message.is_staff == False)
         )
         total_questions = total_questions_result.scalar() or 0
 
@@ -32,6 +32,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
             select(func.count(Message.id))
             .filter(
                 Message.is_question == True,
+                Message.is_staff == False,
                 Message.is_answered == True
             )
         )
@@ -41,6 +42,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
             select(func.count(Message.id))
             .filter(
                 Message.is_question == True,
+                Message.is_staff == False,
                 Message.is_answered == False
             )
         )
@@ -57,7 +59,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
         latest_unanswered_query = await db.execute(
             select(Message, Group)
             .join(Group, Message.group_id == Group.id)
-            .filter(Message.is_question == True, Message.is_answered == False)
+            .filter(Message.is_question == True, Message.is_answered == False, Message.is_staff == False)
             .order_by(Message.id.desc())
             .limit(5)
         )

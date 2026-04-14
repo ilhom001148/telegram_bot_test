@@ -59,10 +59,10 @@ async def get_groups(db: AsyncSession = Depends(get_db)):
             total_msgs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group.id))
             total_messages = total_msgs_res.scalar() or 0
             
-            total_qs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group.id, Message.is_question == True))
+            total_qs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group.id, Message.is_question == True, Message.is_staff == False))
             total_questions = total_qs_res.scalar() or 0
             
-            answered_qs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group.id, Message.is_question == True, Message.is_answered == True))
+            answered_qs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group.id, Message.is_question == True, Message.is_staff == False, Message.is_answered == True))
             answered_questions = answered_qs_res.scalar() or 0
             
             unanswered_questions = total_questions - answered_questions
