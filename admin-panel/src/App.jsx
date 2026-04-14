@@ -865,9 +865,9 @@ function KnowledgeBase({ token, showFlash, askConfirm }) {
             <td>{item.question}</td>
             <td style={{fontSize:'0.85rem', color:'var(--text-muted)', maxWidth:'400px'}}>{item.answer}</td>
             <td style={{textAlign:'center'}}>
-              <div className="flex-between" style={{gap:'5px', justifyContent:'center'}}>
-                <button className="btn btn-sm" onClick={() => startEdit(item)} style={{padding:'5px 10px'}}>Tahrirlash</button>
-                <button className="btn btn-sm btn-danger" onClick={() => deleteKb(item.id)} style={{padding:'5px 10px'}}>O'chirish</button>
+              <div style={{display:'flex', gap:'10px', justifyContent:'center', flexWrap:'wrap'}}>
+                <button className="btn btn-sm" onClick={() => startEdit(item)} style={{padding:'5px 12px'}}>Tahrirlash</button>
+                <button className="btn btn-sm btn-danger" onClick={() => deleteKb(item.id)} style={{padding:'5px 12px'}}>O'chirish</button>
               </div>
             </td>
           </tr>
