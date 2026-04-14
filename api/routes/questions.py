@@ -40,7 +40,10 @@ async def get_all_questions(
     limit: int = 15,
     offset: int = 0,
 ):
-    query = select(Message).options(joinedload(Message.group)).filter(Message.is_question == True)
+    query = select(Message).options(joinedload(Message.group)).filter(
+        Message.is_question == True,
+        Message.is_staff == False
+    )
     
     count_query = select(func.count()).select_from(query.alias())
     total_res = await db.execute(count_query)
@@ -66,9 +69,9 @@ async def get_unanswered_questions(
     limit: int = 10,
     offset: int = 0,
 ):
-    query = select(Message).options(joinedload(Message.group)).filter(
         Message.is_question == True,
-        Message.is_answered == False
+        Message.is_answered == False,
+        Message.is_staff == False
     )
     
     count_query = select(func.count()).select_from(query.alias())

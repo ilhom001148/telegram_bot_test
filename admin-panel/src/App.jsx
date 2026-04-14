@@ -908,7 +908,17 @@ function Messages({ token }) {
             <div style={{fontWeight:'600'}}>{msg.full_name}</div>
             {msg.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 4px'}}>Xodim</span>}
           </td>
-          <td style={{maxWidth:'300px', fontSize:'0.85rem'}}>{msg.telegram_app_link ? <a href={msg.telegram_app_link} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed currentColor'}} title="Telegram ilovasida ochish">{msg.text}</a> : msg.text}</td><td>{msg.group_title}</td><td><span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`}>{msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}</span></td></tr>))}</tbody></table>
+          <td>{msg.group_title}</td>
+          <td>
+            {msg.is_staff ? (
+              <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.2)', color:'var(--primary)'}}>Xodim xabari</span>
+            ) : (
+              <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`}>
+                {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
+              </span>
+            )}
+          </td>
+        </tr>))}</tbody></table>
         <div className="flex-between" style={{marginTop:'1.5rem'}}><button className="btn btn-sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Orqaga</button><strong>{page + 1} / {Math.ceil(total / 15) || 1}</strong><button className="btn btn-sm" disabled={(page + 1) * 15 >= total} onClick={() => setPage(p => p + 1)}>Oldinga</button></div>
       </div>
     </>
@@ -1080,19 +1090,25 @@ function GroupHistory({ token, group, onBack }) {
                            </form>
                         ) : (
                            <div>
-                              <span style={{color:'var(--text-muted)', fontStyle:'italic', display:'block', marginBottom:'8px'}}>Kutilmoqda...</span>
-                              <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}}>Javob berish</button>
+                              <span style={{color:'var(--text-muted)', fontStyle:'italic', display:'block', marginBottom:'8px'}}>
+                                {m.is_staff ? 'Xodim xabari' : 'Kutilmoqda...'}
+                              </span>
+                              {!m.is_staff && (
+                                <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}}>Javob berish</button>
+                              )}
                            </div>
                         )
                      )
                    ) : <span style={{color:'var(--text-muted)', fontSize:'0.8rem'}}>Oddiy xabar</span>}
                 </td>
                 <td>
-                   {m.is_question ? (
+                   {m.is_question && !m.is_staff ? (
                      <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.7rem'}}>
                         {m.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
                      </span>
-                   ) : <span style={{color:'var(--text-muted)', fontSize:'0.8rem'}}>-</span>}
+                   ) : (
+                     m.is_staff ? <span className="badge badge-kb" style={{fontSize:'0.7rem', opacity:0.8}}>Xodim</span> : <span style={{color:'var(--text-muted)', fontSize:'0.8rem'}}>-</span>
+                   )}
                 </td>
               </tr>
             )) : <tr><td colSpan="5" style={{textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>Tarixda ma'lumotlar topilmadi.</td></tr>}
