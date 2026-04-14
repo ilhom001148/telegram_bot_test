@@ -6,15 +6,7 @@ from sqlalchemy import select
 async def update_settings():
     async with SessionLocal() as db:
         try:
-            # 1. tracking_mode ni o'chiramiz (test uchun qulay)
-            result = await db.execute(select(Setting).filter(Setting.key == "tracking_mode"))
-            setting = result.scalars().first()
-            if setting:
-                setting.value = "false"
-                print("✅ tracking_mode -> false")
-            else:
-                db.add(Setting(key="tracking_mode", value="false"))
-                print("➕ tracking_mode qo'shildi -> false")
+            # tracking_mode removed from system
             
             # 2. stt_mode ni tekshiramiz (default local bo'lishi kerak, lekin biz forced-cloud qilmoqchi emasmiz, 
             # chunki ai.py da endi ffmpeg check bor)

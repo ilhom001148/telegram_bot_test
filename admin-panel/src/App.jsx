@@ -259,50 +259,6 @@ const SimpleBarChart = ({ data, colors = ['#6366f1', '#ec4899'] }) => {
   );
 };
 
-/* Tracking Mode Component */
-function MonitoringManager({ token, showFlash }) {
-  const [trackingMode, setTrackingMode] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${API_URL}/settings/`, { headers: { 'Authorization': `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => {
-        setTrackingMode(data.tracking_mode === 'true');
-        setLoading(false);
-      });
-  }, [token]);
-
-  const toggleTracking = () => {
-    const newValue = !trackingMode;
-    setTrackingMode(newValue);
-    fetch(`${API_URL}/settings/`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ key: 'tracking_mode', value: newValue ? 'true' : 'false' })
-    }).then(() => showFlash(`Rejim: ${newValue ? 'Faqat sanash' : 'Javob berish'}`));
-  };
-
-  if (loading) return <div className="loader"></div>;
-
-  return (
-    <>
-      <h2 className="header-title">Bot Monitoringi</h2>
-      <div className="glass-card" style={{maxWidth:'600px'}}>
-         <div className="flex-between">
-            <div>
-               <h3 style={{marginBottom:'0.5rem'}}>Faqat sanash rejimi</h3>
-               <p style={{fontSize:'0.85rem', color:'var(--text-muted)'}}>Ushbu rejim yoqilganda bot savollarni aniqlaydi va bazada sanaydi, lekin AI orqali javob qaytarmaydi.</p>
-            </div>
-            <label className="switch">
-               <input type="checkbox" checked={trackingMode} onChange={toggleTracking} />
-               <span className="slider round"></span>
-            </label>
-         </div>
-      </div>
-    </>
-  );
-}
 
 /* Broadcast Manager Component */
 function BroadcastManager({ token, showFlash }) {
@@ -446,7 +402,6 @@ function App() {
             <div className="nav-sub-menu">
               <div className={`nav-link ${activeTab === 'knowledge' ? 'active' : ''}`} onClick={() => setActiveTab('knowledge')}><Icons.Training /> <span>Botni o'qitish</span></div>
               <div className={`nav-link ${activeTab === 'broadcast' ? 'active' : ''}`} onClick={() => setActiveTab('broadcast')}><Icons.Broadcast /> <span>Xabar yuborish</span></div>
-              <div className={`nav-link ${activeTab === 'monitoring' ? 'active' : ''}`} onClick={() => setActiveTab('monitoring')}><Icons.Settings /> <span>Monitoring</span></div>
             </div>
           </div>
 
@@ -472,7 +427,6 @@ function App() {
         {activeTab === 'groups' && <Groups token={token} />}
         {activeTab === 'knowledge' && <KnowledgeBase token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'broadcast' && <BroadcastManager token={token} showFlash={showFlash} />}
-        {activeTab === 'monitoring' && <MonitoringManager token={token} showFlash={showFlash} />}
         {activeTab === 'settings' && <BotSettings token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'profile' && <Profile token={token} setUsername={setUsername} showFlash={showFlash} />}
         {activeTab === 'database' && <DatabaseManager token={token} showFlash={showFlash} askConfirm={askConfirm} />}
@@ -1073,7 +1027,7 @@ function GroupHistory({ token, group, onBack }) {
 function BotSettings({ token, showFlash, askConfirm }) {
   const [s, setS] = useState({ 
     system_prompt: '', company_info: '', maintenance_mode: 'false', maintenance_text: '',
-    tracking_mode: 'false', stt_mode: 'local', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
+    stt_mode: 'local', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
@@ -1086,7 +1040,6 @@ function BotSettings({ token, showFlash, askConfirm }) {
           company_info: d.company_info || '',
           maintenance_mode: d.maintenance_mode || 'false',
           maintenance_text: d.maintenance_text || 'Hozirda tizimda texnik ishlar olib borilmoqda. Tez orada qaytamiz!',
-          tracking_mode: d.tracking_mode || 'false',
           stt_mode: d.stt_mode || 'local',
           ai_provider: d.ai_provider || 'openai',
           openai_api_key: d.openai_api_key || '',
@@ -1219,24 +1172,6 @@ function BotSettings({ token, showFlash, askConfirm }) {
              </label>
           </div>
           
-          <div className="flex-between" style={{marginBottom:'1.5rem', paddingBottom:'1rem', borderBottom:'1px solid var(--card-border)'}}>
-             <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                <div className="stat-icon-wrapper" style={{margin:0, color:'var(--warning)', background:'rgba(245, 158, 11, 0.1)'}}><Icons.History /></div>
-                <div className="summary-title" style={{margin:0}}>Tracking Mode (Faqat sanash)</div>
-             </div>
-             <label className="switch">
-                <input 
-                  type="checkbox" 
-                  checked={s.tracking_mode === 'true'} 
-                  onChange={e => {
-                    const newVal = e.target.checked ? 'true' : 'false';
-                    setS({...s, tracking_mode: newVal});
-                    save('tracking_mode', newVal);
-                  }} 
-                />
-                <span className="slider round"></span>
-             </label>
-          </div>
 
           <div className="form-group" style={{marginTop:'auto'}}>
              <label style={{fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'0.05em'}}>Foydalanuvchilar uchun xabar</label>

@@ -86,9 +86,6 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
     if not await is_question_ai(text):
         return
         
-    # [NEW] Tracking Mode (Faqat sanash rejimi)
-    if await get_setting(db, "tracking_mode", "false") == "true":
-        return
         
     # Avval bazadan qidiramiz
     kb_match = await search_knowledge(db, text)
@@ -254,9 +251,6 @@ async def handle_group_message(message: TgMessage):
                 user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
                 lang = user.language_code
                 
-                # [NEW] Tracking Mode (Faqat sanash rejimi)
-                if await get_setting(db, "tracking_mode", "false") == "true":
-                    return
                 
                 # Knowledge base qidirish
                 kb_match = await search_knowledge(db, text)
@@ -331,8 +325,7 @@ async def handle_channel_post(message: TgMessage):
 
             # Agar savol bo'lsa va tracking rejimi o'chiq bo'lsa, AI javob beradi
             if is_question:
-                if await get_setting(db, "tracking_mode", "false") == "true":
-                    return
+                
                 
                 kb_match = await search_knowledge(db, text)
                 context = kb_match.answer if kb_match else None
