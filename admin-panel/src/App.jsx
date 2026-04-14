@@ -1027,7 +1027,7 @@ function GroupHistory({ token, group, onBack }) {
 function BotSettings({ token, showFlash, askConfirm }) {
   const [s, setS] = useState({ 
     system_prompt: '', company_info: '', maintenance_mode: 'false', maintenance_text: '',
-    stt_mode: 'local', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
+    tracking_mode: 'false', stt_mode: 'local', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
@@ -1040,6 +1040,7 @@ function BotSettings({ token, showFlash, askConfirm }) {
           company_info: d.company_info || '',
           maintenance_mode: d.maintenance_mode || 'false',
           maintenance_text: d.maintenance_text || 'Hozirda tizimda texnik ishlar olib borilmoqda. Tez orada qaytamiz!',
+          tracking_mode: d.tracking_mode || 'false',
           stt_mode: d.stt_mode || 'local',
           ai_provider: d.ai_provider || 'openai',
           openai_api_key: d.openai_api_key || '',
@@ -1172,6 +1173,24 @@ function BotSettings({ token, showFlash, askConfirm }) {
              </label>
           </div>
           
+          <div className="flex-between" style={{marginBottom:'1.5rem', paddingBottom:'1rem', borderBottom:'1px solid var(--card-border)'}}>
+             <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                <div className="stat-icon-wrapper" style={{margin:0, color:'var(--warning)', background:'rgba(245, 158, 11, 0.1)'}}><Icons.History /></div>
+                <div className="summary-title" style={{margin:0}}>Tracking Mode (Faqat sanash)</div>
+             </div>
+             <label className="switch">
+                <input 
+                  type="checkbox" 
+                  checked={s.tracking_mode === 'true'} 
+                  onChange={e => {
+                    const newVal = e.target.checked ? 'true' : 'false';
+                    setS({...s, tracking_mode: newVal});
+                    save('tracking_mode', newVal);
+                  }} 
+                />
+                <span className="slider round"></span>
+             </label>
+          </div>
 
           <div className="form-group" style={{marginTop:'auto'}}>
              <label style={{fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'0.05em'}}>Foydalanuvchilar uchun xabar</label>
