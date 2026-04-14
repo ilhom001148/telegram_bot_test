@@ -172,6 +172,7 @@ async def get_group_messages(
                 "username": message.username,
                 "text": message.text,
                 "is_question": message.is_question,
+                "is_staff": message.is_staff,
                 "is_answered": message.is_answered,
                 "answered_by_bot": message.answered_by_bot,
                 "reply_to_message_id": message.reply_to_message_id,

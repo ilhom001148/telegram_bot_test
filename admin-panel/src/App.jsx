@@ -903,7 +903,12 @@ function Messages({ token }) {
       </div>
       <div className="glass-card table-wrapper">
         <table><thead><tr><th>Foydalanuvchi</th><th>Xabar matni</th><th>Guruh</th><th>Holati</th></tr></thead>
-        <tbody>{messages.map(msg => (<tr key={msg.id}><td>{msg.full_name}</td><td style={{maxWidth:'300px', fontSize:'0.85rem'}}>{msg.telegram_app_link ? <a href={msg.telegram_app_link} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed currentColor'}} title="Telegram ilovasida ochish">{msg.text}</a> : msg.text}</td><td>{msg.group_title}</td><td><span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`}>{msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}</span></td></tr>))}</tbody></table>
+        <tbody>{messages.map(msg => (<tr key={msg.id}>
+          <td>
+            <div style={{fontWeight:'600'}}>{msg.full_name}</div>
+            {msg.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 4px'}}>Xodim</span>}
+          </td>
+          <td style={{maxWidth:'300px', fontSize:'0.85rem'}}>{msg.telegram_app_link ? <a href={msg.telegram_app_link} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed currentColor'}} title="Telegram ilovasida ochish">{msg.text}</a> : msg.text}</td><td>{msg.group_title}</td><td><span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`}>{msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}</span></td></tr>))}</tbody></table>
         <div className="flex-between" style={{marginTop:'1.5rem'}}><button className="btn btn-sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Orqaga</button><strong>{page + 1} / {Math.ceil(total / 15) || 1}</strong><button className="btn btn-sm" disabled={(page + 1) * 15 >= total} onClick={() => setPage(p => p + 1)}>Oldinga</button></div>
       </div>
     </>
@@ -1039,7 +1044,9 @@ function GroupHistory({ token, group, onBack }) {
               <tr key={m.id}>
                 <td style={{fontSize:'0.8rem', whiteSpace:'nowrap'}}>{new Date(m.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}</td>
                 <td>
-                   <div style={{fontWeight:'600', fontSize:'0.9rem'}}>{m.full_name}</div>
+                   <div style={{fontWeight:'600', fontSize:'0.9rem'}}>
+                    {m.full_name} {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginLeft:'5px', verticalAlign:'middle'}}>Xodim</span>}
+                   </div>
                    {m.username && <div style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>@{m.username}</div>}
                 </td>
                 <td style={{fontSize:'0.9rem'}}>
