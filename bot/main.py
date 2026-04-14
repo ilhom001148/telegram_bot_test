@@ -1,5 +1,6 @@
 import os
 import time
+import asyncio
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ChatType
 from aiogram.types import Message as TgMessage, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatMemberUpdated
@@ -67,6 +68,8 @@ async def is_user_staff(chat_id: int, user_id: int) -> bool:
 
     # 3. Telegram API check
     try:
+        from bot.bot_instance import get_bot
+        bot = get_bot()
         member = await bot.get_chat_member(chat_id, user_id)
         is_staff = member.status in ["administrator", "creator"]
         admin_cache[(chat_id, user_id)] = (is_staff, now)
