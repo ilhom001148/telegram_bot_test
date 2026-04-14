@@ -69,6 +69,7 @@ async def get_unanswered_questions(
     limit: int = 10,
     offset: int = 0,
 ):
+    query = select(Message).options(joinedload(Message.group)).filter(
         Message.is_question == True,
         Message.is_answered == False,
         Message.is_staff == False
