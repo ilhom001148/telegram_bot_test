@@ -175,6 +175,20 @@ async def extract_knowledge_from_file(
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
+@router.put("/{kb_id}", response_model=KnowledgeResponse)
+async def update_knowledge(kb_id: int, item: KnowledgeCreate, db: AsyncSession = Depends(get_db), current_admin=Depends(get_current_admin)):
+    result = await db.execute(select(KnowledgeBase).filter(KnowledgeBase.id == kb_id))
+    kb = result.scalars().first()
+    if not kb:
+        raise HTTPException(status_code=404, detail="Knowledge entry not found")
+    
+    kb.question = item.question
+    kb.answer = item.answer
+    
+    await db.commit()
+    await db.refresh(kb)
+    return kb
+
 @router.delete("/{kb_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_knowledge(kb_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(KnowledgeBase).filter(KnowledgeBase.id == kb_id))

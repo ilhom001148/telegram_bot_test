@@ -663,13 +663,12 @@ function Dashboard({ token }) {
 
 function KnowledgeBase({ token, showFlash, askConfirm }) {
   const [kb, setKb] = useState([]);
-  const [form, setForm] = useState({ question: '', answer: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
-  // PDF Extraction States
   const [extracting, setExtracting] = useState(false);
+  const [form, setForm] = useState({ question: '', answer: '' });
   const [extractedData, setExtractedData] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
 
   const fetchKb = () => {
     setLoading(true);
@@ -730,16 +729,26 @@ function KnowledgeBase({ token, showFlash, askConfirm }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     setSaving(true);
-    fetch(`${API_URL}/knowledge/`, {
-      method: 'POST',
+    const url = editingItem ? `${API_URL}/knowledge/${editingItem.id}` : `${API_URL}/knowledge/`;
+    const method = editingItem ? 'PUT' : 'POST';
+
+    fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(form)
     }).then(() => { 
       setForm({ question: '', answer: '' }); 
+      setEditingItem(null);
       setSaving(false); 
-      showFlash('Ma\'lumot saqlandi');
+      showFlash(editingItem ? 'Ma\'lumot yangilandi' : 'Ma\'lumot saqlandi');
       fetchKb(); 
     }).catch(() => { setSaving(false); showFlash('Xato', 'error'); });
+  };
+
+  const startEdit = (item) => {
+    setEditingItem(item);
+    setForm({ question: item.question, answer: item.answer });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -747,11 +756,22 @@ function KnowledgeBase({ token, showFlash, askConfirm }) {
       <h2 className="header-title">AI Bilimlar bazasi</h2>
       <div className="grid-cards" style={{gridTemplateColumns:'1fr 1fr', gap:'2rem', alignItems:'start'}}>
          <div className="glass-card">
-            <div className="summary-title" style={{marginBottom:'1rem'}}>Qo'lda bilim qo'shish</div>
+            <div className="summary-title" style={{marginBottom:'1rem'}}>
+              {editingItem ? 'Bilimni tahrirlash' : 'Qo\'lda bilim qo\'shish'}
+            </div>
             <form onSubmit={handleSubmit}>
                <div className="form-group"><label>Savol yoki kalit so'z</label><input type="text" value={form.question} onChange={e => setForm({...form, question: e.target.value})} required /></div>
                <div className="form-group"><label>Javob matni</label><textarea value={form.answer} onChange={e => setForm({...form, answer: e.target.value})} required /></div>
-               <button type="submit" className="btn" disabled={saving}>{saving ? 'Saqlanmoqda...' : 'Saqlash'}</button>
+               <div className="flex-between" style={{gap:'10px'}}>
+                  <button type="submit" className="btn" disabled={saving} style={{flex:1}}>
+                    {saving ? 'Saqlanmoqda...' : (editingItem ? 'Yangilash' : 'Saqlash')}
+                  </button>
+                  {editingItem && (
+                    <button type="button" className="btn btn-danger" onClick={() => { setEditingItem(null); setForm({question:'', answer:''}); }} style={{flex:1}}>
+                      Bekor qilish
+                    </button>
+                  )}
+               </div>
             </form>
          </div>
 
@@ -839,8 +859,19 @@ function KnowledgeBase({ token, showFlash, askConfirm }) {
 
       <div className="glass-card table-wrapper" style={{marginTop:'2rem'}}>
         <div className="summary-title" style={{marginBottom:'1.5rem'}}>Mavjud bilimlar jurnali</div>
-        <table><thead><tr><th>Savol</th><th>Bilim matni</th><th>Amallar</th></tr></thead>
-        <tbody>{kb.map(item => (<tr key={item.id}><td>{item.question}</td><td style={{fontSize:'0.85rem', color:'var(--text-muted)', maxWidth:'400px'}}>{item.answer}</td><td><button className="btn btn-sm btn-danger" onClick={() => deleteKb(item.id)}>O'chirish</button></td></tr>))}</tbody></table>
+        <table><thead><tr><th>Savol</th><th>Bilim matni</th><th style={{textAlign:'center'}}>Amallar</th></tr></thead>
+        <tbody>{kb.map(item => (
+          <tr key={item.id}>
+            <td>{item.question}</td>
+            <td style={{fontSize:'0.85rem', color:'var(--text-muted)', maxWidth:'400px'}}>{item.answer}</td>
+            <td style={{textAlign:'center'}}>
+              <div className="flex-between" style={{gap:'5px', justifyContent:'center'}}>
+                <button className="btn btn-sm" onClick={() => startEdit(item)} style={{padding:'5px 10px'}}>Tahrirlash</button>
+                <button className="btn btn-sm btn-danger" onClick={() => deleteKb(item.id)} style={{padding:'5px 10px'}}>O'chirish</button>
+              </div>
+            </td>
+          </tr>
+        ))}</tbody></table>
         {kb.length === 0 && !loading && <p style={{textAlign:'center', padding:'2rem', color:'var(--text-muted)'}}>Hali ma'lumotlar qo'shilmagan.</p>}
       </div>
     </>
