@@ -12,20 +12,17 @@ async def migrate():
             ("ai_model", "VARCHAR(100)"),
             ("prompt_tokens", "INTEGER DEFAULT 0"),
             ("completion_tokens", "INTEGER DEFAULT 0"),
-            ("total_tokens", "INTEGER DEFAULT 0")
+            ("total_tokens", "INTEGER DEFAULT 0"),
+            ("is_staff", "BOOLEAN DEFAULT FALSE")
         ]
         
         for col_name, col_type in columns:
             try:
-                # PostgreSQL uchun ALTER TABLE
-                await conn.execute(text(f"ALTER TABLE messages ADD COLUMN {col_name} {col_type}"))
-                print(f"✅ Ustun qo'shildi: {col_name}")
+                # PostgreSQL 9.6+ supports IF NOT EXISTS
+                await conn.execute(text(f"ALTER TABLE messages ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                print(f"✅ Tekshirildi/Qo'shildi: {col_name}")
             except Exception as e:
-                # Agar ustun allaqachon bo'lsa, xatoni o'tkazib yuboramiz
-                if "already exists" in str(e).lower() or "duplicate column" in str(e).lower():
-                    print(f"ℹ️ Ustun allaqachon mavjud: {col_name}")
-                else:
-                    print(f"❌ Xatolik ({col_name}): {e}")
+                print(f"❌ Xatolik ({col_name}): {e}")
 
         # 2. user_id ni BigInteger ga o'tkazish (Telegram ID lar katta raqam bo'lgani uchun)
         try:
@@ -33,6 +30,13 @@ async def migrate():
             print("✅ user_id turi BIGINT ga o'zgartirildi.")
         except Exception as e:
             print(f"ℹ️ user_id o'zgartirishda eslatma/xato: {e}")
+
+        # 3. users jadvaliga is_staff qo'shish
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff BOOLEAN DEFAULT FALSE"))
+            print("✅ users jadvaliga is_staff tekshirildi/qo'shildi.")
+        except Exception as e:
+            print(f"❌ users.is_staff xatolik: {e}")
 
         print("\n🎉 Migratsiya muvaffaqiyatli yakunlandi!")
 

@@ -28,16 +28,22 @@ async def init_db():
             ("ai_model", "VARCHAR(100)"),
             ("prompt_tokens", "INTEGER DEFAULT 0"),
             ("completion_tokens", "INTEGER DEFAULT 0"),
-            ("total_tokens", "INTEGER DEFAULT 0")
+            ("total_tokens", "INTEGER DEFAULT 0"),
+            ("is_staff", "BOOLEAN DEFAULT FALSE")
         ]
         
         for col_name, col_type in columns:
             try:
-                await conn.execute(text(f"ALTER TABLE messages ADD COLUMN {col_name} {col_type}"))
-                print(f"✅ Ustun qo'shildi (api/main): {col_name}")
+                await conn.execute(text(f"ALTER TABLE messages ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                print(f"✅ Tekshirildi/Qo'shildi (api/main): {col_name}")
             except Exception:
-                # Ustun allaqachon bo'lsa xatoni o'tkazib yuboramiz
                 pass
+        
+        # User jadvaliga is_staff qo'shish
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_staff BOOLEAN DEFAULT FALSE"))
+        except Exception:
+            pass
                 
         try:
             await conn.execute(text("ALTER TABLE messages ALTER COLUMN user_id TYPE BIGINT"))
