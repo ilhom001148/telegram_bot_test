@@ -104,7 +104,7 @@ async def create_company(
 
         # Pillow orqali rasm validatsiyasi (agar o'rnatilgan bo'lsa)
         try:
-            from PIL import Image
+            from PIL import Image  # type: ignore
             import io
             img = Image.open(io.BytesIO(contents))
             img.verify()
@@ -183,7 +183,7 @@ async def update_company(
             raise HTTPException(status_code=422, detail="Logo hajmi 5MB dan oshmasligi kerak")
 
         try:
-            from PIL import Image
+            from PIL import Image  # type: ignore
             import io
             img = Image.open(io.BytesIO(contents))
             img.verify()

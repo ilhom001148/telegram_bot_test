@@ -86,6 +86,68 @@ async def startup_event():
     await init_admin()
     print("🚀 Starting Telegram Bot in the background...")
     asyncio.create_task(start_bot())
+    # Har 1 kunda tashqi bazadan kompaniyalarni avtomatik tortib olish
+    asyncio.create_task(scheduled_company_sync())
+
+
+# ─── Har kunlik avtomatik sinxronizatsiya ────────────────────────────────────
+async def scheduled_company_sync():
+    """Har 24 soatda tashqi API dan kompaniyalarni tortib bazaga yozadi."""
+    import httpx
+    from sqlalchemy.future import select
+
+    EXTERNAL_API_URL = "https://developer.uyqur.uz/dev/company/info-for-bot"
+    EXTERNAL_HEADERS = {
+        "X-Auth": "KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI",
+        "Content-Type": "application/json"
+    }
+    INTERVAL = 86400  # 24 soat (sekundlarda: 24 * 60 * 60)
+
+    while True:
+        try:
+            print("🔄 [Scheduler] Tashqi bazadan kompaniyalar sinxronizatsiyasi boshlandi...")
+            async with httpx.AsyncClient() as client:
+                response = await client.get(EXTERNAL_API_URL, headers=EXTERNAL_HEADERS, timeout=15.0)
+
+                if response.status_code != 200:
+                    print(f"❌ [Scheduler] Tashqi server xatosi: {response.status_code}")
+                else:
+                    data = response.json()
+                    companies_list = data if isinstance(data, list) else data.get("data", [])
+
+                    async with SessionLocal() as db:
+                        added = 0
+                        for ext in companies_list:
+                            name = str(ext.get("name") or ext.get("company_name") or "Noma'lum")
+                            existing = await db.execute(select(Company).filter(Company.name == name))
+                            if existing.scalars().first():
+                                continue
+
+                            phone = str(ext.get("phone") or "")
+                            director = str(ext.get("director") or "")
+                            resp_name = str(ext.get("uyqur_support_username") or "")
+                            resp_phone = str(ext.get("uyqur_support_phone") or "")
+
+                            db.add(Company(
+                                name=name,
+                                phone=phone or None,
+                                director=director or None,
+                                responsible_name=resp_name or None,
+                                responsible_phone=resp_phone or None,
+                                status="Yangi",
+                                is_active=True
+                            ))
+                            added += 1
+
+                        await db.commit()
+                        print(f"✅ [Scheduler] {added} ta yangi kompaniya qo'shildi.")
+
+        except Exception as e:
+            print(f"❌ [Scheduler] Xatolik: {e}")
+
+        # Keyingi sinxronizatsiyagacha kutish (24 soat)
+        print(f"⏰ [Scheduler] Keyingi sinxronizatsiya {INTERVAL // 3600} soatdan keyin...")
+        await asyncio.sleep(INTERVAL)
 
 
 app.include_router(auth_router)
