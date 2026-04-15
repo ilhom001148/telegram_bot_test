@@ -23,6 +23,7 @@ services:
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "60"
+        # WEBHOOK_URL kerak emas — Render RENDER_EXTERNAL_URL ni avtomatik beradi
 
 databases:
   - name: telegram-bot-db

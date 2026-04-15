@@ -24,4 +24,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 TELEGRAM_PROXY = os.getenv("TELEGRAM_PROXY", None)
 
 # Webhook sozlamalari
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+# 1. WEBHOOK_URL qo'lda kiritilgan bo'lsa - shuni ishlat
+# 2. Render'da ishlayotgan bo'lsa - RENDER_EXTERNAL_URL dan avtomatik ol
+# 3. Ikkalasi ham bo'lmasa - polling rejimi
+WEBHOOK_URL = os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL")

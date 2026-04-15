@@ -477,15 +477,16 @@ async def start_bot():
             print(f"✅ Bot connected: @{me.username}")
             
             if WEBHOOK_URL:
-                # ⚠️ MUHIM: Webhook vositachi (mediator) bot orqali yuboriladi.
-                # Bu bot o'zi set_webhook chaqirmaydi — chunki Telegram webhook
-                # manzili vositachiga ko'rsatilgan. Agar bu qator yoqilsa,
-                # vositachining webhook manzili o'chirib tashlanadi!
-                # await bot.set_webhook(url=url, drop_pending_updates=True)
-                
-                print("✅ Vositachi (mediator) rejimida ishga tushdi.")
-                print("📡 Xabarlar vositachi bot orqali /webhook/bot endpointiga keladi.")
-                # Bu yerda cheksiz kutish kerak, aks holda funksiya tugab qoladi
+                # ✅ O'z webhookimizni to'g'ridan-to'g'ri Telegramga ro'yxatdan o'tkazamiz
+                webhook_endpoint = f"{WEBHOOK_URL.rstrip('/')}/webhook/bot"
+                await bot.set_webhook(
+                    url=webhook_endpoint,
+                    drop_pending_updates=True,
+                    allowed_updates=["message", "callback_query", "my_chat_member", "channel_post"]
+                )
+                print(f"✅ Webhook muvaffaqiyatli o'rnatildi: {webhook_endpoint}")
+                print("📡 Telegram xabarlarni to'g'ridan-to'g'ri shu manzilga yuboradi.")
+                # FastAPI server aktiv bo'lgani uchun bu yerda kutish kerak
                 while True:
                     await asyncio.sleep(3600)
             else:
