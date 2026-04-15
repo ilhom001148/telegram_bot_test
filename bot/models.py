@@ -130,3 +130,23 @@ class ScheduledBroadcast(Base):
     scheduled_at = Column(DateTime(timezone=True), nullable=False)
     status = Column(String(50), default="pending")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Company(Base):
+    __tablename__ = "companies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)                      # Kompaniya nomi
+    logo_url = Column(String(500), nullable=True)                   # Logo (URL yoki fayl nomi)
+    brand_name = Column(String(255), nullable=True)                 # Brand nomi
+    main_currency = Column(String(10), default="UZS")              # Asosiy valyuta
+    extra_currency = Column(String(10), nullable=True)              # Qo'shimcha valyuta
+    phone = Column(String(30), nullable=True)                       # Telefon (+998...)
+    director = Column(String(255), nullable=True)                   # Direktor
+    responsible_name = Column(String(255), nullable=True)           # Mas'ul xodim
+    responsible_phone = Column(String(30), nullable=True)           # Mas'ul xodim telefon
+    status = Column(String(50), default="active")                   # active / inactive / trial
+    subscription_start = Column(DateTime(timezone=True), nullable=True)  # Obuna boshlanishi
+    subscription_end = Column(DateTime(timezone=True), nullable=True)    # Obuna tugashi
+    is_active = Column(Boolean, default=True)                       # Yoqilgan / O'chirilgan
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

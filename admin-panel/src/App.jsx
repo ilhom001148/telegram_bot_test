@@ -444,24 +444,368 @@ function App() {
 }
 
 function CompaniesManager({ token }) {
+  const EMPTY_FORM = {
+    name: '', brand_name: '', main_currency: 'UZS', extra_currency: '',
+    phone: '', director: '', responsible_name: '', responsible_phone: '',
+    status: 'active', subscription_start: '', subscription_end: '', is_active: true,
+  };
+
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [deleteId, setDeleteId] = useState(null);
+  const [flash, setFlash] = useState(null);
+
+  const showMsg = (text, type = 'success') => {
+    setFlash({ text, type });
+    setTimeout(() => setFlash(null), 3000);
+  };
+
+  const fetchCompanies = () => {
+    setLoading(true);
+    fetch(`${API_URL}/companies/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => { setCompanies(d || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+  useEffect(() => { fetchCompanies(); }, [token]);
+
+  // ── Phone validation ──────────────────────────────────────
+  const phoneRe = /^\+?[\d\s\-()\u200c]{7,20}$/;
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "Kompaniya nomi majburiy";
+    if (form.phone && !phoneRe.test(form.phone)) e.phone = "Noto'g'ri format (misol: +998901234567)";
+    if (form.responsible_phone && !phoneRe.test(form.responsible_phone)) e.responsible_phone = "Noto'g'ri format";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  // ── Logo handler ──────────────────────────────────────────
+  const handleLogo = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const allowed = ['image/jpeg','image/png','image/webp','image/gif','image/svg+xml'];
+    if (!allowed.includes(file.type)) { showMsg('Faqat JPEG, PNG, WebP, GIF yoki SVG rasm yuklanadi', 'error'); return; }
+    if (file.size > 5 * 1024 * 1024) { showMsg("Logo hajmi 5MB dan oshmasligi kerak", 'error'); return; }
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  // ── Open form ─────────────────────────────────────────────
+  const openCreate = () => {
+    setEditingId(null); setForm(EMPTY_FORM);
+    setLogoFile(null); setLogoPreview(null); setErrors({});
+    setShowForm(true);
+  };
+  const openEdit = (c) => {
+    setEditingId(c.id);
+    setForm({
+      name: c.name || '', brand_name: c.brand_name || '',
+      main_currency: c.main_currency || 'UZS', extra_currency: c.extra_currency || '',
+      phone: c.phone || '', director: c.director || '',
+      responsible_name: c.responsible_name || '', responsible_phone: c.responsible_phone || '',
+      status: c.status || 'active',
+      subscription_start: c.subscription_start ? c.subscription_start.slice(0,16) : '',
+      subscription_end:   c.subscription_end   ? c.subscription_end.slice(0,16)   : '',
+      is_active: c.is_active,
+    });
+    setLogoFile(null);
+    setLogoPreview(c.logo_url ? (c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`) : null);
+    setErrors({});
+    setShowForm(true);
+  };
+
+  // ── Submit ────────────────────────────────────────────────
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setSaving(true);
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => { if (v !== '' && v !== null && v !== undefined) fd.append(k, v); });
+    if (logoFile) fd.append('logo', logoFile);
+
+    const url = editingId ? `${API_URL}/companies/${editingId}` : `${API_URL}/companies/`;
+    const method = editingId ? 'PUT' : 'POST';
+    try {
+      const res = await fetch(url, { method, headers: { Authorization: `Bearer ${token}` }, body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Xato');
+      showMsg(editingId ? 'Kompaniya yangilandi ✅' : 'Kompaniya qo\'shildi ✅');
+      setShowForm(false);
+      fetchCompanies();
+    } catch (err) { showMsg(err.message, 'error'); }
+    finally { setSaving(false); }
+  };
+
+  // ── Toggle active ─────────────────────────────────────────
+  const handleToggle = async (id) => {
+    const res = await fetch(`${API_URL}/companies/${id}/toggle`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    setCompanies(prev => prev.map(c => c.id === id ? { ...c, is_active: data.is_active } : c));
+  };
+
+  // ── Delete ────────────────────────────────────────────────
+  const handleDelete = async (id) => {
+    await fetch(`${API_URL}/companies/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    showMsg('Kompaniya o\'chirildi', 'error');
+    setDeleteId(null);
+    fetchCompanies();
+  };
+
+  const statusLabel = { active: { label: 'Faol', color: 'var(--success)' }, inactive: { label: 'Nofaol', color: 'var(--danger)' }, trial: { label: 'Sinov', color: '#f59e0b' } };
+  const inp = { width:'100%', padding:'10px 14px', background:'rgba(255,255,255,0.06)', border:'1px solid var(--card-border)', borderRadius:'10px', color:'#fff', fontSize:'0.9rem', outline:'none' };
+  const errStyle = { fontSize:'0.75rem', color:'var(--danger)', marginTop:'4px' };
+
   return (
-    <div style={{animation: 'fadeIn 0.5s ease-out'}}>
-      <div className="flex-between" style={{marginBottom:'2rem', justifyContent: 'space-between'}}>
-         <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
-         <button className="btn btn-sm" style={{background:'var(--primary)'}}>
-            + Yangi kompaniya qo'shish
-         </button>
-      </div>
-      
-      <div className="glass-card">
-         <div style={{textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
-            <div style={{opacity: 0.5, marginBottom: '1rem'}}>
-               <Icons.Company />
+    <div style={{animation:'fadeIn 0.5s ease-out', position:'relative'}}>
+
+      {/* Local flash */}
+      {flash && <div className={`flash-banner ${flash.type}`} style={{position:'fixed',top:'20px',right:'20px',zIndex:9999}}>{flash.text}</div>}
+
+      {/* Delete confirm overlay */}
+      {deleteId && (
+        <div className="modal-overlay">
+          <div className="confirm-modal">
+            <div className="modal-icon"><Icons.Warning /></div>
+            <div className="modal-title">Kompaniyani o'chirish</div>
+            <div className="modal-text">Bu amalni ortga qaytarib bo'lmaydi. Davom etasizmi?</div>
+            <div className="modal-actions">
+              <button className="modal-btn modal-btn-cancel" onClick={() => setDeleteId(null)}>Yo'q</button>
+              <button className="modal-btn modal-btn-confirm" onClick={() => handleDelete(deleteId)}>Ha, o'chirish</button>
             </div>
-            <p>Hozircha tizimga kompaniyalar kiritilmagan.</p>
-            <p style={{fontSize: '0.85rem', marginTop: '5px'}}>Yuqoridagi tugma orqali ro'yxatga olishingiz mumkin.</p>
-         </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex-between" style={{marginBottom:'2rem'}}>
+        <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
+        <button className="btn btn-sm" style={{background:'var(--primary)'}} onClick={openCreate}>+ Yangi kompaniya</button>
       </div>
+
+      {/* List */}
+      {loading ? <div className="loader"/> : (
+        <div className="glass-card table-wrapper">
+          {companies.length === 0 ? (
+            <div style={{textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
+              <div style={{opacity:0.4, marginBottom:'1rem'}}><Icons.Company /></div>
+              <p>Hozircha kompaniyalar yo'q.</p>
+              <p style={{fontSize:'0.85rem', marginTop:'5px'}}>Yuqoridagi tugma orqali qo'shing.</p>
+            </div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th style={{width:50}}>Logo</th>
+                  <th>Kompaniya</th>
+                  <th>Valyuta</th>
+                  <th>Telefon</th>
+                  <th>Mas'ul xodim</th>
+                  <th>Status</th>
+                  <th>Obuna tugashi</th>
+                  <th style={{width:90, textAlign:'center'}}>Holat</th>
+                  <th style={{width:120, textAlign:'center'}}>Amallar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {companies.map(c => (
+                  <tr key={c.id}>
+                    <td>
+                      {c.logo_url ? (
+                        <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`}
+                          alt="logo" style={{width:38, height:38, borderRadius:8, objectFit:'cover', background:'rgba(255,255,255,0.08)'}} />
+                      ) : (
+                        <div style={{width:38, height:38, borderRadius:8, background:'rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', opacity:0.4}}>
+                          <Icons.Company />
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{fontWeight:700}}>{c.name}</div>
+                      {c.brand_name && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.brand_name}</div>}
+                    </td>
+                    <td>
+                      <span style={{fontWeight:600}}>{c.main_currency}</span>
+                      {c.extra_currency && <span style={{fontSize:'0.75rem', color:'var(--text-muted)'}}> / {c.extra_currency}</span>}
+                    </td>
+                    <td style={{fontSize:'0.85rem'}}>{c.phone || '—'}</td>
+                    <td>
+                      <div style={{fontSize:'0.85rem'}}>{c.responsible_name || '—'}</div>
+                      {c.responsible_phone && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.responsible_phone}</div>}
+                    </td>
+                    <td>
+                      <span className="badge" style={{background:`${(statusLabel[c.status]||statusLabel.active).color}22`, color:(statusLabel[c.status]||statusLabel.active).color, border:`1px solid ${(statusLabel[c.status]||statusLabel.active).color}55`}}>
+                        {(statusLabel[c.status]||statusLabel.active).label}
+                      </span>
+                    </td>
+                    <td style={{fontSize:'0.8rem', color: c.subscription_end && new Date(c.subscription_end) < new Date() ? 'var(--danger)' : 'var(--text-muted)'}}>
+                      {c.subscription_end ? new Date(c.subscription_end).toLocaleDateString('uz-UZ') : '—'}
+                    </td>
+                    <td style={{textAlign:'center'}}>
+                      {/* Toggle switch */}
+                      <div onClick={() => handleToggle(c.id)} title={c.is_active ? 'O\'chirish' : 'Yoqish'}
+                        style={{display:'inline-flex', cursor:'pointer', width:44, height:24, borderRadius:12,
+                          background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.15)',
+                          alignItems:'center', padding:'2px', transition:'background 0.3s', position:'relative'}}>
+                        <div style={{width:20, height:20, borderRadius:'50%', background:'#fff',
+                          transform: c.is_active ? 'translateX(20px)' : 'translateX(0)', transition:'transform 0.3s', boxShadow:'0 1px 4px rgba(0,0,0,0.4)'}}/>
+                      </div>
+                    </td>
+                    <td style={{textAlign:'center'}}>
+                      <div style={{display:'flex', gap:6, justifyContent:'center'}}>
+                        <button className="btn btn-sm" style={{padding:'4px 10px', fontSize:'0.75rem'}} onClick={() => openEdit(c)}>✏️</button>
+                        <button className="btn btn-sm btn-danger" style={{padding:'4px 10px', fontSize:'0.75rem'}} onClick={() => setDeleteId(c.id)}>🗑</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Slide-in Form Modal */}
+      {showForm && (
+        <div className="modal-overlay" style={{alignItems:'flex-start', overflowY:'auto', padding:'2rem'}}>
+          <div className="glass-card" style={{width:'100%', maxWidth:700, margin:'auto', position:'relative', animation:'fadeIn 0.3s ease-out'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'2rem'}}>
+              <h3 style={{margin:0, fontSize:'1.2rem'}}>{editingId ? '✏️ Kompaniyani tahrirlash' : '🏢 Yangi kompaniya qo\'shish'}</h3>
+              <button onClick={() => setShowForm(false)} style={{background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:'1.5rem', lineHeight:1}}>×</button>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              {/* Logo upload */}
+              <div className="form-group" style={{marginBottom:'1.5rem'}}>
+                <label style={{display:'block', marginBottom:'0.5rem', color:'var(--text-muted)', fontSize:'0.85rem'}}>Kompaniya logosi</label>
+                <div style={{display:'flex', alignItems:'center', gap:'1rem'}}>
+                  <div style={{width:80, height:80, borderRadius:12, background:'rgba(255,255,255,0.06)', border:'2px dashed var(--card-border)',
+                    display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0}}>
+                    {logoPreview
+                      ? <img src={logoPreview} alt="preview" style={{width:'100%', height:'100%', objectFit:'cover'}}/>
+                      : <span style={{fontSize:'2rem', opacity:0.3}}>🖼</span>}
+                  </div>
+                  <div style={{flex:1}}>
+                    <input type="file" accept="image/*" id="logo-upload" style={{display:'none'}} onChange={handleLogo}/>
+                    <label htmlFor="logo-upload" className="btn btn-sm btn-outline" style={{cursor:'pointer', display:'inline-block', borderColor:'var(--primary)', color:'var(--primary)'}}>
+                      📁 Rasm tanlash
+                    </label>
+                    <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'6px'}}>JPEG, PNG, WebP, GIF, SVG • Maks 5MB</div>
+                    {logoFile && <div style={{fontSize:'0.75rem', color:'var(--success)', marginTop:'4px'}}>✓ {logoFile.name}</div>}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2-column grid */}
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.2rem'}}>
+
+                <div className="form-group">
+                  <label>Kompaniya nomi *</label>
+                  <input style={{...inp, borderColor: errors.name ? 'var(--danger)':''}} value={form.name}
+                    onChange={e => setForm({...form, name: e.target.value})} placeholder="Masalan: Tech Solutions"/>
+                  {errors.name && <div style={errStyle}>{errors.name}</div>}
+                </div>
+
+                <div className="form-group">
+                  <label>Brand nomi</label>
+                  <input style={inp} value={form.brand_name} onChange={e => setForm({...form, brand_name: e.target.value})} placeholder="Masalan: TechSol"/>
+                </div>
+
+                <div className="form-group">
+                  <label>Asosiy valyuta</label>
+                  <select style={{...inp, background:'rgba(0,0,0,0.25)'}} value={form.main_currency} onChange={e => setForm({...form, main_currency: e.target.value})}>
+                    {['UZS','USD','EUR','RUB','KZT','GBP','CNY'].map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Qo'shimcha valyuta</label>
+                  <select style={{...inp, background:'rgba(0,0,0,0.25)'}} value={form.extra_currency} onChange={e => setForm({...form, extra_currency: e.target.value})}>
+                    <option value="">— Yo'q —</option>
+                    {['UZS','USD','EUR','RUB','KZT','GBP','CNY'].map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Kompaniya telefoni</label>
+                  <input style={{...inp, borderColor: errors.phone ? 'var(--danger)':''}} value={form.phone}
+                    onChange={e => setForm({...form, phone: e.target.value})} placeholder="+998901234567"/>
+                  {errors.phone && <div style={errStyle}>{errors.phone}</div>}
+                </div>
+
+                <div className="form-group">
+                  <label>Direktor</label>
+                  <input style={inp} value={form.director} onChange={e => setForm({...form, director: e.target.value})} placeholder="To'liq ismi"/>
+                </div>
+
+                <div className="form-group">
+                  <label>Mas'ul xodim</label>
+                  <input style={inp} value={form.responsible_name} onChange={e => setForm({...form, responsible_name: e.target.value})} placeholder="To'liq ismi"/>
+                </div>
+
+                <div className="form-group">
+                  <label>Mas'ul xodim telefoni</label>
+                  <input style={{...inp, borderColor: errors.responsible_phone ? 'var(--danger)':''}} value={form.responsible_phone}
+                    onChange={e => setForm({...form, responsible_phone: e.target.value})} placeholder="+998901234567"/>
+                  {errors.responsible_phone && <div style={errStyle}>{errors.responsible_phone}</div>}
+                </div>
+
+                <div className="form-group">
+                  <label>Status</label>
+                  <select style={{...inp, background:'rgba(0,0,0,0.25)'}} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
+                    <option value="active">✅ Faol</option>
+                    <option value="trial">🟡 Sinov davri</option>
+                    <option value="inactive">🔴 Nofaol</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{display:'flex', flexDirection:'column', justifyContent:'flex-end'}}>
+                  <label style={{marginBottom:'0.5rem'}}>Holat (Yoqilgan / O'chirilgan)</label>
+                  <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                    <div onClick={() => setForm({...form, is_active: !form.is_active})} style={{cursor:'pointer', width:52, height:28, borderRadius:14,
+                      background: form.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.15)',
+                      display:'flex', alignItems:'center', padding:'3px', transition:'background 0.3s'}}>
+                      <div style={{width:22, height:22, borderRadius:'50%', background:'#fff',
+                        transform: form.is_active ? 'translateX(24px)' : 'translateX(0)', transition:'transform 0.3s', boxShadow:'0 1px 4px rgba(0,0,0,0.4)'}}/>
+                    </div>
+                    <span style={{fontSize:'0.9rem', color: form.is_active ? 'var(--success)' : 'var(--text-muted)'}}>
+                      {form.is_active ? 'Yoqilgan' : 'O\'chirilgan'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Obuna boshlanishi</label>
+                  <input type="datetime-local" style={inp} value={form.subscription_start}
+                    onChange={e => setForm({...form, subscription_start: e.target.value})}/>
+                </div>
+
+                <div className="form-group">
+                  <label>Obuna tugashi</label>
+                  <input type="datetime-local" style={inp} value={form.subscription_end}
+                    onChange={e => setForm({...form, subscription_end: e.target.value})}/>
+                </div>
+
+              </div>
+
+              <div style={{display:'flex', gap:'12px', marginTop:'2rem'}}>
+                <button type="submit" className="btn" style={{flex:1}} disabled={saving}>
+                  {saving ? '⏳ Saqlanmoqda...' : (editingId ? '💾 Yangilash' : '➕ Qo\'shish')}
+                </button>
+                <button type="button" className="btn btn-danger" style={{flex:1}} onClick={() => setShowForm(false)}>
+                  Bekor qilish
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

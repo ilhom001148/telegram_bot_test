@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 from bot.db import engine, Base, SessionLocal
-from bot.models import Group, Message, KnowledgeBase, Admin, Setting, User
+from bot.models import Group, Message, KnowledgeBase, Admin, Setting, User, Company
 from api.auth import hash_password
 from api.routes.auth import router as auth_router
 from api.routes.dashboard import router as dashboard_router
@@ -15,6 +15,7 @@ from api.routes.settings import router as settings_router
 from api.routes.admin import router as admin_router
 from api.routes.users import router as users_router
 from api.routes.export import router as export_router
+from api.routes.companies import router as companies_router
 
 async def init_db():
     from sqlalchemy import text
@@ -97,8 +98,15 @@ app.include_router(settings_router)
 app.include_router(admin_router)
 app.include_router(users_router)
 app.include_router(export_router)
+app.include_router(companies_router)
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+import os as _os
+
+# Logo rasmlari uchun statik papka
+logos_path = _os.path.join(_os.path.dirname(__file__), "..", "admin-panel", "public", "logos")
+_os.makedirs(logos_path, exist_ok=True)
+app.mount("/logos", StaticFiles(directory=logos_path), name="logos")
 
 @app.get("/api-status")
 def root():
