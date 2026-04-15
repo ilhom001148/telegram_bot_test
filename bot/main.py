@@ -477,12 +477,14 @@ async def start_bot():
             print(f"✅ Bot connected: @{me.username}")
             
             if WEBHOOK_URL:
-                webhook_path = "/webhook/bot"
-                url = f"{WEBHOOK_URL.rstrip('/')}{webhook_path}"
-                print(f"📡 Setting Webhook to: {url}")
-                await bot.set_webhook(url=url, drop_pending_updates=True)
-                # Webhook rejimida polling kerak emas, shunchaki kutib turamiz
-                print("✅ Webhook muvaffaqiyatli sozlandi. Bot xabarlarni kutmoqda...")
+                # ⚠️ MUHIM: Webhook vositachi (mediator) bot orqali yuboriladi.
+                # Bu bot o'zi set_webhook chaqirmaydi — chunki Telegram webhook
+                # manzili vositachiga ko'rsatilgan. Agar bu qator yoqilsa,
+                # vositachining webhook manzili o'chirib tashlanadi!
+                # await bot.set_webhook(url=url, drop_pending_updates=True)
+                
+                print("✅ Vositachi (mediator) rejimida ishga tushdi.")
+                print("📡 Xabarlar vositachi bot orqali /webhook/bot endpointiga keladi.")
                 # Bu yerda cheksiz kutish kerak, aks holda funksiya tugab qoladi
                 while True:
                     await asyncio.sleep(3600)

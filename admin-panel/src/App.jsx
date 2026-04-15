@@ -17,6 +17,7 @@ const Icons = {
   Broadcast: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 11c-.46 0-.85-.28-.99-.7l-1.34-4.8c-.14-.5-.54-.88-1.04-1.02l-4.8-1.34c-.42-.14-.7-.53-.7-.99s.28-.85.7-.99l4.8-1.34c.5-.14.9-.52 1.04-1.02l1.34-4.8c.14-.42.53-.7.99-.7s.85.28.99.7l1.34 4.8c.14.5.54.88 1.04 1.02l4.8 1.34c.42.14.7.53.7.99s-.28.85-.7.99l-4.8 1.34c-.5.14-.9.52-1.04 1.02l-1.34 4.8c-.14.42-.53.7-.99.7z"/></svg>,
   Folder: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>,
   Telegram: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M9.78 18.65l.66-3.33L19.62 4.41c.21-.19.46-.3.73-.3.26 0 .52.1.72.3.4.4.4 1.04 0 1.44l-8.73 8.73 3.32 3.32c.39.39.39 1.02 0 1.41l-1.41 1.41c-.39.39-1.02.39-1.41 0l-3.33-3.32-3.32 3.32c-.39.39-1.02.39-1.41 0l-1.41-1.41c-.39-.39-.39-1.02 0-1.41l3.32-3.32z"/></svg>,
+  Company: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>,
 };
 
 function ArchiveManager({ token }) {
@@ -388,6 +389,10 @@ function App() {
           </div>
           
           <div className="nav-group">
+            <div className={`nav-link ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')}><Icons.Company /> <span>Kompaniyalar</span></div>
+          </div>
+          
+          <div className="nav-group">
             <div className={`nav-link ${(activeTab === 'messages' || activeTab === 'groups' || activeTab === 'archive' || activeTab === 'customers') ? 'active' : ''}`}><Icons.History /> <span>Muloqotlar ▾</span></div>
             <div className="nav-sub-menu">
               <div className={`nav-link ${activeTab === 'messages' ? 'active' : ''}`} onClick={() => setActiveTab('messages')}><Icons.History /> <span>Jurnal</span></div>
@@ -423,6 +428,7 @@ function App() {
         {flash && <div className={`flash-banner ${flash.type}`}>{flash.text}</div>}
         <ConfirmModal {...modal} onCancel={() => setModal({ ...modal, isOpen: false })} />
         {activeTab === 'dashboard' && <Dashboard token={token} />}
+        {activeTab === 'companies' && <CompaniesManager token={token} />}
         {activeTab === 'messages' && <Messages token={token} />}
         {activeTab === 'groups' && <Groups token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'knowledge' && <KnowledgeBase token={token} showFlash={showFlash} askConfirm={askConfirm} />}
@@ -432,6 +438,29 @@ function App() {
         {activeTab === 'database' && <DatabaseManager token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'archive' && <ArchiveManager token={token} />}
         {activeTab === 'customers' && <CustomersManager token={token} />}
+      </div>
+    </div>
+  );
+}
+
+function CompaniesManager({ token }) {
+  return (
+    <div style={{animation: 'fadeIn 0.5s ease-out'}}>
+      <div className="flex-between" style={{marginBottom:'2rem', justifyContent: 'space-between'}}>
+         <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
+         <button className="btn btn-sm" style={{background:'var(--primary)'}}>
+            + Yangi kompaniya qo'shish
+         </button>
+      </div>
+      
+      <div className="glass-card">
+         <div style={{textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
+            <div style={{opacity: 0.5, marginBottom: '1rem'}}>
+               <Icons.Company />
+            </div>
+            <p>Hozircha tizimga kompaniyalar kiritilmagan.</p>
+            <p style={{fontSize: '0.85rem', marginTop: '5px'}}>Yuqoridagi tugma orqali ro'yxatga olishingiz mumkin.</p>
+         </div>
       </div>
     </div>
   );
