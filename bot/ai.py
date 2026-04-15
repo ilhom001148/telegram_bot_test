@@ -9,17 +9,10 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 from dotenv import load_dotenv
 from bot.db import SessionLocal
 from bot.models import Setting
-import shutil
 
-try:
-    from faster_whisper import WhisperModel # type: ignore
-except ImportError:
-    WhisperModel = None
 
 load_dotenv()
 
-# Global variables for local Whisper model
-_whisper_model = None
 
 async def get_db_setting(key: str, default: str = "") -> str:
     async with SessionLocal() as db:
@@ -199,50 +192,12 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
             "usage": None
         }
 
-async def get_local_whisper_model():
-    """Returns the local Whisper model, initializing it if necessary."""
-    global _whisper_model
-    if WhisperModel is None:
-        return None
-    
-    if _whisper_model is None:
-        try:
-            # Modelni CPU-da int8 kvantizatsiya bilan yuklaymiz (Xotira va tezlik uchun optimal)
-            # base modeli tanlandi (sifatliroq)
-            print("⏳ Lokal Whisper model yuklanmoqda (base)...")
-            _whisper_model = WhisperModel("base", device="cpu", compute_type="int8")
-            print("✅ Lokal Whisper model muvaffaqiyatli yuklandi.")
-        except Exception as e:
-            print(f"❌ Whisper modelni yuklashda xato: {e}")
-            return None
-    return _whisper_model
 
 async def transcribe_audio(file_path: str) -> str:
-    # 1. Sozlamalarni DB dan olish
+    """Ovozni matnga aylantirish — Cloud API (Groq yoki OpenAI)."""
+    # STT faqat Cloud API orqali (Render free tier uchun lokal model sig'maydi)
     provider = await get_db_setting("ai_provider", "openai")
-    stt_mode = await get_db_setting("stt_mode", "local") # default local
-    
-    # FFMPEG borligini tekshiramiz
-    ffmpeg_available = shutil.which("ffmpeg") is not None
-    
-    # 2. Local Whisper transkripsiyasi
-    if stt_mode == "local" and WhisperModel:
-        if not ffmpeg_available:
-            print("⚠️ FFMPEG topilmadi! Lokal Whisper ishlay olmaydi. Cloud API (fallback) ishlatiladi.")
-        else:
-            model = await get_local_whisper_model()
-            if model:
-                try:
-                    print(f"🎙 Lokal transkripsiya boshlandi: {file_path}")
-                    # beam_size=5 aniqlikni oshiradi
-                    segments, info = model.transcribe(file_path, beam_size=5, language="uz")
-                    text = "".join([segment.text for segment in segments]).strip()
-                    if text:
-                        print(f"✅ Lokal natija: {text}")
-                        return text
-                except Exception as e:
-                    print(f"⚠️ Lokal transkripsiyada xato: {e}")
-                    print("🔄 Cloud API'ga (fallback) o'tilmoqda...")
+    stt_mode = await get_db_setting("stt_mode", "cloud")
     
     # 3. Cloud API (Fallback yoki Asosiy)
     try:
