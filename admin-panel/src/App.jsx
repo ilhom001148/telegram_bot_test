@@ -57,7 +57,13 @@ function ArchiveManager({ token }) {
                    <Icons.Folder />
                 </div>
                 <div className="folder-content">
-                   <div className="folder-date">{new Date(s.date).toLocaleDateString('uz-UZ', {day:'2-digit', month:'long', year:'numeric'})}</div>
+                   <div className="folder-date">
+                     {(() => {
+                        const d = new Date(s.date);
+                        const m = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
+                        return `${d.getDate()} - ${m[d.getMonth()]}, ${d.getFullYear()}`;
+                     })()}
+                   </div>
                    <div className="folder-stats-grid">
                       <div className="folder-stat">
                          <span className="stat-num">{s.total}</span>
