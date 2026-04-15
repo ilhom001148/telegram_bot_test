@@ -115,16 +115,45 @@ def root():
 @app.post("/webhook/bot")
 async def telegram_webhook(update: dict):
     """
-    Telegram webhook endpoint.
+    Telegram webhook endpoint + External Company Webhook Fallback.
     """
-    from bot.main import dp
-    from bot.bot_instance import get_bot
-    from aiogram.types import Update
+    # 1. Agar Telegramdan kelayotgan xabar bo'lsa
+    if "update_id" in update:
+        from bot.main import dp
+        from bot.bot_instance import get_bot
+        from aiogram.types import Update
+        
+        bot = get_bot()
+        telegram_update = Update(**update)
+        await dp.feed_update(bot, telegram_update)
+        return {"ok": True}
+        
+    # 2. Agar BOSHQA TIZIMDAN (Tashqi bot) kelayotgan JSON Data bo'lsa
+    from bot.db import SessionLocal
+    from bot.models import Company
     
-    bot = get_bot()
-    telegram_update = Update(**update)
-    await dp.feed_update(bot, telegram_update)
-    return {"ok": True}
+    async with SessionLocal() as db:
+        try:
+            # Tashqi bot qanday nom bilan yuborganini taxminan o'qiymiz
+            name = update.get("name") or update.get("company_name") or update.get("title") or "Tashqi Tizim Kompaniyasi"
+            phone = update.get("phone") or update.get("phone_number") or update.get("contact")
+            director = update.get("director") or update.get("owner") or update.get("fullname")
+            
+            new_company = Company(
+                name=str(name),
+                phone=str(phone) if phone else None,
+                director=str(director) if director else None,
+                status="Yangi",
+                is_active=True
+            )
+            
+            db.add(new_company)
+            await db.commit()
+            print(f"✅ Tashqi Webhook orqali yangi kompaniya saqlandi: {name}")
+            return {"status": "success", "message": "Ma'lumotlar 'Kompaniyalar' paneliga saqlandi"}
+        except Exception as e:
+            print("Webhook Company Save Error:", e)
+            return {"status": "error", "message": str(e)}
 
 @app.get("/bot-status")
 async def bot_status():
