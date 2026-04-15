@@ -495,10 +495,13 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 4px var(--primary-glow);
 }
 
-select option {
-  background-color: #0f172a;
-  color: #fff;
-  padding: 10px;
+select {
+  background-color: #0f172a !important;
+}
+
+option {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
 }
 
 .btn {

@@ -719,14 +719,14 @@ function CompaniesManager({ token }) {
 
                 <div className="form-group">
                   <label>Asosiy valyuta</label>
-                  <select style={{...inp, background:'rgba(0,0,0,0.25)'}} value={form.main_currency} onChange={e => setForm({...form, main_currency: e.target.value})}>
+                  <select style={{...inp, background:'#0f172a'}} value={form.main_currency} onChange={e => setForm({...form, main_currency: e.target.value})}>
                     {['UZS','USD','EUR','RUB','KZT','GBP','CNY'].map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
 
                 <div className="form-group">
                   <label>Qo'shimcha valyuta</label>
-                  <select style={{...inp, background:'rgba(0,0,0,0.25)'}} value={form.extra_currency} onChange={e => setForm({...form, extra_currency: e.target.value})}>
+                  <select style={{...inp, background:'#0f172a'}} value={form.extra_currency} onChange={e => setForm({...form, extra_currency: e.target.value})}>
                     <option value="">— Yo'q —</option>
                     {['UZS','USD','EUR','RUB','KZT','GBP','CNY'].map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
@@ -758,7 +758,7 @@ function CompaniesManager({ token }) {
 
                 <div className="form-group">
                   <label>Statusi</label>
-                  <select style={{...inp, background:'rgba(0,0,0,0.25)'}} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
+                  <select style={{...inp, background:'#0f172a'}} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
                     <option value="Yangi">Yangi</option>
                     <option value="Faol">Faol</option>
                     <option value="To'xtatilgan">To'xtatilgan</option>
