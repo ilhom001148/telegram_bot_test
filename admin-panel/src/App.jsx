@@ -447,7 +447,7 @@ function CompaniesManager({ token }) {
   const EMPTY_FORM = {
     name: '', brand_name: '', main_currency: 'UZS', extra_currency: '',
     phone: '', director: '', responsible_name: '', responsible_phone: '',
-    status: 'active', subscription_start: '', subscription_end: '', is_active: true,
+    status: 'Yangi', subscription_start: '', subscription_end: '', is_active: true,
   };
 
   const [companies, setCompanies] = useState([]);
@@ -510,7 +510,7 @@ function CompaniesManager({ token }) {
       main_currency: c.main_currency || 'UZS', extra_currency: c.extra_currency || '',
       phone: c.phone || '', director: c.director || '',
       responsible_name: c.responsible_name || '', responsible_phone: c.responsible_phone || '',
-      status: c.status || 'active',
+      status: c.status || 'Yangi',
       subscription_start: c.subscription_start ? c.subscription_start.slice(0,16) : '',
       subscription_end:   c.subscription_end   ? c.subscription_end.slice(0,16)   : '',
       is_active: c.is_active,
@@ -558,7 +558,7 @@ function CompaniesManager({ token }) {
     fetchCompanies();
   };
 
-  const statusLabel = { active: { label: 'Faol', color: 'var(--success)' }, inactive: { label: 'Nofaol', color: 'var(--danger)' }, trial: { label: 'Sinov', color: '#f59e0b' } };
+  const statusLabel = { Yangi: { label: 'Yangi', color: '#6366f1' }, Faol: { label: 'Faol', color: 'var(--success)' }, "To'xtatilgan": { label: 'To\'xtatilgan', color: '#f59e0b' }, "Bekor qilingan": { label: 'Bekor qilingan', color: 'var(--danger)' } };
   const inp = { width:'100%', padding:'10px 14px', background:'rgba(255,255,255,0.06)', border:'1px solid var(--card-border)', borderRadius:'10px', color:'#fff', fontSize:'0.9rem', outline:'none' };
   const errStyle = { fontSize:'0.75rem', color:'var(--danger)', marginTop:'4px' };
 
@@ -640,8 +640,8 @@ function CompaniesManager({ token }) {
                       {c.responsible_phone && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.responsible_phone}</div>}
                     </td>
                     <td>
-                      <span className="badge" style={{background:`${(statusLabel[c.status]||statusLabel.active).color}22`, color:(statusLabel[c.status]||statusLabel.active).color, border:`1px solid ${(statusLabel[c.status]||statusLabel.active).color}55`}}>
-                        {(statusLabel[c.status]||statusLabel.active).label}
+                      <span className="badge" style={{background:`${(statusLabel[c.status]||statusLabel['Yangi']).color}22`, color:(statusLabel[c.status]||statusLabel['Yangi']).color, border:`1px solid ${(statusLabel[c.status]||statusLabel['Yangi']).color}55`}}>
+                        {(statusLabel[c.status]||statusLabel['Yangi']).label}
                       </span>
                     </td>
                     <td style={{fontSize:'0.8rem', color: c.subscription_end && new Date(c.subscription_end) < new Date() ? 'var(--danger)' : 'var(--text-muted)'}}>
@@ -757,11 +757,12 @@ function CompaniesManager({ token }) {
                 </div>
 
                 <div className="form-group">
-                  <label>Status</label>
+                  <label>Statusi</label>
                   <select style={{...inp, background:'rgba(0,0,0,0.25)'}} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
-                    <option value="active">✅ Faol</option>
-                    <option value="trial">🟡 Sinov davri</option>
-                    <option value="inactive">🔴 Nofaol</option>
+                    <option value="Yangi">Yangi</option>
+                    <option value="Faol">Faol</option>
+                    <option value="To'xtatilgan">To'xtatilgan</option>
+                    <option value="Bekor qilingan">Bekor qilingan</option>
                   </select>
                 </div>
 

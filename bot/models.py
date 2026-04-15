@@ -145,7 +145,7 @@ class Company(Base):
     director = Column(String(255), nullable=True)                   # Direktor
     responsible_name = Column(String(255), nullable=True)           # Mas'ul xodim
     responsible_phone = Column(String(30), nullable=True)           # Mas'ul xodim telefon
-    status = Column(String(50), default="active")                   # active / inactive / trial
+    status = Column(String(50), default="Yangi")                   # Yangi / Faol / To'xtatilgan / Bekor qilingan
     subscription_start = Column(DateTime(timezone=True), nullable=True)  # Obuna boshlanishi
     subscription_end = Column(DateTime(timezone=True), nullable=True)    # Obuna tugashi
     is_active = Column(Boolean, default=True)                       # Yoqilgan / O'chirilgan
