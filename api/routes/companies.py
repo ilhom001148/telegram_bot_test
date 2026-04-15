@@ -82,7 +82,7 @@ async def sync_external_companies(db: AsyncSession = Depends(get_db)):
     # ⬇️ SHU YERGA O'ZINGIZNING EXTERNAL URL VA HEADER LARINI YOZING ⬇️
     EXTERNAL_API_URL = "https://developer.uyqur.uz/dev/company/info-for-bot"  
     EXTERNAL_HEADERS = {
-        "Authorization": "header 'X-Auth: KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI'", 
+        "X-Auth": "KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI", 
         "Content-Type": "application/json"
     }
     # ⬆️ YUQORIDAGI O'ZGARUVCHILARNI ALMASHTIRING ⬆️
@@ -118,10 +118,15 @@ async def sync_external_companies(db: AsyncSession = Depends(get_db)):
             phone = str(ext_company.get("phone") or ext_company.get("phone_number") or ext_company.get("contact") or "")
             director = str(ext_company.get("director") or ext_company.get("owner") or "")
             
+            resp_name = str(ext_company.get("uyqur_support_username") or ext_company.get("responsible_name") or "")
+            resp_phone = str(ext_company.get("uyqur_support_phone") or ext_company.get("responsible_phone") or "")
+            
             new_comp = Company(
                 name=name,
                 phone=phone if phone else None,
                 director=director if director else None,
+                responsible_name=resp_name if resp_name else None,
+                responsible_phone=resp_phone if resp_phone else None,
                 status="Yangi",
                 is_active=True
             )
