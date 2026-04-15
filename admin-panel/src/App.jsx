@@ -613,17 +613,7 @@ function CompaniesManager({ token }) {
       {/* Header */}
       <div className="flex-between" style={{marginBottom:'2rem'}}>
         <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
-        <div style={{display: 'flex', gap: '10px'}}>
-          <button 
-             className="btn btn-sm" 
-             style={{background:'var(--secondary)'}} 
-             onClick={handleSyncExternal}
-             disabled={syncing}
-          >
-             {syncing ? 'Aylanmoqda...' : '🔄 Tashqi bazadan yuklash'}
-          </button>
-          <button className="btn btn-sm" style={{background:'var(--primary)'}} onClick={openCreate}>+ Yangi kompaniya</button>
-        </div>
+        <button className="btn btn-sm" style={{background:'var(--primary)'}} onClick={openCreate}>+ Yangi kompaniya</button>
       </div>
 
       {/* Search Input for Companies */}

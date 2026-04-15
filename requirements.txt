@@ -18,5 +18,6 @@ python-jose[cryptography]
 docx2txt
 pypdf
 asyncpg
+Pillow
 # faster-whisper o'chirildi — Render free tier 512MB RAM ga sig'maydi.
 # Cloud STT (Groq/OpenAI Whisper API) ishlatiladi.
