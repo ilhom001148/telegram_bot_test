@@ -613,7 +613,6 @@ function CompaniesManager({ token }) {
       {/* Header */}
       <div className="flex-between" style={{marginBottom:'2rem'}}>
         <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
-        <button className="btn btn-sm" style={{background:'var(--primary)'}} onClick={openCreate}>+ Yangi kompaniya</button>
       </div>
 
       {/* Search Input for Companies */}
