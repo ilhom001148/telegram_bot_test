@@ -733,15 +733,15 @@ function CompaniesManager({ token }) {
                 </div>
 
                 <div className="form-group">
+                  <label>Direktor</label>
+                  <input style={inp} value={form.director} onChange={e => setForm({...form, director: e.target.value})} placeholder="To'liq ismi"/>
+                </div>
+
+                <div className="form-group">
                   <label>Kompaniya telefoni</label>
                   <input style={{...inp, borderColor: errors.phone ? 'var(--danger)':''}} value={form.phone}
                     onChange={e => setForm({...form, phone: e.target.value})} placeholder="+998901234567"/>
                   {errors.phone && <div style={errStyle}>{errors.phone}</div>}
-                </div>
-
-                <div className="form-group">
-                  <label>Direktor</label>
-                  <input style={inp} value={form.director} onChange={e => setForm({...form, director: e.target.value})} placeholder="To'liq ismi"/>
                 </div>
 
                 <div className="form-group">
