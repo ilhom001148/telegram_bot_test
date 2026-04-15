@@ -796,11 +796,11 @@ function CompaniesManager({ token }) {
               </div>
 
               <div style={{display:'flex', gap:'12px', marginTop:'2rem'}}>
-                <button type="submit" className="btn" style={{flex:1}} disabled={saving}>
-                  {saving ? '⏳ Saqlanmoqda...' : (editingId ? '💾 Yangilash' : '➕ Qo\'shish')}
-                </button>
                 <button type="button" className="btn btn-danger" style={{flex:1}} onClick={() => setShowForm(false)}>
                   Bekor qilish
+                </button>
+                <button type="submit" className="btn" style={{flex:1}} disabled={saving}>
+                  {saving ? '⏳ Saqlanmoqda...' : '💾 Saqlash'}
                 </button>
               </div>
             </form>
