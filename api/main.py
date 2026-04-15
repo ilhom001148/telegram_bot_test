@@ -94,6 +94,7 @@ async def startup_event():
 async def scheduled_company_sync():
     """Har 24 soatda tashqi API dan kompaniyalarni tortib bazaga yozadi."""
     import httpx
+    import traceback
     from sqlalchemy.future import select
 
     EXTERNAL_API_URL = "https://developer.uyqur.uz/dev/company/info-for-bot"
@@ -101,19 +102,34 @@ async def scheduled_company_sync():
         "X-Auth": "KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI",
         "Content-Type": "application/json"
     }
-    INTERVAL = 86400  # 24 soat (sekundlarda: 24 * 60 * 60)
+    INTERVAL = 86400  # 24 soat
+
+    # Server to'liq tayyorlanishini kutish
+    await asyncio.sleep(10)
+    print("🔄 [Scheduler] Kompaniya sinxronizatsiya tizimi ishga tushdi!")
 
     while True:
         try:
-            print("🔄 [Scheduler] Tashqi bazadan kompaniyalar sinxronizatsiyasi boshlandi...")
-            async with httpx.AsyncClient() as client:
-                response = await client.get(EXTERNAL_API_URL, headers=EXTERNAL_HEADERS, timeout=15.0)
+            print("🔄 [Scheduler] Tashqi bazadan tortish boshlandi...")
+            async with httpx.AsyncClient(follow_redirects=True) as client:
+                response = await client.get(EXTERNAL_API_URL, headers=EXTERNAL_HEADERS, timeout=30.0)
+
+                print(f"📡 [Scheduler] Server javobi: {response.status_code}")
 
                 if response.status_code != 200:
-                    print(f"❌ [Scheduler] Tashqi server xatosi: {response.status_code}")
+                    print(f"❌ [Scheduler] Tashqi server xatosi: {response.status_code} — {response.text[:200]}")
                 else:
                     data = response.json()
-                    companies_list = data if isinstance(data, list) else data.get("data", [])
+                    
+                    # JSON formatni aniqlash
+                    if isinstance(data, list):
+                        companies_list = data
+                    elif isinstance(data, dict):
+                        companies_list = data.get("data", data.get("results", data.get("companies", [])))
+                    else:
+                        companies_list = []
+                    
+                    print(f"📦 [Scheduler] {len(companies_list)} ta kompaniya topildi.")
 
                     async with SessionLocal() as db:
                         added = 0
@@ -140,13 +156,13 @@ async def scheduled_company_sync():
                             added += 1
 
                         await db.commit()
-                        print(f"✅ [Scheduler] {added} ta yangi kompaniya qo'shildi.")
+                        print(f"✅ [Scheduler] {added} ta yangi kompaniya bazaga qo'shildi!")
 
         except Exception as e:
             print(f"❌ [Scheduler] Xatolik: {e}")
+            traceback.print_exc()
 
-        # Keyingi sinxronizatsiyagacha kutish (24 soat)
-        print(f"⏰ [Scheduler] Keyingi sinxronizatsiya {INTERVAL // 3600} soatdan keyin...")
+        print(f"⏰ [Scheduler] Keyingi sinxronizatsiya 24 soatdan keyin...")
         await asyncio.sleep(INTERVAL)
 
 
