@@ -564,6 +564,26 @@ function CompaniesManager({ token }) {
     fetchCompanies();
   };
 
+  // ── Sync from External API ────────────────────────────────
+  const [syncing, setSyncing] = useState(false);
+  const handleSyncExternal = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch(`${API_URL}/companies/sync-external`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Xaro yuz berdi');
+      showMsg(data.message || 'Sinxronizatsiya muvaffaqiyatli', 'success');
+      fetchCompanies(); // Yengilangan ro'yxatni yuklash
+    } catch (err) {
+      showMsg(err.message, 'error');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const statusLabel = { Yangi: { label: 'Yangi', color: '#6366f1' }, Faol: { label: 'Faol', color: 'var(--success)' }, "To'xtatilgan": { label: 'To\'xtatilgan', color: '#f59e0b' }, "Bekor qilingan": { label: 'Bekor qilingan', color: 'var(--danger)' } };
   const inp = { width:'100%', padding:'10px 14px', background:'rgba(255,255,255,0.06)', border:'1px solid var(--card-border)', borderRadius:'10px', color:'#fff', fontSize:'0.9rem', outline:'none' };
   const errStyle = { fontSize:'0.75rem', color:'var(--danger)', marginTop:'4px' };
@@ -592,7 +612,17 @@ function CompaniesManager({ token }) {
       {/* Header */}
       <div className="flex-between" style={{marginBottom:'2rem'}}>
         <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
-        <button className="btn btn-sm" style={{background:'var(--primary)'}} onClick={openCreate}>+ Yangi kompaniya</button>
+        <div style={{display: 'flex', gap: '10px'}}>
+          <button 
+             className="btn btn-sm" 
+             style={{background:'var(--secondary)'}} 
+             onClick={handleSyncExternal}
+             disabled={syncing}
+          >
+             {syncing ? 'Aylanmoqda...' : '🔄 Tashqi bazadan yuklash'}
+          </button>
+          <button className="btn btn-sm" style={{background:'var(--primary)'}} onClick={openCreate}>+ Yangi kompaniya</button>
+        </div>
       </div>
 
       {/* List */}
