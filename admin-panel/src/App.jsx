@@ -870,6 +870,7 @@ function CompaniesManager({ token }) {
                 </button>
               </div>
             </form>
+          )}
           </div>
         </div>
       )}
