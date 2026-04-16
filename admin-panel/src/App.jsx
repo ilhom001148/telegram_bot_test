@@ -1695,12 +1695,12 @@ function GroupHistory({ token, group, onBack }) {
                       <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.7rem'}}>
                          {m.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
                       </span>
-                    ) : m.is_staff ? <span className="badge badge-kb" style={{fontSize:'0.7rem'}}>Xodim</span> : <span style={{color:'var(--text-muted)', fontSize:'0.8rem'}}>-</span>}
                   </td>
                 </tr>
-            )) : <tr><td colSpan="5" style={{textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>Tarixda ma'lumotlar topilmadi.</td></tr>}
-          </tbody>
-        </table>
+              )) : <tr><td colSpan="5" style={{textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>Tarixda ma'lumotlar topilmadi.</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </div>
     )}
   </>);
