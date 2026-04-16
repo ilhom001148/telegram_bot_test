@@ -169,13 +169,32 @@ async def get_external_companies():
                         "id": f"ext-{c.get('id') or i}",
                         "name": comp_name,
                         "brand_name": c.get("brand_name") or c.get("brand") or "",
+                    # ─── SMART STATUS LOGIC ───
+                    # Determine status based on API flags AND subscription expiration
+                    now_str = datetime.now().isoformat()
+                    base_status = str(c.get("status") or "").lower()
+                    is_active_api = bool(c.get("is_real") or c.get("is_active") or base_status == "active")
+                    
+                    if iso_expired and iso_expired < now_str:
+                        calc_status = "To'xtatilgan"
+                    elif base_status in ["canceled", "cancelled", "deleted", "inactive"]:
+                        calc_status = "Bekor qilingan"
+                    elif is_active_api:
+                        calc_status = "Faol"
+                    else:
+                        calc_status = "Yangi"
+
+                    results.append({
+                        "id": f"ext-{c.get('id') or i}",
+                        "name": comp_name,
+                        "brand_name": c.get("brand_name") or c.get("brand") or "",
                         "phone": comp_phone,
                         "director": c.get("director") or c.get("owner") or c.get("leader") or "",
                         "responsible_name": resp_name,
                         "responsible_phone": resp_phone,
                         "subscription_start": c.get("created_at") or c.get("start_date") or None,
                         "subscription_end": iso_expired or exp_raw or None,
-                        "status": "Faol" if (c.get("is_real") or c.get("is_active") or c.get("status") == "active") else "Yangi",
+                        "status": calc_status,
                         "is_active": True,
                         "logo_url": logo,
                         "main_currency": c.get("currency") or "UZS",
