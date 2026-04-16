@@ -28,7 +28,7 @@ class KnowledgeResponse(BaseModel):
     answer: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 def extract_text_from_file(file_path: str, filename: str) -> str:
     ext = filename.lower().split('.')[-1]

@@ -81,99 +81,108 @@ async def get_external_companies():
             
             results = []
             for i, c in enumerate(companies_list):
-                # ─── SUPER MAPPING LOGIC ───
-                
-                # 1. Obuna muddati (Date)
-                exp_raw = c.get("expired") or c.get("subscription_end") or c.get("expires_at")
-                iso_expired = None
-                if exp_raw and isinstance(exp_raw, str):
-                    if "." in exp_raw:
-                        try:
-                            d, m, y = exp_raw.split('.')[:3]
-                            iso_expired = f"{y}-{m}-{d}T00:00:00"
-                        except: pass
-                    elif "-" in exp_raw: iso_expired = exp_raw
+                try:
+                    # Basic check: skip non-dictionary items
+                    if not isinstance(c, dict): continue
 
-                # 2. Kompaniya nomi
-                comp_name = (
-                    c.get("name") or c.get("company_name") or 
-                    c.get("title") or c.get("brand_name") or 
-                    c.get("brand") or c.get("company") or 
-                    c.get("business_name") or c.get("org_name") or
-                    f"Kompaniya #{c.get('id') or i}"
-                )
+                    # ─── SUPER MAPPING LOGIC ───
+                    
+                    # 1. Obuna muddati (Date)
+                    exp_raw = c.get("expired") or c.get("subscription_end") or c.get("expires_at")
+                    iso_expired = None
+                    if exp_raw and isinstance(exp_raw, str):
+                        if "." in exp_raw:
+                            try:
+                                parts = exp_raw.split('.')[:3]
+                                if len(parts) == 3:
+                                    d, m, y = parts
+                                    iso_expired = f"{y}-{m}-{d}T00:00:00"
+                            except: pass
+                        elif "-" in exp_raw: iso_expired = exp_raw
 
-                # 3. Mas'ul xodim (Responsible Name) - EXTREME Fallback
-                resp_name = (
-                    c.get("responsible_name") or 
-                    c.get("uyqur_support_username") or 
-                    c.get("staff_name") or 
-                    c.get("support_name") or 
-                    c.get("responsible_staff") or 
-                    c.get("agent_name") or 
-                    c.get("manager_name") or 
-                    c.get("owner_name") or 
-                    c.get("director") or 
-                    c.get("responsible_person") or
-                    c.get("contact_person") or
-                    c.get("responsible") or
-                    c.get("staff") or
-                    c.get("agent") or
-                    c.get("manager") or
-                    "Noma'lum"
-                )
+                    # 2. Kompaniya nomi
+                    comp_name = (
+                        c.get("name") or c.get("company_name") or 
+                        c.get("title") or c.get("brand_name") or 
+                        c.get("brand") or c.get("company") or 
+                        c.get("business_name") or c.get("org_name") or
+                        f"Kompaniya #{c.get('id') or i}"
+                    )
 
-                # 4. Xodim telefoni (Responsible Phone) - EXTREME Fallback
-                resp_phone = (
-                    c.get("responsible_phone") or 
-                    c.get("uyqur_support_phone") or 
-                    c.get("staff_phone") or 
-                    c.get("support_phone") or 
-                    c.get("agent_phone") or 
-                    c.get("manager_phone") or 
-                    c.get("responsible_staff_phone") or
-                    c.get("phone_1") or
-                    c.get("mobile") or
-                    c.get("contact_phone") or
-                    c.get("phone") or
-                    ""
-                )
+                    # 3. Mas'ul xodim (Responsible Name) - EXTREME Fallback
+                    resp_name = (
+                        c.get("responsible_name") or 
+                        c.get("uyqur_support_username") or 
+                        c.get("staff_name") or 
+                        c.get("support_name") or 
+                        c.get("responsible_staff") or 
+                        c.get("agent_name") or 
+                        c.get("manager_name") or 
+                        c.get("owner_name") or 
+                        c.get("director") or 
+                        c.get("responsible_person") or
+                        c.get("contact_person") or
+                        c.get("responsible") or
+                        c.get("staff") or
+                        c.get("agent") or
+                        c.get("manager") or
+                        "Noma'lum"
+                    )
 
-                # 5. Kompaniya telefoni (Company Phone)
-                comp_phone = (
-                    c.get("phone") or 
-                    c.get("phone_number") or 
-                    c.get("contact") or 
-                    c.get("contact_phone") or
-                    c.get("company_phone") or
-                    resp_phone or
-                    "Mavjud emas"
-                )
+                    # 4. Xodim telefoni (Responsible Phone) - EXTREME Fallback
+                    resp_phone = (
+                        c.get("responsible_phone") or 
+                        c.get("uyqur_support_phone") or 
+                        c.get("staff_phone") or 
+                        c.get("support_phone") or 
+                        c.get("agent_phone") or 
+                        c.get("manager_phone") or 
+                        c.get("responsible_staff_phone") or
+                        c.get("phone_1") or
+                        c.get("mobile") or
+                        c.get("contact_phone") or
+                        c.get("phone") or
+                        ""
+                    )
 
-                # 6. Logo
-                logo = (
-                    c.get("logo_url") or 
-                    c.get("image") or 
-                    c.get("logo") or 
-                    c.get("avatar") or
-                    None
-                )
+                    # 5. Kompaniya telefoni (Company Phone)
+                    comp_phone = (
+                        c.get("phone") or 
+                        c.get("phone_number") or 
+                        c.get("contact") or 
+                        c.get("contact_phone") or
+                        c.get("company_phone") or
+                        resp_phone or
+                        "Mavjud emas"
+                    )
 
-                results.append({
-                    "id": f"ext-{c.get('id') or i}",
-                    "name": comp_name,
-                    "brand_name": c.get("brand_name") or c.get("brand") or "",
-                    "phone": comp_phone,
-                    "director": c.get("director") or c.get("owner") or c.get("leader") or "",
-                    "responsible_name": resp_name,
-                    "responsible_phone": resp_phone,
-                    "subscription_start": c.get("created_at") or c.get("start_date") or None,
-                    "subscription_end": iso_expired or exp_raw or None,
-                    "status": "Faol" if (c.get("is_real") or c.get("is_active") or c.get("status") == "active") else "Yangi",
-                    "is_active": True,
-                    "logo_url": logo,
-                    "main_currency": c.get("currency") or "UZS",
-                })
+                    # 6. Logo
+                    logo = (
+                        c.get("logo_url") or 
+                        c.get("image") or 
+                        c.get("logo") or 
+                        c.get("avatar") or
+                        None
+                    )
+
+                    results.append({
+                        "id": f"ext-{c.get('id') or i}",
+                        "name": comp_name,
+                        "brand_name": c.get("brand_name") or c.get("brand") or "",
+                        "phone": comp_phone,
+                        "director": c.get("director") or c.get("owner") or c.get("leader") or "",
+                        "responsible_name": resp_name,
+                        "responsible_phone": resp_phone,
+                        "subscription_start": c.get("created_at") or c.get("start_date") or None,
+                        "subscription_end": iso_expired or exp_raw or None,
+                        "status": "Faol" if (c.get("is_real") or c.get("is_active") or c.get("status") == "active") else "Yangi",
+                        "is_active": True,
+                        "logo_url": logo,
+                        "main_currency": c.get("currency") or "UZS",
+                    })
+                except Exception as item_err:
+                    print(f"DEBUG Skipping item {i} due to Error: {str(item_err)}")
+                    continue
             return results
     except Exception as e:
         print(f"DEBUG Error in /external: {str(e)}")
