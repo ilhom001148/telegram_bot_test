@@ -680,7 +680,6 @@ function CompaniesManager({ token }) {
                     <div className="pulse-dot"></div>
                     {(statusLabel[c.status]||statusLabel['Yangi']).label}
                   </div>
-                  {isExternal(c.id) && <div className="live-status-badge">Live Data</div>}
                 </div>
               </div>
             ))
