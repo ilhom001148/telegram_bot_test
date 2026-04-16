@@ -8,7 +8,7 @@ from bot.models import Company
 # ⬇️ TASHQI BAZAGA ULANISH PAROLLARI ⬇️
 EXTERNAL_API_URL = "https://developer.uyqur.uz/dev/company/info-for-bot"
 EXTERNAL_HEADERS = {
-    "X-Auth": "KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI",
+    "Authorization": "header 'X-Auth: KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI'", 
     "Content-Type": "application/json"
 }
 
@@ -24,13 +24,24 @@ async def fetch_and_save():
                 return
             
             data = response.json()
-            print(f"DEBUG Raw Data: {json.dumps(data, indent=2)}")
             
-            # Agar list (Array) kelsa o'zini olamiz, obyektdagi "data" nomi b-n kelsa ichidagini olamiz
-            companies_list = data if isinstance(data, list) else data.get("data", [])
+            companies_data = data.get("companies")
+            data_data = data.get("data")
+            
+            print(f"DEBUG key 'companies': {type(companies_data)} -> {str(companies_data)[:100]}")
+            print(f"DEBUG key 'data': {type(data_data)} -> {str(data_data)[:100]}")
+            
+            companies_list = []
+            if isinstance(data, list):
+                companies_list = data
+            elif companies_data:
+                companies_list = companies_data if isinstance(companies_data, list) else list(companies_data.values()) if isinstance(companies_data, dict) else []
+            elif data_data:
+                companies_list = data_data if isinstance(data_data, list) else list(data_data.values()) if isinstance(data_data, dict) else []
             
             if not companies_list:
                 print("ℹ️ Server ulandi, lekin format boshqacha yoki kompaniyalar yo'q.")
+
                 return
                 
             print(f"✅ Ulandi! U yerdan jami {len(companies_list)} ta kompaniya tortib olindi. Yozish boshlanmoqda...\n")
