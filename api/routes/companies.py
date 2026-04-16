@@ -94,18 +94,19 @@ async def get_external_companies():
                         except: pass
                     elif "-" in exp_raw: iso_expired = exp_raw
 
-                # 2. Nom (Name)
-                name = (
+                # 2. Kompaniya nomi
+                comp_name = (
                     c.get("name") or c.get("company_name") or 
                     c.get("title") or c.get("brand_name") or 
                     c.get("brand") or c.get("company") or 
+                    c.get("business_name") or c.get("org_name") or
                     f"Kompaniya #{c.get('id') or i}"
                 )
 
-                # 3. Mas'ul xodim (Responsible Name)
+                # 3. Mas'ul xodim (Responsible Name) - EXTREME Fallback
                 resp_name = (
-                    c.get("uyqur_support_username") or 
                     c.get("responsible_name") or 
+                    c.get("uyqur_support_username") or 
                     c.get("staff_name") or 
                     c.get("support_name") or 
                     c.get("responsible_staff") or 
@@ -114,18 +115,27 @@ async def get_external_companies():
                     c.get("owner_name") or 
                     c.get("director") or 
                     c.get("responsible_person") or
-                    ""
+                    c.get("contact_person") or
+                    c.get("responsible") or
+                    c.get("staff") or
+                    c.get("agent") or
+                    c.get("manager") or
+                    "Noma'lum"
                 )
 
-                # 4. Xodim telefoni (Responsible Phone)
+                # 4. Xodim telefoni (Responsible Phone) - EXTREME Fallback
                 resp_phone = (
-                    c.get("uyqur_support_phone") or 
                     c.get("responsible_phone") or 
+                    c.get("uyqur_support_phone") or 
                     c.get("staff_phone") or 
                     c.get("support_phone") or 
                     c.get("agent_phone") or 
                     c.get("manager_phone") or 
                     c.get("responsible_staff_phone") or
+                    c.get("phone_1") or
+                    c.get("mobile") or
+                    c.get("contact_phone") or
+                    c.get("phone") or
                     ""
                 )
 
@@ -135,7 +145,9 @@ async def get_external_companies():
                     c.get("phone_number") or 
                     c.get("contact") or 
                     c.get("contact_phone") or
-                    ""
+                    c.get("company_phone") or
+                    resp_phone or
+                    "Mavjud emas"
                 )
 
                 # 6. Logo
