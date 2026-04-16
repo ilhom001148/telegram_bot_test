@@ -24,6 +24,17 @@ const Icons = {
   Clock: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>,
 };
 
+const getAvatarColor = (name) => {
+  const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const getInitials = (name) => {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+};
+
 function ArchiveManager({ token }) {
   const [summaries, setSummaries] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -1373,31 +1384,72 @@ function Messages({ token }) {
 
   return (
     <>
-      <div className="flex-between" style={{marginBottom:'2rem'}}>
+      <div className="flex-between" style={{marginBottom:'2.5rem'}}>
          <h2 className="header-title" style={{margin:0}}>Muloqotlar jurnali</h2>
-         <a href={`${API_URL}/export/messages`} className="btn btn-sm" style={{background:'var(--primary)'}}>
+         <a href={`${API_URL}/export/messages`} className="btn btn-sm" style={{padding:'10px 24px'}}>
             📥 Excel yuklab olish
          </a>
       </div>
-      <div className="glass-card table-wrapper">
-        <table><thead><tr><th>Foydalanuvchi</th><th>Xabar matni</th><th>Guruh</th><th>Holati</th></tr></thead>
-        <tbody>{messages.map(msg => (<tr key={msg.id}>
-          <td>
-            <div style={{fontWeight:'600'}}>{msg.full_name}</div>
-            {msg.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 4px'}}>Xodim</span>}
-          </td>
-          <td>{msg.group_title}</td>
-          <td>
-            {msg.is_staff ? (
-              <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.2)', color:'var(--primary)'}}>Xodim xabari</span>
-            ) : (
-              <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`}>
-                {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
-              </span>
-            )}
-          </td>
-        </tr>))}</tbody></table>
-        <div className="flex-between" style={{marginTop:'1.5rem'}}><button className="btn btn-sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Orqaga</button><strong>{page + 1} / {Math.ceil(total / 15) || 1}</strong><button className="btn btn-sm" disabled={(page + 1) * 15 >= total} onClick={() => setPage(p => p + 1)}>Oldinga</button></div>
+
+      <div className="glass-card" style={{padding:'1.5rem'}}>
+        <div className="table-wrapper">
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th style={{padding:'20px'}}>Foydalanuvchi</th>
+                <th>Xabar (Savol)</th>
+                <th>Guruh</th>
+                <th style={{textAlign:'center'}}>Holati</th>
+              </tr>
+            </thead>
+            <tbody>
+              {messages.map(msg => (
+                <tr key={msg.id} style={{height: '90px'}}>
+                  <td style={{padding:'20px'}}>
+                    <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                      <div className="user-avatar" style={{background: getAvatarColor(msg.full_name || 'U')}}>
+                        {getInitials(msg.full_name || 'U')}
+                      </div>
+                      <div>
+                        <div style={{fontWeight:'700', fontSize:'1rem'}}>{msg.full_name}</div>
+                        {msg.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{msg.username}</div>}
+                      </div>
+                    </div>
+                  </td>
+                  <td style={{maxWidth:'300px'}}>
+                    <div style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0'}}>{msg.text}</div>
+                    <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'8px'}}>
+                       {new Date(msg.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="messenger-group-tag">
+                      <Icons.Groups style={{width:12}}/>
+                      {msg.group_title}
+                    </div>
+                  </td>
+                  <td style={{textAlign:'center'}}>
+                    {msg.is_staff ? (
+                      <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.15)', color:'var(--primary)'}}>Xodim xabari</span>
+                    ) : (
+                      <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{boxShadow: msg.is_answered ? 'none' : '0 0 15px rgba(239, 68, 68, 0.3)'}}>
+                        {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex-between" style={{marginTop:'2rem', padding:'0 1rem'}}>
+          <button className="btn btn-sm btn-outline" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{padding:'8px 20px'}}>Orqaga</button>
+          <div style={{fontSize:'0.9rem', fontWeight:'600'}}>
+             Varaq <span style={{color: 'var(--primary)'}}>{page + 1}</span> / {Math.ceil(total / 15) || 1}
+          </div>
+          <button className="btn btn-sm" disabled={(page + 1) * 15 >= total} onClick={() => setPage(p => p + 1)} style={{padding:'8px 20px'}}>Oldinga</button>
+        </div>
       </div>
     </>
   );
