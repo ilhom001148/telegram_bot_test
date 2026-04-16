@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from api.dependencies import get_db
 from bot.models import Company
-from bot.sync import fetch_and_sync_companies
 from typing import Optional
 
 router = APIRouter(prefix="/companies", tags=["Companies"])
@@ -178,13 +177,3 @@ async def delete_company(company_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(company)
     await db.commit()
     return {"status": "success", "message": "Kompaniya o'chirildi"}
-
-
-# ─── SYNC from external API ───────────────────────────────────────────────────
-@router.post("/sync")
-async def sync_companies(db: AsyncSession = Depends(get_db)):
-    """Tashqi API bilan sinxronizatsiyani qo'lda ishga tushirish."""
-    result = await fetch_and_sync_companies()
-    if result.get("status") == "error":
-        raise HTTPException(status_code=500, detail=result.get("message"))
-    return result

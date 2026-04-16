@@ -33,10 +33,8 @@ async def fetch_and_sync_companies():
                 updated_count = 0
                 
                 for ext_company in companies_list:
-                    # Malumotlarni aniqlash
                     name = str(ext_company.get("name") or ext_company.get("company_name") or "Noma'lum Kompaniya").strip()
                     
-                    # Tekshirish (Bazada borligini tekshirish)
                     result = await db.execute(select(Company).filter(Company.name == name))
                     existing_comp = result.scalars().first()
                     
@@ -46,8 +44,6 @@ async def fetch_and_sync_companies():
                     resp_phone = str(ext_company.get("uyqur_support_phone") or ext_company.get("responsible_phone") or "")
 
                     if existing_comp:
-                        # Agar mavjud bo'lsa, ma'lumotlarini yangilashimiz ham mumkin (Ixtiyoriy)
-                        # Hozircha faqat yo'qlarini qo'shamiz deb kelishdik, lekin yangilash yaxshi amaliyot
                         existing_comp.phone = phone if phone else existing_comp.phone
                         existing_comp.director = director if director else existing_comp.director
                         existing_comp.responsible_name = resp_name if resp_name else existing_comp.responsible_name
@@ -55,7 +51,6 @@ async def fetch_and_sync_companies():
                         updated_count += 1
                         continue
                         
-                    # Yangi model yaratish
                     new_comp = Company(
                         name=name,
                         phone=phone if phone else None,
