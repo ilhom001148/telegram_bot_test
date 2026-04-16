@@ -578,6 +578,13 @@ function CompaniesManager({ token }) {
       {/* Local flash */}
       {flash && <div className={`flash-banner ${flash.type}`} style={{position:'fixed',top:'20px',right:'20px',zIndex:9999}}>{flash.text}</div>}
 
+      const statusClassMap = {
+        'Faol': 'status-active',
+        'Yangi': 'status-new',
+        'To\'xtatilgan': 'status-stopped',
+        'Bekor qilingan': 'status-cancelled'
+      };
+
       {/* Delete confirm overlay */}
       {deleteId && (
         <div className="modal-overlay">
@@ -669,7 +676,7 @@ function CompaniesManager({ token }) {
                 </div>
 
                 <div className="card-footer">
-                  <div className={`status-indicator ${c.status.toLowerCase()}`}>
+                  <div className={`status-indicator ${statusClassMap[c.status] || 'status-new'}`}>
                     <div className="pulse-dot"></div>
                     {(statusLabel[c.status]||statusLabel['Yangi']).label}
                   </div>
@@ -701,7 +708,7 @@ function CompaniesManager({ token }) {
                   <div className="detail-header-text">
                     <h2 className="detail-title">{form.name}</h2>
                     {form.brand_name && <div className="detail-brand">{form.brand_name}</div>}
-                    <div className={`detail-status-badge ${form.status.toLowerCase()}`}>
+                    <div className={`detail-status-badge ${statusClassMap[form.status] || 'status-active'}`}>
                        {(statusLabel[form.status]||statusLabel['Faol']).label}
                     </div>
                   </div>
