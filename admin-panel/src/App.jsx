@@ -939,40 +939,72 @@ function CustomersManager({ token }) {
 
   return (
     <>
-      <div className="flex-between" style={{marginBottom:'2rem', justifyContent: 'flex-start'}}>
-         <h2 className="header-title" style={{margin:0}}>Mijozlar ro'yxati (CRM)</h2>
+      <div className="flex-between" style={{marginBottom:'2.5rem'}}>
+         <div>
+            <h2 className="header-title" style={{margin:0}}>Mijozlar ro'yxati (CRM)</h2>
+            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'5px'}}>Botdan foydalanuvchi barcha mijozlar bazasi</p>
+         </div>
+         <div className="badge badge-kb" style={{padding:'10px 20px', borderRadius:'12px'}}>
+            Jami: {users.length} ta foydalanuvchi
+         </div>
       </div>
       
       {loading ? <div className="loader"></div> : (
-        <div className="glass-card table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Ismi / Username</th>
-                <th>Tili</th>
-                <th>Jami Xabarlar</th>
-                <th>Savollar miqdori</th>
-                <th>Ro'yxatdan o'tgan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, i) => (
-                <tr key={u.id}>
-                  <td style={{color:'var(--text-muted)'}}>{i + 1}</td>
-                  <td>
-                    <div style={{fontWeight:'600'}}>{u.full_name || 'Nomalum'}</div>
-                    {u.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{u.username}</div>}
-                  </td>
-                  <td style={{textTransform:'uppercase', fontSize:'0.8rem'}}>{u.language_code || 'uz'}</td>
-                  <td><span className="badge badge-kb">{u.total_messages} ta</span></td>
-                  <td><span className="badge badge-unanswered" style={{background: u.total_questions > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.05)', color: u.total_questions > 0 ? 'var(--danger)' : 'var(--text-muted)'}}>{u.total_questions} ta</span></td>
-                  <td style={{fontSize:'0.8rem'}}>{new Date(u.created_at).toLocaleDateString('ru-RU')}</td>
+        <div className="glass-card" style={{padding:'1.5rem'}}>
+          <div className="table-wrapper">
+            <table className="premium-table">
+              <thead>
+                <tr>
+                  <th style={{padding:'20px', width:'60px'}}>№</th>
+                  <th>Mijoz (Ismi va Username)</th>
+                  <th style={{textAlign:'center'}}>Tili</th>
+                  <th style={{textAlign:'center'}}>Jami Muloqot</th>
+                  <th style={{textAlign:'center'}}>Savollar</th>
+                  <th style={{textAlign:'center'}}>Ro'yxatdan o'tgan</th>
                 </tr>
-              ))}
-              {users.length === 0 && <tr><td colSpan="6" style={{textAlign:'center'}}>Mijozlar topilmadi.</td></tr>}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.length > 0 ? users.map((u, i) => (
+                  <tr key={u.id} style={{height:'90px'}}>
+                    <td style={{padding:'20px', color:'var(--text-muted)', fontWeight:'600'}}>{i + 1}</td>
+                    <td style={{padding:'20px 10px'}}>
+                      <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                        <div className="user-avatar" style={{
+                          background: getAvatarColor(u.full_name || 'U'),
+                          width:'42px', height:'42px', fontSize:'1rem'
+                        }}>
+                          {getInitials(u.full_name || 'U')}
+                        </div>
+                        <div>
+                          <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{u.full_name || 'Nomalum'}</div>
+                          {u.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{u.username}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{textAlign:'center'}}>
+                       <span style={{textTransform:'uppercase', fontSize:'0.75rem', fontWeight:'800', padding:'4px 10px', background:'rgba(255,255,255,0.05)', borderRadius:'6px'}}>
+                          {u.language_code || 'uz'}
+                       </span>
+                    </td>
+                    <td style={{textAlign:'center'}}>
+                      <div style={{fontWeight:'600', color:'var(--primary)'}}>{u.total_messages} ta</div>
+                    </td>
+                    <td style={{textAlign:'center'}}>
+                      <span className={`badge ${u.total_questions > 0 ? 'badge-unanswered' : 'badge-kb'}`} style={{fontSize:'0.75rem', minWidth:'50px'}}>
+                        {u.total_questions} ta savol
+                      </span>
+                    </td>
+                    <td style={{textAlign:'center', fontSize:'0.85rem', color:'var(--text-muted)'}}>
+                       {new Date(u.created_at).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'})}
+                       <div style={{fontSize:'0.7rem', opacity:0.6, marginTop:'4px'}}>
+                          {new Date(u.created_at).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}
+                       </div>
+                    </td>
+                  </tr>
+                )) : <tr><td colSpan="6" style={{textAlign:'center', padding:'4rem', color:'var(--text-muted)'}}>Hozircha mijozlar topilmadi.</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </>
@@ -1693,8 +1725,9 @@ function GroupHistory({ token, group, onBack }) {
                   <td style={{padding:'20px 10px', textAlign:'center'}}>
                     {m.is_question && !m.is_staff ? (
                       <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.7rem'}}>
-                         {m.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
+                        {m.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
                       </span>
+                    ) : m.is_staff ? <span className="badge badge-kb" style={{fontSize:'0.7rem'}}>Xodim</span> : <span style={{color:'var(--text-muted)', fontSize:'0.8rem'}}>-</span>}
                   </td>
                 </tr>
               )) : <tr><td colSpan="5" style={{textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>Tarixda ma'lumotlar topilmadi.</td></tr>}
