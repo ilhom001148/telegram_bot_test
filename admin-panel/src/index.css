@@ -426,6 +426,37 @@ h1, h2, h3, .brand {
   letter-spacing: 0.1em;
 }
 
+/* Modern Table for Management */
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.modern-table th {
+  padding: 1.25rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.modern-table td {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid var(--card-border);
+  vertical-align: middle;
+}
+
+.modern-table tr.clickable-row:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.modern-table tr:last-child td {
+  border-bottom: none;
+}
+
 /* Tables */
 .table-wrapper {
   overflow-x: auto;

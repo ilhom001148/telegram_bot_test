@@ -601,85 +601,132 @@ function CompaniesManager({ token }) {
         />
       </div>
 
-      {/* List */}
-      {loading ? <div className="loader"/> : (
-        <div className="grid-cards" style={{gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', marginTop: '1.5rem'}}>
-          {companies.filter(c => c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || (c.phone&&(c.phone+'').includes(searchQuery))).length === 0 ? (
-            <div style={{gridColumn:'1/-1', textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
-              <div style={{opacity:0.4, marginBottom:'1rem'}}><Icons.Company /></div>
-              <p>Hozircha kompaniyalar yo'q.</p>
-              <p style={{fontSize:'0.85rem', marginTop:'5px'}}>Yuqoridagi tugma orqali qo'shing yoki yuklang.</p>
+      {/* Stats Summary */}
+      {!loading && companies.length > 0 && (
+        <div className="grid-cards" style={{gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'1.5rem', marginBottom:'2rem'}}>
+          <div className="glass-card stat-card" style={{padding:'1.2rem'}}>
+            <div className="stat-label">Jami kompaniyalar</div>
+            <div className="stat-value" style={{fontSize:'1.8rem'}}>{companies.length}</div>
+          </div>
+          <div className="glass-card stat-card" style={{padding:'1.2rem', borderLeft: '4px solid var(--success)'}}>
+            <div className="stat-label">Faol kompaniyalar</div>
+            <div className="stat-value" style={{fontSize:'1.8rem', color:'var(--success)'}}>{companies.filter(c => c.is_active).length}</div>
+          </div>
+          <div className="glass-card stat-card" style={{padding:'1.2rem', borderLeft: '4px solid #f59e0b'}}>
+            <div className="stat-label">Muddati tugayotgan</div>
+            <div className="stat-value" style={{fontSize:'1.8rem', color:'#f59e0b'}}>
+              {companies.filter(c => {
+                if(!c.subscription_end) return false;
+                const days = (new Date(c.subscription_end) - new Date()) / (1000 * 60 * 60 * 24);
+                return days > 0 && days <= 7;
+              }).length}
             </div>
-          ) : (
-             companies.filter(c => c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || (c.phone&&(c.phone+'').includes(searchQuery))).map(c => (
-              <div 
-                 key={c.id} 
-                 className="glass-card" 
-                 style={{padding:'1.5rem', cursor: 'pointer', position: 'relative', transition: 'transform 0.2s', borderLeft: `4px solid ${(statusLabel[c.status]||statusLabel['Yangi']).color}`}}
-                 onClick={(e) => {
-                    // Tahrirlash darchasini ochish (agar button bosilmagan bo'lsa)
-                    if(e.target.tagName === 'BUTTON' || e.target.closest('.toggle-btn') || e.target.closest('.del-btn')) return;
-                    openEdit(c);
-                 }}
-              >
-                 {/* Card Header */}
-                 <div className="flex-between" style={{marginBottom: '1.2rem', alignItems: 'flex-start'}}>
-                    <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-                      {c.logo_url ? (
-                        <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`}
-                          alt="logo" style={{width:40, height:40, borderRadius:8, objectFit:'cover', background:'rgba(255,255,255,0.08)'}} />
-                      ) : (
-                        <div style={{width:40, height:40, borderRadius:8, background:'rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', opacity:0.4}}>
-                          <Icons.Company />
-                        </div>
-                      )}
-                      <div>
-                        <div style={{fontWeight:700, fontSize:'1.1rem'}}>{c.name}</div>
-                        {c.brand_name && <div style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>{c.brand_name}</div>}
-                      </div>
-                    </div>
-                    
-                    <div className="dropdown" style={{position:'relative'}}>
-                        <button className="del-btn" style={{background:'transparent', border:'none', padding:'4px', color:'var(--text-muted)', cursor:'pointer'}} onClick={(e)=>{e.stopPropagation(); setDeleteId(c.id)}}>🗑</button>
-                    </div>
-                 </div>
+          </div>
+        </div>
+      )}
 
-                 {/* Card Body grid parameters */}
-                 <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.2rem', marginBottom:'1.5rem'}}>
-                    <div>
-                        <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginBottom:'2px'}}>ID</div>
-                        <div style={{fontWeight:600}}>{c.id}</div>
-                    </div>
-                    <div>
-                        <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginBottom:'2px'}}>Telefon</div>
-                        <div style={{fontWeight:600, color: 'var(--danger)'}}>{c.phone || '—'}</div>
-                    </div>
-                    <div>
-                        <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginBottom:'2px'}}>Mas'ul xodim</div>
-                        <div style={{fontWeight:600, color: '#3b82f6'}}>{c.responsible_name || '—'}</div>
-                    </div>
-                    <div>
-                        <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginBottom:'2px'}}>Xodim telefoni</div>
-                        <div style={{fontWeight:600, color: 'var(--danger)'}}>{c.responsible_phone || '—'}</div>
-                    </div>
-                 </div>
-                 
-                 {/* Footer Status and Toggle */}
-                 <div className="flex-between" style={{borderTop: '1px solid var(--card-border)', paddingTop:'1rem'}}>
-                    <span className="badge" style={{background:`${(statusLabel[c.status]||statusLabel['Yangi']).color}22`, color:(statusLabel[c.status]||statusLabel['Yangi']).color, border:`1px solid ${(statusLabel[c.status]||statusLabel['Yangi']).color}55`}}>
-                      {(statusLabel[c.status]||statusLabel['Yangi']).label}
-                    </span>
-                    <div className="toggle-btn" onClick={(e) => { e.stopPropagation(); handleToggle(c.id); }} title={c.is_active ? 'O\'chirish' : 'Yoqish'}
-                        style={{display:'inline-flex', cursor:'pointer', width:44, height:24, borderRadius:12,
-                          background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.15)',
-                          alignItems:'center', padding:'2px', transition:'background 0.3s', position:'relative'}}>
-                        <div style={{width:20, height:20, borderRadius:'50%', background:'#fff',
-                          transform: c.is_active ? 'translateX(20px)' : 'translateX(0)', transition:'transform 0.3s', boxShadow:'0 1px 4px rgba(0,0,0,0.4)'}}/>
-                    </div>
-                 </div>
-              </div>
-            ))
-          )}
+      {loading ? <div className="loader"/> : (
+        <div className="glass-card table-wrapper" style={{padding:0, overflow:'hidden'}}>
+          <table className="modern-table">
+            <thead>
+              <tr>
+                <th>Kompaniya</th>
+                <th>Kontaktlar</th>
+                <th>Mas'ul xodim</th>
+                <th>Obuna muddati</th>
+                <th>Status</th>
+                <th style={{textAlign:'center'}}>Amallar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {companies.filter(c => 
+                c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || 
+                (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
+                (c.phone && (c.phone+'').includes(searchQuery))
+              ).length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
+                    <div style={{opacity:0.4, marginBottom:'1rem'}}><Icons.Company /></div>
+                    <p>Hech qanday ma'lumot topilmadi.</p>
+                    <p style={{fontSize:'0.85rem', marginTop:'5px'}}>Kompaniyalar har 24 soatda avtomatik ravishda tashqi bazadan yangilanadi.</p>
+                  </td>
+                </tr>
+              ) : (
+                companies.filter(c => 
+                  c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || 
+                  (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
+                  (c.phone && (c.phone+'').includes(searchQuery))
+                ).map(c => {
+                  const subDate = c.subscription_end ? new Date(c.subscription_end) : null;
+                  const daysLeft = subDate ? Math.ceil((subDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                  
+                  return (
+                    <tr key={c.id} className="clickable-row" onClick={() => openEdit(c)}>
+                      <td>
+                        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                          {c.logo_url ? (
+                            <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`}
+                              alt="logo" style={{width:36, height:36, borderRadius:8, objectFit:'cover', background:'rgba(255,255,255,0.08)'}} />
+                          ) : (
+                            <div style={{width:36, height:36, borderRadius:8, background:'rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', opacity:0.4}}>
+                              <Icons.Company style={{width:18}}/>
+                            </div>
+                          )}
+                          <div>
+                            <div style={{fontWeight:600}}>{c.name}</div>
+                            {c.brand_name && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.brand_name}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{fontSize:'0.9rem'}}>{c.phone || '—'}</div>
+                        {c.director && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>Dir: {c.director}</div>}
+                      </td>
+                      <td>
+                        <div style={{fontWeight:500, fontSize:'0.9rem'}}>{c.responsible_name || '—'}</div>
+                        {c.responsible_phone && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.responsible_phone}</div>}
+                      </td>
+                      <td>
+                        <div style={{fontSize:'0.85rem'}}>
+                          {subDate ? subDate.toLocaleDateString('ru-RU') : '—'}
+                        </div>
+                        {daysLeft !== null && (
+                          <div style={{fontSize:'0.75rem', marginTop:'2px', color: daysLeft < 0 ? 'var(--danger)' : (daysLeft <= 7 ? '#f59e0b' : 'var(--success)')}}>
+                            {daysLeft < 0 ? 'Muddati o\'tgan' : (daysLeft === 0 ? 'Bugun tugaydi' : `${daysLeft} kun qoldi`)}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span className="badge" style={{
+                          background:`${(statusLabel[c.status]||statusLabel['Yangi']).color}22`, 
+                          color:(statusLabel[c.status]||statusLabel['Yangi']).color, 
+                          border:`1px solid ${(statusLabel[c.status]||statusLabel['Yangi']).color}55`,
+                          fontSize: '0.7rem'
+                        }}>
+                          {(statusLabel[c.status]||statusLabel['Yangi']).label}
+                        </span>
+                      </td>
+                      <td style={{textAlign:'right'}} onClick={e => e.stopPropagation()}>
+                        <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'10px'}}>
+                          <div className="toggle-btn" onClick={() => handleToggle(c.id)} title={c.is_active ? 'O\'chirish' : 'Yoqish'}
+                              style={{display:'inline-flex', cursor:'pointer', width:36, height:20, borderRadius:10,
+                                background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.15)',
+                                alignItems:'center', padding:'2px', transition:'background 0.3s'}}>
+                              <div style={{width:16, height:16, borderRadius:'50%', background:'#fff',
+                                transform: c.is_active ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
+                          </div>
+                          <button className="btn btn-sm" style={{padding:'5px 10px', fontSize:'0.75rem', background:'rgba(255,255,255,0.05)'}} onClick={() => openEdit(c)}>
+                            Taxrir
+                          </button>
+                          <button style={{background:'transparent', border:'none', padding:'4px', color:'var(--danger)', cursor:'pointer', opacity:0.6}} onClick={()=>setDeleteId(c.id)}>🗑</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
