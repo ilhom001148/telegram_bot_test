@@ -572,18 +572,18 @@ function CompaniesManager({ token }) {
   const inp = { width:'100%', padding:'10px 14px', background:'rgba(255,255,255,0.06)', border:'1px solid var(--card-border)', borderRadius:'10px', color:'#fff', fontSize:'0.9rem', outline:'none' };
   const errStyle = { fontSize:'0.75rem', color:'var(--danger)', marginTop:'4px' };
 
+  const statusClassMap = {
+    'Faol': 'status-active',
+    'Yangi': 'status-new',
+    'To\'xtatilgan': 'status-stopped',
+    'Bekor qilingan': 'status-cancelled'
+  };
+
   return (
     <div style={{animation:'fadeIn 0.5s ease-out', position:'relative'}}>
 
       {/* Local flash */}
       {flash && <div className={`flash-banner ${flash.type}`} style={{position:'fixed',top:'20px',right:'20px',zIndex:9999}}>{flash.text}</div>}
-
-      const statusClassMap = {
-        'Faol': 'status-active',
-        'Yangi': 'status-new',
-        'To\'xtatilgan': 'status-stopped',
-        'Bekor qilingan': 'status-cancelled'
-      };
 
       {/* Delete confirm overlay */}
       {deleteId && (
