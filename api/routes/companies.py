@@ -52,58 +52,6 @@ def serialize_company(c: Company) -> dict:
         "created_at": c.created_at.isoformat() if c.created_at else None,
     }
 
-# ─── TEST REJIMI (tashqi API bo'sh kelganda sinov uchun) ─────────────────────
-# True = Test ma'lumotlar ko'rinadi | False = Faqat haqiqiy API dan
-TEST_MODE = False
-
-TEST_COMPANIES = [
-    {
-        "id": "ext-test-1",
-        "name": "TechSoft LLC (TEST)",
-        "brand_name": "TechSoft",
-        "phone": "+998901234567",
-        "director": "Akbar Yusupov",
-        "responsible_name": "Sardor Toshmatov",
-        "responsible_phone": "+998901234568",
-        "subscription_start": "2024-01-01T00:00:00",
-        "subscription_end": "2025-12-31T00:00:00",
-        "status": "Faol",
-        "is_active": True,
-        "logo_url": None,
-        "main_currency": "UZS",
-    },
-    {
-        "id": "ext-test-2",
-        "name": "Digital Bozor OAJ (TEST)",
-        "brand_name": "DigitalBazaar",
-        "phone": "+998712345678",
-        "director": "Nilufar Rahimova",
-        "responsible_name": "Jasur Xasanov",
-        "responsible_phone": "+998712345679",
-        "subscription_start": "2024-03-15T00:00:00",
-        "subscription_end": "2025-03-15T00:00:00",
-        "status": "Faol",
-        "is_active": True,
-        "logo_url": None,
-        "main_currency": "UZS",
-    },
-    {
-        "id": "ext-test-3",
-        "name": "Smart Trade XK (TEST)",
-        "brand_name": "SmartTrade",
-        "phone": "+998931234567",
-        "director": "Bobur Mirzayev",
-        "responsible_name": "Shamsiya Qodirov",
-        "responsible_phone": "+998931234568",
-        "subscription_start": "2023-01-01T00:00:00",
-        "subscription_end": "2024-01-01T00:00:00",
-        "status": "To'xtatilgan",
-        "is_active": False,
-        "logo_url": None,
-        "main_currency": "USD",
-    },
-]
-
 # ─── 24-soatlik kesh (DB ga saqlanmaydi, xotirada saqlanadi) ─────────────────
 _ext_cache = {"data": [], "fetched_at": 0}
 CACHE_TTL = 86400  # 24 soat (soniyada)
@@ -239,11 +187,6 @@ async def get_external_companies():
                     continue
 
             # ─── Keshni yangilash ─────────────────────────────────────────────
-            # Agar haqiqiy API bo'sh qaytarsa va TEST rejimi yoqiq bo'lsa
-            if not results and TEST_MODE:
-                print("🧪 [TEST] Tashqi API bo'sh — Test kompaniyalar ishlatilmoqda")
-                results = TEST_COMPANIES
-            
             _ext_cache["data"] = results
             _ext_cache["fetched_at"] = now_ts
             print(f"✅ [Cache] {len(results)} ta kompaniya keshlandi")
