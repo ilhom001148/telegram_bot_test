@@ -3,6 +3,7 @@ import re
 import uuid
 import shutil
 import httpx
+import json
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
@@ -55,68 +56,115 @@ def serialize_company(c: Company) -> dict:
 async def get_external_companies():
     url = "https://developer.uyqur.uz/dev/company/info-for-bot"
     headers = {
-        # Raw string to handle $ correctly
-        "X-Auth": r"KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI",
+        "X-Auth": "KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI",
         "Content-Type": "application/json",
-        "User-Agent": "curl/7.68.0" # Common UA to avoid script-blocking
+        "User-Agent": "curl/7.68.0"
     }
     try:
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.get(url, headers=headers, timeout=20.0)
             if response.status_code != 200:
-                print(f"DEBUG: External API error: {response.status_code} - {response.text[:200]}")
                 raise HTTPException(status_code=502, detail=f"Tashqi API xatosi: {response.status_code}")
             
             raw_data = response.json()
-            
-            # Robust JSON parsing (handles both list and various dict structures)
             if isinstance(raw_data, list):
                 companies_list = raw_data
             elif isinstance(raw_data, dict):
-                # Try common data keys
                 companies_list = raw_data.get("data") or raw_data.get("companies") or raw_data.get("list")
-                # Fallback: find any non-empty list in the root
                 if companies_list is None:
                     for val in raw_data.values():
                         if isinstance(val, list) and len(val) > 0:
                             companies_list = val
                             break
-                    else:
-                        companies_list = []
-            else:
-                companies_list = []
-            
-            print(f"DEBUG: Fetched {len(companies_list)} companies from external API")
+                    else: companies_list = []
+            else: companies_list = []
             
             results = []
             for i, c in enumerate(companies_list):
-                exp_raw = c.get("expired")
+                # ─── SUPER MAPPING LOGIC ───
+                
+                # 1. Obuna muddati (Date)
+                exp_raw = c.get("expired") or c.get("subscription_end") or c.get("expires_at")
                 iso_expired = None
-                if exp_raw and "." in exp_raw:
-                    try:
-                        d_part, m_part, y_part = exp_raw.split('.')
-                        iso_expired = f"{y_part}-{m_part}-{d_part}T00:00:00"
-                    except: pass
+                if exp_raw and isinstance(exp_raw, str):
+                    if "." in exp_raw:
+                        try:
+                            d, m, y = exp_raw.split('.')[:3]
+                            iso_expired = f"{y}-{m}-{d}T00:00:00"
+                        except: pass
+                    elif "-" in exp_raw: iso_expired = exp_raw
 
-                # Mapping with fallbacks
+                # 2. Nom (Name)
+                name = (
+                    c.get("name") or c.get("company_name") or 
+                    c.get("title") or c.get("brand_name") or 
+                    c.get("brand") or c.get("company") or 
+                    f"Kompaniya #{c.get('id') or i}"
+                )
+
+                # 3. Mas'ul xodim (Responsible Name)
+                resp_name = (
+                    c.get("uyqur_support_username") or 
+                    c.get("responsible_name") or 
+                    c.get("staff_name") or 
+                    c.get("support_name") or 
+                    c.get("responsible_staff") or 
+                    c.get("agent_name") or 
+                    c.get("manager_name") or 
+                    c.get("owner_name") or 
+                    c.get("director") or 
+                    c.get("responsible_person") or
+                    ""
+                )
+
+                # 4. Xodim telefoni (Responsible Phone)
+                resp_phone = (
+                    c.get("uyqur_support_phone") or 
+                    c.get("responsible_phone") or 
+                    c.get("staff_phone") or 
+                    c.get("support_phone") or 
+                    c.get("agent_phone") or 
+                    c.get("manager_phone") or 
+                    c.get("responsible_staff_phone") or
+                    ""
+                )
+
+                # 5. Kompaniya telefoni (Company Phone)
+                comp_phone = (
+                    c.get("phone") or 
+                    c.get("phone_number") or 
+                    c.get("contact") or 
+                    c.get("contact_phone") or
+                    ""
+                )
+
+                # 6. Logo
+                logo = (
+                    c.get("logo_url") or 
+                    c.get("image") or 
+                    c.get("logo") or 
+                    c.get("avatar") or
+                    None
+                )
+
                 results.append({
                     "id": f"ext-{c.get('id') or i}",
-                    "name": c.get("name") or c.get("company_name") or c.get("title") or "Noma'lum",
-                    "brand_name": c.get("brand_name") or c.get("brand"),
-                    "phone": c.get("phone") or c.get("phone_number") or c.get("contact"),
-                    "director": c.get("director") or c.get("owner") or c.get("responsible_person") or c.get("leader"),
-                    "responsible_name": c.get("uyqur_support_username") or c.get("responsible_staff") or c.get("support_agent"),
-                    "responsible_phone": c.get("uyqur_support_phone") or c.get("staff_phone") or c.get("support_phone"),
-                    "subscription_start": c.get("created_at") or c.get("start_date"),
-                    "subscription_end": iso_expired or exp_raw,
-                    "status": "Faol" if c.get("is_real") or c.get("is_active") else "Yangi",
+                    "name": name,
+                    "brand_name": c.get("brand_name") or c.get("brand") or "",
+                    "phone": comp_phone,
+                    "director": c.get("director") or c.get("owner") or c.get("leader") or "",
+                    "responsible_name": resp_name,
+                    "responsible_phone": resp_phone,
+                    "subscription_start": c.get("created_at") or c.get("start_date") or None,
+                    "subscription_end": iso_expired or exp_raw or None,
+                    "status": "Faol" if (c.get("is_real") or c.get("is_active") or c.get("status") == "active") else "Yangi",
                     "is_active": True,
-                    "logo_url": c.get("logo_url") or c.get("image") or c.get("logo"),
+                    "logo_url": logo,
                     "main_currency": c.get("currency") or "UZS",
                 })
             return results
     except Exception as e:
-        print(f"DEBUG: Unexpected error in /external: {str(e)}")
+        print(f"DEBUG Error in /external: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ulanishda xatolik: {str(e)}")
 
 
