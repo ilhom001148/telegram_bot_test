@@ -519,6 +519,7 @@ function CompaniesManager({ token }) {
       subscription_start: c.subscription_start ? c.subscription_start.slice(0,16) : '',
       subscription_end:   c.subscription_end   ? c.subscription_end.slice(0,16)   : '',
       is_active: c.is_active,
+      logo_url: c.logo_url ? (c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`) : null,
     });
     setLogoFile(null);
     setLogoPreview(c.logo_url ? (c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`) : null);
@@ -736,7 +737,7 @@ function CompaniesManager({ token }) {
                   <div>
                     <div className="info-label">Obuna muddati</div>
                     <div className="info-value" style={{fontSize:'1.1rem', color:'var(--primary)'}}>
-                      {form.subscription_end ? new Date(form.subscription_end).toLocaleDateString('ru-RU') : '—'}
+                      {form.subscription_end ? (form.subscription_end.includes('T') ? new Date(form.subscription_end).toLocaleDateString('ru-RU') : form.subscription_end) : '—'}
                     </div>
                   </div>
                 </div>

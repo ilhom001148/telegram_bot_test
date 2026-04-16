@@ -100,17 +100,18 @@ async def get_external_companies():
 
                 # Mapping with fallbacks
                 results.append({
-                    "id": f"ext-{c.get('id') or i}", # Use external ID if available
+                    "id": f"ext-{c.get('id') or i}",
                     "name": c.get("name") or c.get("company_name") or c.get("title") or "Noma'lum",
-                    "brand_name": c.get("brand_name"),
+                    "brand_name": c.get("brand_name") or c.get("brand"),
                     "phone": c.get("phone") or c.get("phone_number") or c.get("contact"),
-                    "director": c.get("director") or c.get("owner") or c.get("responsible_person"),
-                    "responsible_name": c.get("uyqur_support_username") or c.get("responsible_staff"),
-                    "responsible_phone": c.get("uyqur_support_phone") or c.get("staff_phone"),
+                    "director": c.get("director") or c.get("owner") or c.get("responsible_person") or c.get("leader"),
+                    "responsible_name": c.get("uyqur_support_username") or c.get("responsible_staff") or c.get("support_agent"),
+                    "responsible_phone": c.get("uyqur_support_phone") or c.get("staff_phone") or c.get("support_phone"),
+                    "subscription_start": c.get("created_at") or c.get("start_date"),
                     "subscription_end": iso_expired or exp_raw,
-                    "status": "Faol" if c.get("is_real") else "Yangi",
+                    "status": "Faol" if c.get("is_real") or c.get("is_active") else "Yangi",
                     "is_active": True,
-                    "logo_url": c.get("logo_url") or c.get("image"),
+                    "logo_url": c.get("logo_url") or c.get("image") or c.get("logo"),
                     "main_currency": c.get("currency") or "UZS",
                 })
             return results
