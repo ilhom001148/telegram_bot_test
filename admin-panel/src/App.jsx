@@ -1497,27 +1497,64 @@ function Groups({ token, showFlash, askConfirm }) {
   return (
     <>
       <h2 className="header-title">Guruhlar ro'yxati</h2>
-      <div className="glass-card table-wrapper">
-        <table><thead><tr><th>Guruh nomi</th><th>Xabarlar</th><th>So'rovlar</th><th>Tokenlar</th><th>Sarf ($)</th><th>Kutilmoqda</th><th style={{textAlign:'center'}}>Amallar</th></tr></thead>
-        <tbody>{groups.map(g => (
-          <tr key={g.id} className="clickable-row" onClick={() => setSelectedGroup(g)}>
-            <td>{g.title}</td>
-            <td>{g.total_messages}</td>
-            <td>{g.total_questions}</td>
-            <td>{g.total_tokens?.toLocaleString()}</td>
-            <td style={{color:'var(--success)', fontWeight:'600'}}>${g.total_ai_cost?.toFixed(4)}</td>
-            <td><span className="badge badge-unanswered">{g.unanswered_questions}</span></td>
-            <td style={{textAlign:'center'}}>
-              <button 
-                className="btn btn-sm btn-danger" 
-                onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id, g.title); }}
-                style={{padding:'5px 10px'}}
-              >
-                O'chirish
-              </button>
-            </td>
-          </tr>
-        ))}</tbody></table>
+      <div className="glass-card" style={{padding:'1.5rem'}}>
+        <div className="table-wrapper">
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th style={{padding:'20px'}}>Guruh nomi</th>
+                <th style={{textAlign:'center'}}>Xabarlar</th>
+                <th style={{textAlign:'center'}}>So'rovlar</th>
+                <th style={{textAlign:'center'}}>Tokenlar</th>
+                <th style={{textAlign:'center'}}>Sarf ($)</th>
+                <th style={{textAlign:'center'}}>Kutilmoqda</th>
+                <th style={{textAlign:'center'}}>Amallar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map(g => (
+                <tr key={g.id} className="clickable-row" onClick={() => setSelectedGroup(g)} style={{height:'80px'}}>
+                  <td style={{padding:'20px'}}>
+                    <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                      <div className="user-avatar" style={{background: 'rgba(99, 102, 241, 0.1)', color:'var(--primary)', width:'40px', height:'40px', fontSize:'0.9rem'}}>
+                        <Icons.Groups style={{width:20}}/>
+                      </div>
+                      <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{g.title}</div>
+                    </div>
+                  </td>
+                  <td style={{textAlign:'center', fontWeight:'600'}}>{g.total_messages}</td>
+                  <td style={{textAlign:'center', fontWeight:'600'}}>{g.total_questions}</td>
+                  <td style={{textAlign:'center', color:'var(--text-muted)', fontSize:'0.9rem'}}>{g.total_tokens?.toLocaleString()}</td>
+                  <td style={{textAlign:'center'}}>
+                    <div style={{color:'var(--success)', fontWeight:'800', fontSize:'1.1rem'}}>
+                      ${g.total_ai_cost?.toFixed(4)}
+                    </div>
+                  </td>
+                  <td style={{textAlign:'center'}}>
+                    <span className={`badge ${g.unanswered_questions > 0 ? 'badge-unanswered' : 'badge-kb'}`} 
+                          style={{
+                            fontSize:'0.85rem', 
+                            padding:'6px 14px', 
+                            boxShadow: g.unanswered_questions > 0 ? '0 0 15px rgba(239, 68, 68, 0.2)' : 'none'
+                          }}>
+                      {g.unanswered_questions}
+                    </span>
+                  </td>
+                  <td style={{textAlign:'center'}}>
+                    <button 
+                      className="btn btn-sm btn-danger" 
+                      onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id, g.title); }}
+                      style={{padding:'10px', borderRadius:'12px'}}
+                      title="Guruhni o'chirish"
+                    >
+                      🗑
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );
