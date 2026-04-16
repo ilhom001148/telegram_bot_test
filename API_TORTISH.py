@@ -1,5 +1,6 @@
 import asyncio
 import httpx
+import json
 from sqlalchemy.future import select
 from bot.db import SessionLocal
 from bot.models import Company
@@ -23,6 +24,7 @@ async def fetch_and_save():
                 return
             
             data = response.json()
+            print(f"DEBUG Raw Data: {json.dumps(data, indent=2)}")
             
             # Agar list (Array) kelsa o'zini olamiz, obyektdagi "data" nomi b-n kelsa ichidagini olamiz
             companies_list = data if isinstance(data, list) else data.get("data", [])
