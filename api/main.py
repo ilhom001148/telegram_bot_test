@@ -121,15 +121,31 @@ async def scheduled_company_sync():
                 else:
                     data = response.json()
                     
+                    # DEBUG: JSON tuzilishini ko'rish
+                    if isinstance(data, dict):
+                        print(f"🔍 [Scheduler] JSON kalitlari: {list(data.keys())}")
+                        for key in data.keys():
+                            val = data[key]
+                            if isinstance(val, list):
+                                print(f"🔍 [Scheduler] '{key}' ichida {len(val)} ta element bor")
+                                if val:
+                                    print(f"🔍 [Scheduler] Birinchi element: {str(val[0])[:300]}")
+                    else:
+                        print(f"🔍 [Scheduler] JSON turi: {type(data).__name__}, uzunligi: {len(data) if isinstance(data, list) else 'N/A'}")
+                    
                     # JSON formatni aniqlash
                     if isinstance(data, list):
                         companies_list = data
                     elif isinstance(data, dict):
-                        companies_list = data.get("data", data.get("results", data.get("companies", [])))
+                        # Barcha mumkin bo'lgan kalitlarni sinash
+                        companies_list = []
+                        for key in data:
+                            if isinstance(data[key], list) and len(data[key]) > 0:
+                                companies_list = data[key]
+                                print(f"📦 [Scheduler] '{key}' kalitidan {len(companies_list)} ta kompaniya olindi!")
+                                break
                     else:
                         companies_list = []
-                    
-                    print(f"📦 [Scheduler] {len(companies_list)} ta kompaniya topildi.")
 
                     async with SessionLocal() as db:
                         added = 0

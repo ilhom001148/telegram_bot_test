@@ -23,6 +23,8 @@ from bot.crud import (
 from bot.ai import detect_question, is_question_ai, get_ai_answer_async, transcribe_audio
 from bot.strings import get_string
 from bot.stats import router as stats_router
+from bot.sync import fetch_and_sync_companies
+
 
 # Bot va Dispatcher obyektlarini yaratish (session keyinroq qo'shiladi)
 dp = Dispatcher()
@@ -458,12 +460,27 @@ async def broadcast_scheduler_worker():
             finally:
                 await db.close()
 
+async def company_sync_worker():
+    """Har 24 soatda tashqi API dan ma'lumotlarni sinxronizatsiya qiladi."""
+    while True:
+        try:
+            # 1. Sinxronizatsiyani ishga tushirish
+            await fetch_and_sync_companies()
+        except Exception as e:
+            print(f"Sync Worker Error: {e}")
+            
+        # 24 soat kutish (24 * 3600 soniya)
+        await asyncio.sleep(24 * 3600)
+
 async def start_bot():
+
     from bot.bot_instance import get_bot
     from bot.config import TELEGRAM_TOKEN, WEBHOOK_URL
     
     # Rejalashtirilgan ishlar orqa fonda parallel ishlaydi
     asyncio.create_task(broadcast_scheduler_worker())
+    asyncio.create_task(company_sync_worker())
+
     
     while True:
         try:

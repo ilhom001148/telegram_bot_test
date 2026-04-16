@@ -570,14 +570,14 @@ function CompaniesManager({ token }) {
   const handleSyncExternal = async () => {
     setSyncing(true);
     try {
-      const res = await fetch(`${API_URL}/companies/sync-external`, {
+      const res = await fetch(`${API_URL}/companies/sync`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Xaro yuz berdi');
+      if (!res.ok) throw new Error(data.detail || 'Xato yuz berdi');
       showMsg(data.message || 'Sinxronizatsiya muvaffaqiyatli', 'success');
-      fetchCompanies(); // Yengilangan ro'yxatni yuklash
+      fetchCompanies(); // Yangilangan ro'yxatni yuklash
     } catch (err) {
       showMsg(err.message, 'error');
     } finally {
@@ -613,6 +613,14 @@ function CompaniesManager({ token }) {
       {/* Header */}
       <div className="flex-between" style={{marginBottom:'2rem'}}>
         <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
+        <div style={{display:'flex', gap:'12px'}}>
+           <button className="btn btn-sm btn-outline" style={{borderColor:'var(--primary)', color:'var(--primary)'}} onClick={handleSyncExternal} disabled={syncing}>
+             {syncing ? '⏳ Yangilanmoqda...' : '🔄 Tashqi bazadan yangilash'}
+           </button>
+           <button className="btn btn-sm" style={{background:'var(--primary)'}} onClick={openCreate}>
+             ➕ Yangi qo'shish
+           </button>
+        </div>
       </div>
 
       {/* Search Input for Companies */}
