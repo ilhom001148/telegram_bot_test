@@ -4,6 +4,7 @@ import uuid
 import shutil
 import httpx
 import json
+import time
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
@@ -51,9 +52,23 @@ def serialize_company(c: Company) -> dict:
         "created_at": c.created_at.isoformat() if c.created_at else None,
     }
 
+# ─── 24-soatlik kesh (DB ga saqlanmaydi, xotirada saqlanadi) ───────────────
+_ext_cache = {"data": [], "fetched_at": 0}
+CACHE_TTL = 86400  # 24 soat (soniyada)
+
 # ─── GET external live ────────────────────────────────────────────────────────
 @router.get("/external")
 async def get_external_companies():
+    global _ext_cache
+
+    # ─── Kesh 24 soatdan yangi bo'lsa shu zahoti qaytaramiz ───────────────────
+    now_ts = time.time()
+    if _ext_cache["fetched_at"] and (now_ts - _ext_cache["fetched_at"]) < CACHE_TTL:
+        print(f"⚡ [Cache] Keshdagi {len(_ext_cache['data'])} ta kompaniya qaytarilmoqda (yangi API so'rovsiz)")
+        return _ext_cache["data"]
+
+    # ─── Kesh eskirgan — Tashqi API dan yangi ma'lumot olish ─────────────────
+    print("🔄 [Cache] 24 soat o'tdi yoki birinchi yuklash — Tashqi API dan tortilmoqda...")
     url = "https://developer.uyqur.uz/dev/company/info-for-bot"
     headers = {
         "X-Auth": "KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI",
@@ -64,6 +79,10 @@ async def get_external_companies():
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.get(url, headers=headers, timeout=20.0)
             if response.status_code != 200:
+                # Kesh mavjud bo'lsa eski ma'lumotni qaytaramiz
+                if _ext_cache["data"]:
+                    print(f"⚠️ [Cache] Tashqi API javobi {response.status_code} — eski kesh qaytarilmoqda")
+                    return _ext_cache["data"]
                 raise HTTPException(status_code=502, detail=f"Tashqi API xatosi: {response.status_code}")
             
             raw_data = response.json()
@@ -82,11 +101,8 @@ async def get_external_companies():
             results = []
             for i, c in enumerate(companies_list):
                 try:
-                    # Basic check: skip non-dictionary items
                     if not isinstance(c, dict): continue
 
-                    # ─── SUPER MAPPING LOGIC ───
-                    
                     # 1. Obuna muddati (Date)
                     exp_raw = c.get("expired") or c.get("subscription_end") or c.get("expires_at")
                     iso_expired = None
@@ -109,64 +125,35 @@ async def get_external_companies():
                         f"Kompaniya #{c.get('id') or i}"
                     )
 
-                    # 3. Mas'ul xodim (Responsible Name) - EXTREME Fallback
+                    # 3. Mas'ul xodim
                     resp_name = (
-                        c.get("responsible_name") or 
-                        c.get("uyqur_support_username") or 
-                        c.get("staff_name") or 
-                        c.get("support_name") or 
-                        c.get("responsible_staff") or 
-                        c.get("agent_name") or 
-                        c.get("manager_name") or 
-                        c.get("owner_name") or 
-                        c.get("director") or 
-                        c.get("responsible_person") or
-                        c.get("contact_person") or
-                        c.get("responsible") or
-                        c.get("staff") or
-                        c.get("agent") or
-                        c.get("manager") or
-                        "Noma'lum"
+                        c.get("responsible_name") or c.get("uyqur_support_username") or
+                        c.get("staff_name") or c.get("support_name") or
+                        c.get("agent_name") or c.get("manager_name") or
+                        c.get("owner_name") or c.get("director") or
+                        c.get("responsible_person") or c.get("contact_person") or
+                        c.get("responsible") or c.get("staff") or
+                        c.get("agent") or c.get("manager") or "Noma'lum"
                     )
 
-                    # 4. Xodim telefoni (Responsible Phone) - EXTREME Fallback
+                    # 4. Telefon raqamlari
                     resp_phone = (
-                        c.get("responsible_phone") or 
-                        c.get("uyqur_support_phone") or 
-                        c.get("staff_phone") or 
-                        c.get("support_phone") or 
-                        c.get("agent_phone") or 
-                        c.get("manager_phone") or 
-                        c.get("responsible_staff_phone") or
-                        c.get("phone_1") or
-                        c.get("mobile") or
-                        c.get("contact_phone") or
-                        c.get("phone") or
-                        ""
+                        c.get("responsible_phone") or c.get("uyqur_support_phone") or
+                        c.get("staff_phone") or c.get("support_phone") or
+                        c.get("agent_phone") or c.get("manager_phone") or
+                        c.get("phone_1") or c.get("mobile") or
+                        c.get("contact_phone") or c.get("phone") or ""
                     )
-
-                    # 5. Kompaniya telefoni (Company Phone)
                     comp_phone = (
-                        c.get("phone") or 
-                        c.get("phone_number") or 
-                        c.get("contact") or 
-                        c.get("contact_phone") or
-                        c.get("company_phone") or
-                        resp_phone or
-                        "Mavjud emas"
+                        c.get("phone") or c.get("phone_number") or
+                        c.get("contact") or c.get("contact_phone") or
+                        c.get("company_phone") or resp_phone or "Mavjud emas"
                     )
 
-                    # 6. Logo
-                    logo = (
-                        c.get("logo_url") or 
-                        c.get("image") or 
-                        c.get("logo") or 
-                        c.get("avatar") or
-                        None
-                    )
+                    # 5. Logo
+                    logo = c.get("logo_url") or c.get("image") or c.get("logo") or c.get("avatar") or None
 
-                    # ─── SMART STATUS LOGIC ───
-                    # Determine status based on API flags AND subscription expiration
+                    # 6. Status
                     now_str = datetime.now().isoformat()
                     base_status = str(c.get("status") or "").lower()
                     is_active_api = bool(c.get("is_real") or c.get("is_active") or base_status == "active")
@@ -196,11 +183,23 @@ async def get_external_companies():
                         "main_currency": c.get("currency") or "UZS",
                     })
                 except Exception as item_err:
-                    print(f"DEBUG Skipping item {i} due to Error: {str(item_err)}")
+                    print(f"DEBUG Skipping item {i}: {str(item_err)}")
                     continue
+
+            # ─── Keshni yangilash ─────────────────────────────────────────────
+            _ext_cache["data"] = results
+            _ext_cache["fetched_at"] = now_ts
+            print(f"✅ [Cache] {len(results)} ta kompaniya tashqi API dan yangilandi va keshlandi")
             return results
+
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"DEBUG Error in /external: {str(e)}")
+        # Kesh mavjud bo'lsa eski ma'lumotni qaytaramiz
+        if _ext_cache["data"]:
+            print("⚠️ [Cache] Xatolik — eski kesh qaytarilmoqda")
+            return _ext_cache["data"]
         raise HTTPException(status_code=500, detail=f"Ulanishda xatolik: {str(e)}")
 
 
