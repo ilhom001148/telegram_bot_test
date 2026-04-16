@@ -476,11 +476,14 @@ function CompaniesManager({ token }) {
 
   const fetchCompanies = () => {
     setLoading(true);
-    fetch(`${API_URL}/companies/`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/companies/external`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => { setCompanies(d || []); setLoading(false); })
       .catch(() => setLoading(false));
   };
   useEffect(() => { fetchCompanies(); }, [token]);
+
+  // ReadOnly check
+  const isExternal = (id) => typeof id === 'string' && id.startsWith('ext-');
 
   // ── Phone validation ──────────────────────────────────────
   const phoneRe = /^\+?[\d\s\-()\u200c]{7,20}$/;
@@ -601,132 +604,79 @@ function CompaniesManager({ token }) {
         />
       </div>
 
-      {/* Stats Summary */}
-      {!loading && companies.length > 0 && (
-        <div className="grid-cards" style={{gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'1.5rem', marginBottom:'2rem'}}>
-          <div className="glass-card stat-card" style={{padding:'1.2rem'}}>
-            <div className="stat-label">Jami kompaniyalar</div>
-            <div className="stat-value" style={{fontSize:'1.8rem'}}>{companies.length}</div>
-          </div>
-          <div className="glass-card stat-card" style={{padding:'1.2rem', borderLeft: '4px solid var(--success)'}}>
-            <div className="stat-label">Faol kompaniyalar</div>
-            <div className="stat-value" style={{fontSize:'1.8rem', color:'var(--success)'}}>{companies.filter(c => c.is_active).length}</div>
-          </div>
-          <div className="glass-card stat-card" style={{padding:'1.2rem', borderLeft: '4px solid #f59e0b'}}>
-            <div className="stat-label">Muddati tugayotgan</div>
-            <div className="stat-value" style={{fontSize:'1.8rem', color:'#f59e0b'}}>
-              {companies.filter(c => {
-                if(!c.subscription_end) return false;
-                const days = (new Date(c.subscription_end) - new Date()) / (1000 * 60 * 60 * 24);
-                return days > 0 && days <= 7;
-              }).length}
-            </div>
-          </div>
-        </div>
-      )}
 
       {loading ? <div className="loader"/> : (
-        <div className="glass-card table-wrapper" style={{padding:0, overflow:'hidden'}}>
-          <table className="modern-table">
-            <thead>
-              <tr>
-                <th>Kompaniya</th>
-                <th>Kontaktlar</th>
-                <th>Mas'ul xodim</th>
-                <th>Obuna muddati</th>
-                <th>Status</th>
-                <th style={{textAlign:'center'}}>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {companies.filter(c => 
-                c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || 
-                (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
-                (c.phone && (c.phone+'').includes(searchQuery))
-              ).length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
-                    <div style={{opacity:0.4, marginBottom:'1rem'}}><Icons.Company /></div>
-                    <p>Hech qanday ma'lumot topilmadi.</p>
-                    <p style={{fontSize:'0.85rem', marginTop:'5px'}}>Kompaniyalar har 24 soatda avtomatik ravishda tashqi bazadan yangilanadi.</p>
-                  </td>
-                </tr>
-              ) : (
-                companies.filter(c => 
-                  c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || 
-                  (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
-                  (c.phone && (c.phone+'').includes(searchQuery))
-                ).map(c => {
-                  const subDate = c.subscription_end ? new Date(c.subscription_end) : null;
-                  const daysLeft = subDate ? Math.ceil((subDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
-                  
-                  return (
-                    <tr key={c.id} className="clickable-row" onClick={() => openEdit(c)}>
-                      <td>
-                        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                          {c.logo_url ? (
-                            <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`}
-                              alt="logo" style={{width:36, height:36, borderRadius:8, objectFit:'cover', background:'rgba(255,255,255,0.08)'}} />
-                          ) : (
-                            <div style={{width:36, height:36, borderRadius:8, background:'rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', opacity:0.4}}>
-                              <Icons.Company style={{width:18}}/>
-                            </div>
-                          )}
-                          <div>
-                            <div style={{fontWeight:600}}>{c.name}</div>
-                            {c.brand_name && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.brand_name}</div>}
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{fontSize:'0.9rem'}}>{c.phone || '—'}</div>
-                        {c.director && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>Dir: {c.director}</div>}
-                      </td>
-                      <td>
-                        <div style={{fontWeight:500, fontSize:'0.9rem'}}>{c.responsible_name || '—'}</div>
-                        {c.responsible_phone && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.responsible_phone}</div>}
-                      </td>
-                      <td>
-                        <div style={{fontSize:'0.85rem'}}>
-                          {subDate ? subDate.toLocaleDateString('ru-RU') : '—'}
-                        </div>
-                        {daysLeft !== null && (
-                          <div style={{fontSize:'0.75rem', marginTop:'2px', color: daysLeft < 0 ? 'var(--danger)' : (daysLeft <= 7 ? '#f59e0b' : 'var(--success)')}}>
-                            {daysLeft < 0 ? 'Muddati o\'tgan' : (daysLeft === 0 ? 'Bugun tugaydi' : `${daysLeft} kun qoldi`)}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span className="badge" style={{
-                          background:`${(statusLabel[c.status]||statusLabel['Yangi']).color}22`, 
-                          color:(statusLabel[c.status]||statusLabel['Yangi']).color, 
-                          border:`1px solid ${(statusLabel[c.status]||statusLabel['Yangi']).color}55`,
-                          fontSize: '0.7rem'
-                        }}>
-                          {(statusLabel[c.status]||statusLabel['Yangi']).label}
-                        </span>
-                      </td>
-                      <td style={{textAlign:'right'}} onClick={e => e.stopPropagation()}>
-                        <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'10px'}}>
-                          <div className="toggle-btn" onClick={() => handleToggle(c.id)} title={c.is_active ? 'O\'chirish' : 'Yoqish'}
-                              style={{display:'inline-flex', cursor:'pointer', width:36, height:20, borderRadius:10,
-                                background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.15)',
-                                alignItems:'center', padding:'2px', transition:'background 0.3s'}}>
-                              <div style={{width:16, height:16, borderRadius:'50%', background:'#fff',
-                                transform: c.is_active ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
-                          </div>
-                          <button className="btn btn-sm" style={{padding:'5px 10px', fontSize:'0.75rem', background:'rgba(255,255,255,0.05)'}} onClick={() => openEdit(c)}>
-                            Taxrir
-                          </button>
-                          <button style={{background:'transparent', border:'none', padding:'4px', color:'var(--danger)', cursor:'pointer', opacity:0.6}} onClick={()=>setDeleteId(c.id)}>🗑</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+        <div className="grid-cards" style={{marginTop:'1.5rem'}}>
+          {companies.filter(c => 
+            c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || 
+            (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
+            (c.phone && (c.phone+'').includes(searchQuery))
+          ).length === 0 ? (
+            <div className="glass-card" style={{gridColumn:'1 / -1', textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
+              <div style={{opacity:0.4, marginBottom:'1rem'}}><Icons.Company /></div>
+              <p>Hech qanday ma'lumot topilmadi.</p>
+              <p style={{fontSize:'0.85rem', marginTop:'5px'}}>Kompaniyalar har 24 soatda avtomatik ravishda tashqi bazadan yangilanadi.</p>
+            </div>
+          ) : (
+            companies.filter(c => 
+              c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || 
+              (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
+              (c.phone && (c.phone+'').includes(searchQuery))
+            ).map(c => (
+              <div key={c.id} className="glass-card company-card" style={{padding:'1.5rem', position:'relative'}} onClick={() => openEdit(c)}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'1.2rem'}}>
+                  <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                    <div style={{width:40, height:40, borderRadius:8, background:'rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                      {c.logo_url ? (
+                        <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} 
+                          alt="logo" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:8}} />
+                      ) : <Icons.Company style={{width:20, opacity:0.5}}/>}
+                    </div>
+                    <div>
+                      <div style={{fontWeight:600, color:'var(--text-bright)'}}>{c.name}</div>
+                      {c.brand_name && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.brand_name}</div>}
+                    </div>
+                  </div>
+                  {!isExternal(c.id) && (
+                    <div className="card-actions" onClick={e => e.stopPropagation()}>
+                      <button className="icon-btn" style={{color:'var(--danger)', opacity:0.6}} onClick={()=>setDeleteId(c.id)}>🗑</button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="card-info-grid" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 20px'}}>
+                  <div>
+                    <div className="info-label">ID</div>
+                    <div className="info-value">{c.id.toString().replace('ext-','')}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Telefon</div>
+                    <div className="info-value">{c.phone || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Mas'ul xodim</div>
+                    <div className="info-value">{c.responsible_name || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Xodim telefoni</div>
+                    <div className="info-value">{c.responsible_phone || '—'}</div>
+                  </div>
+                </div>
+
+                <div style={{marginTop:'1.2rem', paddingTop:'1rem', borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                  <span className="badge" style={{
+                    background:`${(statusLabel[c.status]||statusLabel['Yangi']).color}15`, 
+                    color:(statusLabel[c.status]||statusLabel['Yangi']).color, 
+                    border:`1px solid ${(statusLabel[c.status]||statusLabel['Yangi']).color}33`,
+                    fontSize: '0.7rem'
+                  }}>
+                    {(statusLabel[c.status]||statusLabel['Yangi']).label}
+                  </span>
+                  {isExternal(c.id) && <span style={{fontSize:'0.7rem', color:'var(--text-muted)', fontStyle:'italic'}}>Live Data</span>}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
@@ -735,11 +685,68 @@ function CompaniesManager({ token }) {
         <div className="modal-overlay" style={{alignItems:'flex-start', overflowY:'auto', padding:'2rem'}}>
           <div className="glass-card" style={{width:'100%', maxWidth:700, margin:'auto', position:'relative', animation:'fadeIn 0.3s ease-out'}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'2rem'}}>
-              <h3 style={{margin:0, fontSize:'1.2rem'}}>{editingId ? '✏️ Kompaniyani tahrirlash' : '🏢 Yangi kompaniya qo\'shish'}</h3>
+              <h3 style={{margin:0, fontSize:'1.2rem'}}>
+                {isExternal(editingId) ? '📋 Kompaniya tafsilotlari' : (editingId ? '✏️ Kompaniyani tahrirlash' : '🏢 Yangi kompaniya qo\'shish')}
+              </h3>
               <button onClick={() => setShowForm(false)} style={{background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:'1.5rem', lineHeight:1}}>×</button>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            {isExternal(editingId) ? (
+              <div className="detail-view">
+                <div style={{display:'flex', alignItems:'center', gap:'1.5rem', marginBottom:'2rem', paddingBottom:'1.5rem', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                  <div style={{width:80, height:80, borderRadius:12, background:'rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid var(--card-border)'}}>
+                    {form.logo_url ? <img src={form.logo_url} alt="logo" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:12}}/> : <Icons.Company style={{width:40, opacity:0.3}}/>}
+                  </div>
+                  <div>
+                    <h2 style={{margin:0, color:'var(--text-bright)'}}>{form.name}</h2>
+                    {form.brand_name && <div style={{color:'var(--primary)', fontWeight:500}}>{form.brand_name}</div>}
+                    <div style={{marginTop:'8px'}}>
+                       <span className="badge" style={{background:`${(statusLabel[form.status]||statusLabel['Faol']).color}22`, color:(statusLabel[form.status]||statusLabel['Faol']).color}}>
+                         {(statusLabel[form.status]||statusLabel['Faol']).label}
+                       </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card-info-grid" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2rem'}}>
+                  <div>
+                    <div className="info-label">ID</div>
+                    <div className="info-value" style={{fontSize:'1.1rem'}}>{editingId.replace('ext-','')}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Telefon</div>
+                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.phone || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Direktor</div>
+                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.director || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Asosiy valyuta</div>
+                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.main_currency || 'UZS'}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Mas'ul xodim</div>
+                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.responsible_name || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Mas'ul xodim telefoni</div>
+                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.responsible_phone || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="info-label">Obuna muddati</div>
+                    <div className="info-value" style={{fontSize:'1.1rem', color:'var(--primary)'}}>
+                      {form.subscription_end ? new Date(form.subscription_end).toLocaleDateString('ru-RU') : '—'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div style={{marginTop:'3rem', textAlign:'right'}}>
+                   <button className="btn btn-outline" onClick={() => setShowForm(false)}>Yopish</button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit}>
               {/* Logo upload */}
               <div className="form-group" style={{marginBottom:'1.5rem'}}>
                 <label style={{display:'block', marginBottom:'0.5rem', color:'var(--text-muted)', fontSize:'0.85rem'}}>Kompaniya logosi</label>

@@ -426,35 +426,40 @@ h1, h2, h3, .brand {
   letter-spacing: 0.1em;
 }
 
-/* Modern Table for Management */
-.modern-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
+/* Card Grid for Management */
+.company-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.modern-table th {
-  padding: 1.25rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+.company-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.3);
+}
+
+.info-label {
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--text-muted);
-  border-bottom: 2px solid var(--card-border);
-  background: rgba(255, 255, 255, 0.01);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
 }
 
-.modern-table td {
-  padding: 1.25rem 1rem;
-  border-bottom: 1px solid var(--card-border);
-  vertical-align: middle;
+.info-value {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-bright);
 }
 
-.modern-table tr.clickable-row:hover td {
-  background: rgba(255, 255, 255, 0.03);
+.detail-view .info-label {
+  margin-bottom: 8px;
+  opacity: 0.7;
 }
 
-.modern-table tr:last-child td {
-  border-bottom: none;
+.detail-view .info-value {
+  color: var(--text-bright);
 }
 
 /* Tables */
