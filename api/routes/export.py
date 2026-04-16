@@ -1,7 +1,7 @@
 from sqlalchemy import select, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies import get_db
-from bot.models import KnowledgeBase, Message, User
+from bot.models import KnowledgeBase, Message, User, Company
 from datetime import datetime
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -149,6 +149,40 @@ async def export_daily_report(date: str, db: AsyncSession = Depends(get_db)):
             iter([output.getvalue()]), 
             media_type="text/csv", 
             headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    finally:
+        pass
+
+
+@router.get("/companies")
+async def export_companies(db: AsyncSession = Depends(get_db)):
+    try:
+        result = await db.execute(select(Company).order_by(Company.id.desc()))
+        companies = result.scalars().all()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "Nomi", "Brand", "Tel", "Direktor", "Mas'ul", "Mas'ul Tel", "Status", "Obuna Tugash", "Active"])
+        
+        for item in companies:
+            writer.writerow([
+                item.id,
+                item.name,
+                item.brand_name or "",
+                item.phone or "",
+                item.director or "",
+                item.responsible_name or "",
+                item.responsible_phone or "",
+                item.status or "",
+                item.subscription_end.strftime("%Y-%m-%d %H:%M") if item.subscription_end else "",
+                "Ha" if item.is_active else "Yo'q"
+            ])
+            
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]), 
+            media_type="text/csv", 
+            headers={"Content-Disposition": "attachment; filename=kompaniyalar_royxati.csv"}
         )
     finally:
         pass

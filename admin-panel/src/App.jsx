@@ -614,6 +614,9 @@ function CompaniesManager({ token }) {
       <div className="flex-between" style={{marginBottom:'2rem'}}>
         <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
         <div style={{display:'flex', gap:'12px'}}>
+           <a href={`${API_URL}/export/companies`} className="btn btn-sm btn-outline" style={{borderColor:'var(--success)', color:'var(--success)'}}>
+             📥 Excel
+           </a>
            <button className="btn btn-sm btn-outline" style={{borderColor:'var(--primary)', color:'var(--primary)'}} onClick={handleSyncExternal} disabled={syncing}>
              {syncing ? '⏳ Yangilanmoqda...' : '🔄 Tashqi bazadan yangilash'}
            </button>
