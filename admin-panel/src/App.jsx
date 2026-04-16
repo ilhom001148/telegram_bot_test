@@ -491,7 +491,7 @@ function CompaniesManager({ token }) {
 
   const fetchCompanies = () => {
     setLoading(true);
-    fetch(`${API_URL}/companies/external`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/companies/`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => { setCompanies(d || []); setLoading(false); })
       .catch(() => setLoading(false));
   };
