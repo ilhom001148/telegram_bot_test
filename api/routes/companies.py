@@ -165,10 +165,6 @@ async def get_external_companies():
                         None
                     )
 
-                    results.append({
-                        "id": f"ext-{c.get('id') or i}",
-                        "name": comp_name,
-                        "brand_name": c.get("brand_name") or c.get("brand") or "",
                     # ─── SMART STATUS LOGIC ───
                     # Determine status based on API flags AND subscription expiration
                     now_str = datetime.now().isoformat()
