@@ -161,7 +161,7 @@ async def get_external_companies():
 
                 results.append({
                     "id": f"ext-{c.get('id') or i}",
-                    "name": name,
+                    "name": comp_name,
                     "brand_name": c.get("brand_name") or c.get("brand") or "",
                     "phone": comp_phone,
                     "director": c.get("director") or c.get("owner") or c.get("leader") or "",
