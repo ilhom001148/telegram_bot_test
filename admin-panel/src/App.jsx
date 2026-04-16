@@ -624,56 +624,52 @@ function CompaniesManager({ token }) {
               (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
               (c.phone && (c.phone+'').includes(searchQuery))
             ).map(c => (
-              <div key={c.id} className="glass-card company-card" style={{padding:'1.5rem', position:'relative'}} onClick={() => openEdit(c)}>
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'1.2rem'}}>
-                  <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-                    <div style={{width:40, height:40, borderRadius:8, background:'rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                      {c.logo_url ? (
-                        <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} 
-                          alt="logo" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:8}} />
-                      ) : <Icons.Company style={{width:20, opacity:0.5}}/>}
-                    </div>
-                    <div>
-                      <div style={{fontWeight:600, color:'var(--text-bright)'}}>{c.name}</div>
-                      {c.brand_name && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.brand_name}</div>}
-                    </div>
+              <div key={c.id} className="premium-card company-card fadeInUp" 
+                   style={{ animationDelay: `${companies.indexOf(c) * 0.05}s` }}
+                   onClick={() => openEdit(c)}>
+                
+                <div className="card-header">
+                  <div className="card-avatar">
+                    {c.logo_url ? (
+                      <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} 
+                        alt="logo" className="avatar-img" />
+                    ) : <Icons.Company className="avatar-icon" />}
+                  </div>
+                  <div className="card-titles">
+                    <h3 className="card-main-title">{c.name}</h3>
+                    {c.brand_name && <p className="card-subtitle">{c.brand_name}</p>}
                   </div>
                   {!isExternal(c.id) && (
-                    <div className="card-actions" onClick={e => e.stopPropagation()}>
-                      <button className="icon-btn" style={{color:'var(--danger)', opacity:0.6}} onClick={()=>setDeleteId(c.id)}>🗑</button>
+                    <div className="card-actions-top" onClick={e => e.stopPropagation()}>
+                      <button className="icon-btn-danger" onClick={()=>setDeleteId(c.id)} title="O'chirish">🗑</button>
                     </div>
                   )}
                 </div>
 
-                <div className="card-info-grid" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 20px'}}>
-                  <div>
-                    <div className="info-label">ID</div>
-                    <div className="info-value">{c.id.toString().replace('ext-','')}</div>
+                <div className="card-body-grid">
+                  <div className="info-item">
+                    <span className="info-label">ID</span>
+                    <span className="info-value">#{c.id.toString().replace('ext-','')}</span>
                   </div>
-                  <div>
-                    <div className="info-label">Telefon</div>
-                    <div className="info-value">{c.phone || '—'}</div>
+                  <div className="info-item">
+                    <span className="info-label">Telefon</span>
+                    <span className="info-value">{c.phone || '—'}</span>
                   </div>
-                  <div>
-                    <div className="info-label">Mas'ul xodim</div>
-                    <div className="info-value">{c.responsible_name || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="info-label">Xodim telefoni</div>
-                    <div className="info-value">{c.responsible_phone || '—'}</div>
+                  <div className="info-item full-width">
+                    <span className="info-label">Mas'ul xodim</span>
+                    <div className="info-value-group">
+                      <span className="info-value-main">{c.responsible_name || '—'}</span>
+                      {c.responsible_phone && <span className="info-value-sub">{c.responsible_phone}</span>}
+                    </div>
                   </div>
                 </div>
 
-                <div style={{marginTop:'1.2rem', paddingTop:'1rem', borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                  <span className="badge" style={{
-                    background:`${(statusLabel[c.status]||statusLabel['Yangi']).color}15`, 
-                    color:(statusLabel[c.status]||statusLabel['Yangi']).color, 
-                    border:`1px solid ${(statusLabel[c.status]||statusLabel['Yangi']).color}33`,
-                    fontSize: '0.7rem'
-                  }}>
+                <div className="card-footer">
+                  <div className={`status-indicator ${c.status.toLowerCase()}`}>
+                    <div className="pulse-dot"></div>
                     {(statusLabel[c.status]||statusLabel['Yangi']).label}
-                  </span>
-                  {isExternal(c.id) && <span style={{fontSize:'0.7rem', color:'var(--text-muted)', fontStyle:'italic'}}>Live Data</span>}
+                  </div>
+                  {isExternal(c.id) && <div className="live-status-badge">Live Data</div>}
                 </div>
               </div>
             ))
@@ -693,57 +689,87 @@ function CompaniesManager({ token }) {
             </div>
 
             {isExternal(editingId) ? (
-              <div className="detail-view">
-                <div style={{display:'flex', alignItems:'center', gap:'1.5rem', marginBottom:'2rem', paddingBottom:'1.5rem', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                  <div style={{width:80, height:80, borderRadius:12, background:'rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid var(--card-border)'}}>
-                    {form.logo_url ? <img src={form.logo_url} alt="logo" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:12}}/> : <Icons.Company style={{width:40, opacity:0.3}}/>}
+              <div className="premium-detail-view fadeInUp">
+                <div className="detail-header">
+                  <div className="detail-avatar-container">
+                    {form.logo_url ? <img src={form.logo_url} alt="logo" className="detail-avatar"/> : <Icons.Company className="detail-avatar-icon"/>}
                   </div>
-                  <div>
-                    <h2 style={{margin:0, color:'var(--text-bright)'}}>{form.name}</h2>
-                    {form.brand_name && <div style={{color:'var(--primary)', fontWeight:500}}>{form.brand_name}</div>}
-                    <div style={{marginTop:'8px'}}>
-                       <span className="badge" style={{background:`${(statusLabel[form.status]||statusLabel['Faol']).color}22`, color:(statusLabel[form.status]||statusLabel['Faol']).color}}>
-                         {(statusLabel[form.status]||statusLabel['Faol']).label}
-                       </span>
+                  <div className="detail-header-text">
+                    <h2 className="detail-title">{form.name}</h2>
+                    {form.brand_name && <div className="detail-brand">{form.brand_name}</div>}
+                    <div className={`detail-status-badge ${form.status.toLowerCase()}`}>
+                       {(statusLabel[form.status]||statusLabel['Faol']).label}
                     </div>
                   </div>
                 </div>
 
-                <div className="card-info-grid" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2rem'}}>
-                  <div>
-                    <div className="info-label">ID</div>
-                    <div className="info-value" style={{fontSize:'1.1rem'}}>{editingId.replace('ext-','')}</div>
-                  </div>
-                  <div>
-                    <div className="info-label">Telefon</div>
-                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.phone || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="info-label">Direktor</div>
-                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.director || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="info-label">Asosiy valyuta</div>
-                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.main_currency || 'UZS'}</div>
-                  </div>
-                  <div>
-                    <div className="info-label">Mas'ul xodim</div>
-                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.responsible_name || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="info-label">Mas'ul xodim telefoni</div>
-                    <div className="info-value" style={{fontSize:'1.1rem'}}>{form.responsible_phone || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="info-label">Obuna muddati</div>
-                    <div className="info-value" style={{fontSize:'1.1rem', color:'var(--primary)'}}>
-                      {form.subscription_end ? (form.subscription_end.includes('T') ? new Date(form.subscription_end).toLocaleDateString('ru-RU') : form.subscription_end) : '—'}
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <div className="detail-icon"><Icons.Id /></div>
+                    <div className="detail-content">
+                      <div className="detail-label">Identifikator (ID)</div>
+                      <div className="detail-value">{editingId.replace('ext-','')}</div>
                     </div>
                   </div>
+                  <div className="detail-item">
+                    <div className="detail-icon"><Icons.Phone /></div>
+                    <div className="detail-content">
+                      <div className="detail-label">Kompaniya telefoni</div>
+                      <div className="detail-value">{form.phone || '—'}</div>
+                    </div>
+                  </div>
+                  <div className="detail-item">
+                    <div className="detail-icon"><Icons.User /></div>
+                    <div className="detail-content">
+                      <div className="detail-label">Direktor</div>
+                      <div className="detail-value">{form.director || '—'}</div>
+                    </div>
+                  </div>
+                  <div className="detail-item">
+                    <div className="detail-icon"><Icons.Settings /></div>
+                    <div className="detail-content">
+                      <div className="detail-label">Asosiy valyuta</div>
+                      <div className="detail-value">{form.main_currency || 'UZS'}</div>
+                    </div>
+                  </div>
+                  <div className="detail-item">
+                    <div className="detail-icon"><Icons.Company /></div>
+                    <div className="detail-content">
+                      <div className="detail-label">Mas'ul xodim</div>
+                      <div className="detail-value">{form.responsible_name || '—'}</div>
+                    </div>
+                  </div>
+                  <div className="detail-item">
+                    <div className="detail-icon"><Icons.Phone /></div>
+                    <div className="detail-content">
+                      <div className="detail-label">Xodim telefoni</div>
+                      <div className="detail-value">{form.responsible_phone || '—'}</div>
+                    </div>
+                  </div>
+                  <div className="detail-item full-width-item">
+                    <div className="detail-icon"><Icons.Clock /></div>
+                    <div className="detail-content">
+                      <div className="detail-label">Obuna muddati (Expired Date)</div>
+                      <div className="detail-value highlight">
+                        {form.subscription_end ? (form.subscription_end.includes('T') ? new Date(form.subscription_end).toLocaleDateString('ru-RU', {year:'numeric', month:'long', day:'numeric'}) : form.subscription_end) : '—'}
+                      </div>
+                    </div>
+                  </div>
+                  {form.subscription_start && (
+                    <div className="detail-item full-width-item">
+                      <div className="detail-icon"><Icons.Clock /></div>
+                      <div className="detail-content">
+                        <div className="detail-label">Ro'yxatdan o'tgan sana</div>
+                        <div className="detail-value">
+                          {new Date(form.subscription_start).toLocaleDateString('ru-RU', {year:'numeric', month:'long', day:'numeric'})}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
-                <div style={{marginTop:'3rem', textAlign:'right'}}>
-                   <button className="btn btn-outline" onClick={() => setShowForm(false)}>Yopish</button>
+                <div className="detail-actions-footer">
+                   <button className="premium-btn-outline" onClick={() => setShowForm(false)}>Yopish</button>
                 </div>
               </div>
             ) : (
