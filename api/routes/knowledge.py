@@ -52,12 +52,12 @@ async def extract_knowledge_api(text: str, db: AsyncSession):
     provider_raw = await get_setting(db, "ai_provider", "openai")
     provider = provider_raw.lower() if provider_raw else "openai"
     
-    text = text[:60000] # Text limit oshirildi (60k belgi)
+    text = text[:100000] # Text limit oshirildi (100k belgi)
     
     prompt = (
-        "Senga quyida bir nechta sahifali text beriladi. Ushbu textdan eng muhim SAVOL va JAVOBlarni ajratib ol. "
-        "Matn mazmunini to'liq qamrab oluvchi 15-20 ta savol-javob bo'lsin. "
-        "Javoblar aniq, tushunarli va qisqa bo'lsin. "
+        "Senga quyida bir nechta sahifali text beriladi. Ushbu textdan BARCHA MUHIM ma'lumotlarni SAVOL va JAVOB ko'rinishida ajratib ol. "
+        "Matn mazmunini to'liq qamrab oluvchi, detallashtirilgan barcha savol-javoblar zanjirini shakllantir. "
+        "Hech qanday muhim detal qolib ketmasin. Savol va javoblar aniq, tushunarli va mazmunli bo'lsin. "
         "Natijani FAQAT JSON formatida qaytar: {\"knowledge\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
     )
 
