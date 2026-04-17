@@ -116,9 +116,9 @@ async def get_group_detail(group_id: int, db: AsyncSession = Depends(get_db)):
         if not target_group:
             raise HTTPException(status_code=404, detail="Group not found")
 
-        # Shu nomdagi barcha guruhlarni topamiz
-        g_result = await db.execute(select(Group.id).filter(Group.title == target_group.title))
-        all_ids = [row[0] for row in g_result.all()]
+        # Shu nomdagi barcha guruhlarni topamiz (bo'sh joylar va registrni inobatga olgan holda)
+        g_result = await db.execute(select(Group.id).filter(func.trim(Group.title).ilike(func.trim(target_group.title))))
+        all_ids = list(g_result.scalars().all())
 
         count_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id.in_(all_ids)))
         message_count = count_res.scalar() or 0
@@ -153,8 +153,8 @@ async def get_group_messages(
             raise HTTPException(status_code=404, detail="Group not found")
 
         # Shu nomdagi barcha guruhlarni topamiz
-        all_g_result = await db.execute(select(Group.id).filter(Group.title == target_group.title))
-        all_ids = [row[0] for row in all_g_result.all()]
+        all_g_result = await db.execute(select(Group.id).filter(func.trim(Group.title).ilike(func.trim(target_group.title))))
+        all_ids = list(all_g_result.scalars().all())
 
         query = select(Message).filter(Message.group_id.in_(all_ids))
 
