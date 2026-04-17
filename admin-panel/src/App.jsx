@@ -1796,7 +1796,7 @@ function GroupHistory({ token, group, onBack }) {
                      </div>
                    </td>
                    <td style={{padding:'25px 10px'}}>
-                      {m.is_question ? (
+                      {(
                         answeringId === m.id ? (
                           <form onSubmit={(e) => handleSendAnswer(e, m.id)}>
                             <textarea 
@@ -1823,11 +1823,11 @@ function GroupHistory({ token, group, onBack }) {
                             )}
                           </div>
                         )
-                      ) : null}
+                      )}
                    </td>
                    <td style={{padding:'30px 10px', textAlign:'center'}}>
                       <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.75rem', padding:'6px 14px', opacity: m.is_question ? 1 : 0.4}}>
-                        {m.is_answered ? 'Javob berilgan' : (m.is_staff ? 'Xodim' : (m.is_question ? 'Kutilmoqda' : 'Yangi'))}
+                         {m.is_answered ? 'Javob berilgan' : (m.is_staff ? 'Xodim' : 'Kutilmoqda')}
                       </span>
                     </td>
                  </tr>
