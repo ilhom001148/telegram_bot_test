@@ -162,31 +162,53 @@ function ArchiveManager({ token }) {
                   </thead>
                   <tbody>
                     {questions.map(q => (
-                      <tr key={q.id}>
-                        <td style={{whiteSpace:'nowrap', fontSize:'0.8rem'}}>{q.created_at}</td>
-                        <td>
-                           <div style={{fontWeight:'600', fontSize:'0.9rem'}}>{q.full_name}</div>
-                           <div style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>@{q.username || 'anonim'}</div>
+                      <tr key={q.id} style={{height: '100px', verticalAlign: 'top'}}>
+                        <td style={{whiteSpace:'nowrap', fontSize:'0.85rem', padding:'25px 15px', color:'var(--text-muted)'}}>{q.created_at}</td>
+                        <td style={{padding:'25px 10px'}}>
+                           <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{q.full_name}</div>
+                           <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginTop:'4px'}}>@{q.username || 'anonim'}</div>
                         </td>
                         <td 
                             className="clickable-text"
-                            style={{fontSize:'0.9rem', cursor:'pointer'}} 
+                            style={{fontSize:'0.95rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer', padding:'25px 10px'}} 
                             onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text || ''); }}
                         >
-                            {q.telegram_app_link ? <a href={q.telegram_app_link} onClick={e => e.stopPropagation()} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed currentColor'}} title="Telegram ilovasida ochish">{q.text}</a> : q.text}
+                            {q.telegram_app_link ? <a href={q.telegram_app_link} onClick={e => e.stopPropagation()} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed var(--primary)'}} title="Telegramda ochish">{q.text}</a> : q.text}
                         </td>
-                        <td style={{fontSize:'0.9rem'}}>
-                           {q.answer_text ? (
-                              <div>
-                                 <div style={{color:'var(--primary)', fontWeight:'600', fontSize:'0.7rem', textTransform:'uppercase', marginBottom:'4px'}}>
-                                    {q.answered_by || 'Bot'} javobi:
+                        <td style={{fontSize:'0.95rem', padding:'25px 10px'}}>
+                           {answeringId === q.id ? (
+                               <form onSubmit={(e) => handleSendAnswer(e, q.id)}>
+                                    <textarea 
+                                        rows="2" 
+                                        value={answerText} 
+                                        onChange={e => setAnswerText(e.target.value)}
+                                        placeholder="Javob yozing..."
+                                        style={{width:'100%', padding:'10px', fontSize:'0.9rem', marginBottom:'8px', borderRadius:'10px', background:'rgba(0,0,0,0.1)', color:'#fff', border:'1px solid var(--primary)'}}
+                                        autoFocus
+                                    />
+                                    <div style={{display:'flex', gap:'8px'}}>
+                                        <button type="submit" className="btn btn-sm" disabled={sending} style={{flex:1, fontSize:'0.75rem'}}>{sending ? '...' : 'Saqlash'}</button>
+                                        <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.75rem'}}>✖</button>
+                                    </div>
+                               </form>
+                           ) : (
+                               q.answer_text ? (
+                                  <div onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text); }} style={{cursor:'pointer', padding:'10px', background:'rgba(255,255,255,0.03)', borderRadius:'10px'}} title="Tahrirlash uchun bosing">
+                                     <div style={{color:'var(--primary)', fontWeight:'700', fontSize:'0.7rem', textTransform:'uppercase', marginBottom:'6px'}}>
+                                        {q.answered_by || 'Bot'} JAVOBI:
+                                     </div>
+                                     {q.answer_text}
+                                  </div>
+                               ) : (
+                                 <div style={{textAlign:'center'}}>
+                                   <span style={{color:'var(--text-muted)', fontSize:'0.85rem', fontStyle:'italic', display:'block', marginBottom:'8px'}}>Javobsiz</span>
+                                   <button className="btn btn-sm" onClick={() => { setAnsweringId(q.id); setAnswerText(''); }} style={{fontSize:'0.75rem', padding:'6px 14px'}}>Javob berish</button>
                                  </div>
-                                 {q.answer_text}
-                              </div>
-                           ) : <span style={{color:'var(--text-muted)', fontStyle:'italic'}}>Javobsiz</span>}
+                               )
+                           )}
                         </td>
-                        <td>
-                           <span className={`badge ${q.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.7rem'}}>
+                        <td style={{textAlign:'center', padding:'25px 10px'}}>
+                           <span className={`badge ${q.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.75rem', padding:'6px 14px'}}>
                               {q.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
                            </span>
                         </td>
@@ -1742,53 +1764,39 @@ function GroupHistory({ token, group, onBack }) {
             </thead>
             <tbody>
               {msgs.length > 0 ? msgs.map(m => (
-                <tr key={m.id} style={{height: '100px', verticalAlign:'top'}}>
-                  <td style={{padding:'20px', fontSize:'0.85rem', color:'var(--text-muted)', fontWeight:'600'}}>
-                    {new Date(m.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit'})}
-                    <div style={{fontSize:'0.7rem', marginTop:'4px', opacity:0.6}}>
-                       {new Date(m.created_at).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'})}
-                    </div>
-                  </td>
-                  <td style={{padding:'20px 10px'}}>
-                    <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                      <div className="user-avatar" style={{
-                        background: getAvatarColor(m.full_name || 'U'), 
-                        width:'36px', height:'36px', fontSize:'0.85rem'
-                      }}>
-                        {getInitials(m.full_name || 'U')}
-                      </div>
-                      <div>
-                        <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
-                        {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
-                        {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{padding:'20px 10px'}}>
-                    <div 
-                        className="clickable-text"
-                        style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0', cursor:'pointer'}}
-                        onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}
-                    >
-                       {m.telegram_app_link ? <a href={m.telegram_app_link} onClick={e => e.stopPropagation()} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed var(--primary)'}} title="Telegramda ochish">{m.text}</a> : m.text}
-                    </div>
-                  </td>
-                  <td style={{padding:'20px 10px'}}>
-                    {m.is_question ? (
-                      m.answer_text && answeringId !== m.id ? (
-                        <div 
-                          style={{background:'rgba(255,255,255,0.03)', padding:'12px', borderRadius:'12px', border:'1px solid rgba(255,255,255,0.05)', cursor:'pointer'}}
-                          onClick={() => { setAnsweringId(m.id); setAnswerText(m.answer_text); }}
-                          title="Tahrirlash uchun bosing"
-                        >
-                          <div style={{color:'var(--primary)', fontWeight:'800', fontSize:'0.7rem', textTransform:'uppercase', marginBottom:'6px', display:'flex', justifyContent:'space-between'}}>
-                             <span><span className="ai-badge">AI</span> Javob:</span>
-                             {m.total_tokens > 0 && <span style={{color:'var(--text-muted)', textTransform:'none', fontWeight:'normal'}}>{m.total_tokens} tokens</span>}
-                          </div>
-                          <div style={{fontSize:'0.9rem', color:'#cbd5e1', lineHeight:1.5}}>{m.answer_text}</div>
-                          <div style={{fontSize:'0.6rem', color:'var(--primary)', marginTop:'8px', textAlign:'right', opacity:0.6}}>Tahrirlash ✎</div>
-                        </div>
-                      ) : (
+                 <tr key={m.id} style={{height: '110px', verticalAlign:'top'}}>
+                   <td style={{padding:'25px 20px', fontSize:'0.85rem', color:'var(--text-muted)', fontWeight:'600'}}>
+                     {new Date(m.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit'})}
+                     <div style={{fontSize:'0.7rem', marginTop:'4px', opacity:0.6}}>
+                        {new Date(m.created_at).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'})}
+                     </div>
+                   </td>
+                   <td style={{padding:'25px 10px'}}>
+                     <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                       <div className="user-avatar" style={{
+                         background: getAvatarColor(m.full_name || 'U'), 
+                         width:'36px', height:'36px', fontSize:'0.85rem'
+                       }}>
+                         {getInitials(m.full_name || 'U')}
+                       </div>
+                       <div>
+                         <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
+                         {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
+                         {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
+                       </div>
+                     </div>
+                   </td>
+                   <td style={{padding:'30px 10px'}}>
+                     <div 
+                         className="clickable-text"
+                         style={{fontSize:'1rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer'}}
+                         onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}
+                     >
+                        {m.telegram_app_link ? <a href={m.telegram_app_link} onClick={e => e.stopPropagation()} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed var(--primary)'}} title="Telegramda ochish">{m.text}</a> : m.text}
+                     </div>
+                   </td>
+                   <td style={{padding:'25px 10px'}}>
+                      {m.is_question ? (
                         answeringId === m.id ? (
                           <form onSubmit={(e) => handleSendAnswer(e, m.id)}>
                             <textarea 
@@ -1808,24 +1816,21 @@ function GroupHistory({ token, group, onBack }) {
                         ) : (
                           <div style={{textAlign:'center'}}>
                             <span style={{color:'var(--text-muted)', fontSize:'0.85rem', fontStyle:'italic', display:'block', marginBottom:'8px'}}>
-                              {m.is_staff ? 'Xodim xabari' : 'Kutilmoqda...'}
+                              {m.is_staff ? 'Xodim xabari' : (m.is_question ? 'Savol' : 'Xabar')}
                             </span>
                             {!m.is_staff && (
                               <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}} style={{padding:'6px 16px', fontSize:'0.8rem'}}>Javob berish</button>
                             )}
                           </div>
                         )
-                      )
-                    ) : <span style={{color:'var(--text-muted)', fontSize:'0.8rem', opacity:0.5}}>— Oddiy xabar —</span>}
-                  </td>
-                  <td style={{padding:'20px 10px', textAlign:'center'}}>
-                    {m.is_question && !m.is_staff ? (
-                      <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.7rem'}}>
-                        {m.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
+                      ) : null}
+                   </td>
+                   <td style={{padding:'30px 10px', textAlign:'center'}}>
+                      <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.75rem', padding:'6px 14px', opacity: m.is_question ? 1 : 0.4}}>
+                        {m.is_answered ? 'Javob berilgan' : (m.is_staff ? 'Xodim' : (m.is_question ? 'Kutilmoqda' : 'Yangi'))}
                       </span>
-                    ) : m.is_staff ? <span className="badge badge-kb" style={{fontSize:'0.7rem'}}>Xodim</span> : <span style={{color:'var(--text-muted)', fontSize:'0.8rem'}}>-</span>}
-                  </td>
-                </tr>
+                    </td>
+                 </tr>
               )) : <tr><td colSpan="5" style={{textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>Tarixda ma'lumotlar topilmadi.</td></tr>}
             </tbody>
           </table>

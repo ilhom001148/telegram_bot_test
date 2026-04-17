@@ -100,22 +100,21 @@ async def answer_question(
     current_admin=Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Savolni topish
+    # 1. Xabarni topish
     result = await db.execute(
         select(Message).options(joinedload(Message.group)).filter(
-            Message.id == question_id,
-            Message.is_question == True
+            Message.id == question_id
         )
     )
     question = result.scalars().first()
 
     if not question:
-        raise HTTPException(status_code=404, detail="Savol topilmadi")
+        raise HTTPException(status_code=404, detail="Xabar topilmadi")
     
     # Guruh yoki shaxsiy chat ekanini aniqlash
     chat_id = question.group.telegram_id if question.group else question.user_id
     if not chat_id:
-        raise HTTPException(status_code=400, detail="Savol yuborilgan chat/foydalanuvchi topilmadi")
+        raise HTTPException(status_code=400, detail="Xabar yuborilgan chat/foydalanuvchi topilmadi")
 
     try:
         # 2. Telegram orqali javob yuborish
@@ -144,8 +143,9 @@ async def answer_question(
             reply_to_message_id=question.telegram_message_id
         )
 
-        # 4. Savolni 'answered' deb belgilash
-        await mark_question_answered(db, question, answered_by_bot=True)
+        # 4. Savolni 'answered' deb belgilash (agar u savol bo'lsa)
+        if question.is_question:
+            await mark_question_answered(db, question, answered_by_bot=True)
 
         return {"status": "success", "message": "Javob muvaffaqiyatli yuborildi"}
     except Exception as e:
@@ -156,13 +156,12 @@ async def answer_question(
 async def get_question_detail(question_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Message).options(joinedload(Message.group)).filter(
-            Message.id == question_id,
-            Message.is_question == True
+            Message.id == question_id
         )
     )
     question = result.scalars().first()
 
     if not question:
-        raise HTTPException(status_code=404, detail="Savol topilmadi")
+        raise HTTPException(status_code=404, detail="Xabar topilmadi")
 
     return serialize_question(question)
