@@ -28,3 +28,4 @@ TELEGRAM_PROXY = os.getenv("TELEGRAM_PROXY", None)
 # 2. Render'da ishlayotgan bo'lsa - RENDER_EXTERNAL_URL dan avtomatik ol
 # 3. Ikkalasi ham bo'lmasa - polling rejimi
 WEBHOOK_URL = os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL")
+WEBHOOK_PASSIVE = os.getenv("WEBHOOK_PASSIVE", "false").lower() == "true"

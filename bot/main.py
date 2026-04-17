@@ -465,7 +465,7 @@ async def broadcast_scheduler_worker():
 async def start_bot():
 
     from bot.bot_instance import get_bot
-    from bot.config import TELEGRAM_TOKEN, WEBHOOK_URL
+    from bot.config import TELEGRAM_TOKEN, WEBHOOK_URL, WEBHOOK_PASSIVE
     
     # Rejalashtirilgan ishlar orqa fonda parallel ishlaydi
     asyncio.create_task(broadcast_scheduler_worker())
@@ -482,7 +482,12 @@ async def start_bot():
             me = await bot.get_me()
             print(f"✅ Bot connected: @{me.username}")
             
-            if WEBHOOK_URL:
+            if WEBHOOK_PASSIVE:
+                print("⚠️ Passive Webhook Mode enabled. Skipping webhook/polling management.")
+                print("📡 Bot is waiting for updates via middleman webhook.")
+                while True:
+                    await asyncio.sleep(3600)
+            elif WEBHOOK_URL:
                 # ✅ O'z webhookimizni to'g'ridan-to'g'ri Telegramga ro'yxatdan o'tkazamiz
                 webhook_endpoint = f"{WEBHOOK_URL.rstrip('/')}/webhook/bot"
                 await bot.set_webhook(
