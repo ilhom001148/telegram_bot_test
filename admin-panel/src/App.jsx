@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 
 const API_URL = window.location.port === '5173' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : '';
 
@@ -1392,10 +1392,11 @@ function KnowledgeBase({ token, showFlash, askConfirm }) {
            ) : (
              <div className="table-wrapper">
                 <table className="editable-table">
-                   <thead><tr><th style={{width:'40%'}}>Savol / Mavzu</th><th>AI tayyorlagan javob</th><th style={{width:'50px'}}></th></tr></thead>
+                   <thead><tr><th style={{width:'40px', textAlign:'center', color:'var(--primary)'}}>№</th><th style={{width:'40%'}}>Savol / Mavzu</th><th>AI tayyorlagan javob</th><th style={{width:'50px'}}></th></tr></thead>
                    <tbody>
                       {extractedData.map((d, i) => (
                          <tr key={i}>
+                             <td style={{textAlign:'center', verticalAlign:'middle', padding:'8px', fontWeight:'700', fontSize:'1.1rem', color:'var(--primary)', minWidth:'40px'}}>{i + 1}</td>
                             <td style={{padding:'8px'}}>
                                <textarea 
                                   className="glass-input-table"
@@ -2468,3 +2469,5 @@ function Login({ onLogin }) {
 }
 
 export default App;
+
+
