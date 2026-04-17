@@ -1203,3 +1203,7 @@ input:checked + .slider:before {
     color: #000 !important;
   }
 }
+.clickable-row:hover { background: rgba(255,255,255,0.03) !important; }
+.clickable-text { transition: var(--transition); border-radius: 6px; padding: 2px 4px; border: 1px solid transparent; }
+.clickable-text:hover { color: var(--primary) !important; background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.2); }
+tr:hover .clickable-text { color: var(--primary); }

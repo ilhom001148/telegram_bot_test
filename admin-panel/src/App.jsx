@@ -41,6 +41,10 @@ function ArchiveManager({ token }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  
+  const [answeringId, setAnsweringId] = useState(null);
+  const [answerText, setAnswerText] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/messages/archive/summary`, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -49,13 +53,36 @@ function ArchiveManager({ token }) {
       .catch(() => setLoading(false));
   }, [token]);
 
-  const openFolder = (date) => {
-    setSelectedDate(date);
+  const fetchQuestions = (date) => {
     setDetailLoading(true);
     fetch(`${API_URL}/messages/archive/questions-by-date/${date}`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => { setQuestions(data); setDetailLoading(false); })
       .catch(() => setDetailLoading(false));
+  };
+
+  const openFolder = (date) => {
+    setSelectedDate(date);
+    fetchQuestions(date);
+  };
+
+  const handleSendAnswer = (e, qId) => {
+    e.preventDefault();
+    if (!answerText.trim()) return;
+    setSending(true);
+    fetch(`${API_URL}/questions/${qId}/answer`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+       body: JSON.stringify({ text: answerText })
+    })
+    .then(res => res.json())
+    .then(() => {
+       setSending(false);
+       setAnsweringId(null);
+       setAnswerText('');
+       fetchQuestions(selectedDate);
+    })
+    .catch(() => { setSending(false); });
   };
 
   if (loading) return <div className="loader"></div>;
@@ -141,7 +168,13 @@ function ArchiveManager({ token }) {
                            <div style={{fontWeight:'600', fontSize:'0.9rem'}}>{q.full_name}</div>
                            <div style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>@{q.username || 'anonim'}</div>
                         </td>
-                        <td style={{fontSize:'0.9rem'}}>{q.telegram_app_link ? <a href={q.telegram_app_link} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed currentColor'}} title="Telegram ilovasida ochish">{q.text}</a> : q.text}</td>
+                        <td 
+                            className="clickable-text"
+                            style={{fontSize:'0.9rem', cursor:'pointer'}} 
+                            onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text || ''); }}
+                        >
+                            {q.telegram_app_link ? <a href={q.telegram_app_link} onClick={e => e.stopPropagation()} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed currentColor'}} title="Telegram ilovasida ochish">{q.text}</a> : q.text}
+                        </td>
                         <td style={{fontSize:'0.9rem'}}>
                            {q.answer_text ? (
                               <div>
@@ -1404,13 +1437,40 @@ function Messages({ token }) {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
+  
+  const [answeringId, setAnsweringId] = useState(null);
+  const [answerText, setAnswerText] = useState('');
+  const [sending, setSending] = useState(false);
 
-  useEffect(() => {
+  const fetchMessages = () => {
     setLoading(true);
     fetch(`${API_URL}/questions/?limit=15&offset=${page * 15}`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => res.json()).then(data => { setMessages(data.items || []); setTotal(data.total || 0); setLoading(false); })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchMessages();
   }, [token, page]);
+
+  const handleSendAnswer = (e, qId) => {
+    e.preventDefault();
+    if (!answerText.trim()) return;
+    setSending(true);
+    fetch(`${API_URL}/questions/${qId}/answer`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+       body: JSON.stringify({ text: answerText })
+    })
+    .then(res => res.json())
+    .then(() => {
+       setSending(false);
+       setAnsweringId(null);
+       setAnswerText('');
+       fetchMessages();
+    })
+    .catch(() => { setSending(false); });
+  };
 
   if (loading) return <div className="loader"></div>;
 
@@ -1436,7 +1496,7 @@ function Messages({ token }) {
             </thead>
             <tbody>
               {messages.map(msg => (
-                <tr key={msg.id} style={{height: '90px'}}>
+                <tr key={msg.id} style={{height: '90px', verticalAlign: 'top'}}>
                   <td style={{padding:'20px'}}>
                     <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
                       <div className="user-avatar" style={{background: getAvatarColor(msg.full_name || 'U')}}>
@@ -1448,25 +1508,51 @@ function Messages({ token }) {
                       </div>
                     </div>
                   </td>
-                  <td style={{maxWidth:'300px'}}>
-                    <div style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0'}}>{msg.text}</div>
+                  <td style={{maxWidth:'300px', padding:'20px 10px'}}>
+                    <div 
+                      className="clickable-text"
+                      style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0', cursor:'pointer'}}
+                      onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}
+                    >
+                        {msg.text}
+                    </div>
                     <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'8px'}}>
                        {new Date(msg.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
                     </div>
                   </td>
-                  <td>
+                  <td style={{padding:'20px 10px'}}>
                     <div className="messenger-group-tag">
                       <Icons.Groups style={{width:12}}/>
                       {msg.group_title}
                     </div>
                   </td>
-                  <td style={{textAlign:'center'}}>
-                    {msg.is_staff ? (
-                      <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.15)', color:'var(--primary)'}}>Xodim xabari</span>
+                  <td style={{padding:'20px 10px', textAlign:'center'}}>
+                    {answeringId === msg.id ? (
+                      <form onSubmit={(e) => handleSendAnswer(e, msg.id)} style={{minWidth:'200px'}}>
+                         <textarea 
+                            rows="2" 
+                            value={answerText} 
+                            onChange={e => setAnswerText(e.target.value)}
+                            placeholder="Javob yozing..."
+                            style={{width:'100%', padding:'8px', fontSize:'0.85rem', marginBottom:'8px', borderRadius:'8px', background:'rgba(0,0,0,0.2)', color:'#fff', border:'1px solid var(--primary)'}}
+                            autoFocus
+                         />
+                         <div style={{display:'flex', gap:'5px'}}>
+                            <button type="submit" className="btn btn-sm" disabled={sending} style={{flex:1, fontSize:'0.7rem'}}>{sending ? '...' : 'Yuborish'}</button>
+                            <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.7rem'}}>✖</button>
+                         </div>
+                      </form>
                     ) : (
-                      <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{boxShadow: msg.is_answered ? 'none' : '0 0 15px rgba(239, 68, 68, 0.3)'}}>
-                        {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
-                      </span>
+                      <div onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }} style={{cursor:'pointer'}}>
+                        {msg.is_staff ? (
+                          <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.15)', color:'var(--primary)'}}>Xodim xabari</span>
+                        ) : (
+                          <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{boxShadow: msg.is_answered ? 'none' : '0 0 15px rgba(239, 68, 68, 0.3)'}}>
+                            {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
+                          </span>
+                        )}
+                        {msg.is_answered && <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginTop:'5px'}}>Qayta javob berish</div>}
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -1679,19 +1765,28 @@ function GroupHistory({ token, group, onBack }) {
                     </div>
                   </td>
                   <td style={{padding:'20px 10px'}}>
-                    <div style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0'}}>
-                       {m.telegram_app_link ? <a href={m.telegram_app_link} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed var(--primary)'}} title="Telegramda ochish">{m.text}</a> : m.text}
+                    <div 
+                        className="clickable-text"
+                        style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0', cursor:'pointer'}}
+                        onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}
+                    >
+                       {m.telegram_app_link ? <a href={m.telegram_app_link} onClick={e => e.stopPropagation()} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed var(--primary)'}} title="Telegramda ochish">{m.text}</a> : m.text}
                     </div>
                   </td>
                   <td style={{padding:'20px 10px'}}>
                     {m.is_question ? (
-                      m.answer_text ? (
-                        <div style={{background:'rgba(255,255,255,0.03)', padding:'12px', borderRadius:'12px', border:'1px solid rgba(255,255,255,0.05)'}}>
+                      m.answer_text && answeringId !== m.id ? (
+                        <div 
+                          style={{background:'rgba(255,255,255,0.03)', padding:'12px', borderRadius:'12px', border:'1px solid rgba(255,255,255,0.05)', cursor:'pointer'}}
+                          onClick={() => { setAnsweringId(m.id); setAnswerText(m.answer_text); }}
+                          title="Tahrirlash uchun bosing"
+                        >
                           <div style={{color:'var(--primary)', fontWeight:'800', fontSize:'0.7rem', textTransform:'uppercase', marginBottom:'6px', display:'flex', justifyContent:'space-between'}}>
                              <span><span className="ai-badge">AI</span> Javob:</span>
                              {m.total_tokens > 0 && <span style={{color:'var(--text-muted)', textTransform:'none', fontWeight:'normal'}}>{m.total_tokens} tokens</span>}
                           </div>
                           <div style={{fontSize:'0.9rem', color:'#cbd5e1', lineHeight:1.5}}>{m.answer_text}</div>
+                          <div style={{fontSize:'0.6rem', color:'var(--primary)', marginTop:'8px', textAlign:'right', opacity:0.6}}>Tahrirlash ✎</div>
                         </div>
                       ) : (
                         answeringId === m.id ? (
@@ -1703,6 +1798,7 @@ function GroupHistory({ token, group, onBack }) {
                               placeholder="Javob yozing..."
                               style={{width:'100%', padding:'12px', fontSize:'0.9rem', marginBottom:'10px', borderRadius:'10px', background:'rgba(0,0,0,0.2)', color:'#fff', border:'1px solid var(--primary)'}}
                               required
+                              autoFocus
                             />
                             <div style={{display:'flex', gap:'10px'}}>
                                <button type="submit" className="btn btn-sm" disabled={sending} style={{flex:1}}>{sending ? '...' : 'Yuborish'}</button>
