@@ -13,7 +13,8 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 @router.get("/stats")
 async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
     try:
-        total_groups_result = await db.execute(select(func.count(Group.id)))
+        # Guruhlar sonini nomi bo'yicha (distinct) sanaymiz
+        total_groups_result = await db.execute(select(func.count(Group.title.distinct())))
         total_groups = total_groups_result.scalar() or 0
         
         total_messages_result = await db.execute(select(func.count(Message.id)))
@@ -87,10 +88,11 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
                 "created_at": msg.created_at.isoformat() if msg.created_at else None
             })
 
+        # Eng faol guruhni nomi bo'yicha topamiz
         most_active_group_query = await db.execute(
             select(Group.title, func.count(Message.id).label('msg_count'))
             .join(Message, Group.id == Message.group_id)
-            .group_by(Group.id, Group.title)
+            .group_by(Group.title)
             .order_by(func.count(Message.id).desc())
             .limit(1)
         )
@@ -189,35 +191,39 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
             
             daily_activity.append({"day": date.strftime("%a"), "messages": msgs_count, "questions": qs_count})
 
-        # Top 5 most active groups for charts
+        # Top 5 guruhlarni nomi bo'yicha birlashtirib chiqaramiz
         top_groups_query = await db.execute(
             select(Group.title, func.count(Message.id).label('msg_count'), func.sum(Message.total_tokens).label('token_count'))
             .join(Message, Group.id == Message.group_id)
-            .group_by(Group.id, Group.title)
+            .group_by(Group.title)
             .order_by(func.count(Message.id).desc())
             .limit(5)
         )
         top_groups = top_groups_query.all()
         top_groups_formatted = [{"title": g[0], "messages": g[1], "tokens": g[2] or 0} for g in top_groups]
 
-        # AI Usage Stats with Group Breakdown
+        # AI Usage Stats with Group Breakdown (Title bo'yicha)
         ai_usage_raw = await get_ai_usage_stats(db)
         ai_usage_by_groups = await get_ai_usage_by_groups(db)
         
         ai_usage_formatted = []
         for row in ai_usage_raw:
             provider = row[0]
-            # Filter groups for this provider
-            groups_for_provider = [
-                {"title": g[1], "tokens": g[2]}
-                for g in ai_usage_by_groups if g[0] == provider
-            ]
+            # Nomi bo'yicha yig'ish
+            groups_map = {}
+            for g in ai_usage_by_groups:
+                if g[0] == provider:
+                    title = g[1]
+                    tokens = g[2] or 0
+                    groups_map[title] = groups_map.get(title, 0) + tokens
+            
+            groups_for_provider = [{"title": t, "tokens": tk} for t, tk in groups_map.items()]
             
             ai_usage_formatted.append({
                 "provider": provider,
                 "tokens": row[1],
                 "requests": row[2],
-                "groups": groups_for_provider
+                "groups": sorted(groups_for_provider, key=lambda x: x['tokens'], reverse=True)
             })
 
         return {

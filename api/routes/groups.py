@@ -14,8 +14,11 @@ AI_PRICING = {
     "groq": {"prompt": 0.59, "completion": 0.79},
 }
 
-async def calculate_ai_cost(db: AsyncSession, group_id: int):
-    """Calculates total AI cost for a specific group."""
+async def calculate_ai_cost(db: AsyncSession, group_ids: list[int]):
+    """Calculates total AI cost for a list of groups."""
+    if not group_ids:
+        return 0, 0.0
+        
     # Har bir provayder bo'yicha tokenlarni yig'ish
     query = (
         select(
@@ -24,7 +27,7 @@ async def calculate_ai_cost(db: AsyncSession, group_id: int):
             func.sum(Message.completion_tokens).label("c_sum"),
             func.sum(Message.total_tokens).label("t_sum")
         )
-        .filter(Message.group_id == group_id)
+        .filter(Message.group_id.in_(group_ids))
         .group_by(Message.ai_provider)
     )
     result = await db.execute(query)
@@ -51,30 +54,43 @@ async def calculate_ai_cost(db: AsyncSession, group_id: int):
 @router.get("/")
 async def get_groups(db: AsyncSession = Depends(get_db)):
     try:
-        result = await db.execute(select(Group).order_by(Group.id.desc()))
-        groups = result.scalars().all()
+        # Barcha guruhlarni olamiz
+        result = await db.execute(select(Group))
+        all_groups = result.scalars().all()
+
+        # Nomi bo'yicha guruhlash
+        grouped_by_title = {}
+        for g in all_groups:
+            if g.title not in grouped_by_title:
+                grouped_by_title[g.title] = []
+            grouped_by_title[g.title].append(g)
 
         final_result = []
-        for group in groups:
-            total_msgs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group.id))
+        for title, subgroups in grouped_by_title.items():
+            ids = [g.id for g in subgroups]
+            
+            # Asosiy ma'lumotlar uchun eng oxirgi guruhni olamiz
+            main_group = subgroups[-1]
+            
+            total_msgs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id.in_(ids)))
             total_messages = total_msgs_res.scalar() or 0
             
-            total_qs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group.id, Message.is_question == True, Message.is_staff == False))
+            total_qs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id.in_(ids), Message.is_question == True, Message.is_staff == False))
             total_questions = total_qs_res.scalar() or 0
             
-            answered_qs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group.id, Message.is_question == True, Message.is_staff == False, Message.is_answered == True))
+            answered_qs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id.in_(ids), Message.is_question == True, Message.is_staff == False, Message.is_answered == True))
             answered_questions = answered_qs_res.scalar() or 0
             
             unanswered_questions = total_questions - answered_questions
 
             # AI Sarfini hisoblash
-            tokens, cost = await calculate_ai_cost(db, group.id)
+            tokens, cost = await calculate_ai_cost(db, ids)
 
             final_result.append({
-                "id": group.id,
-                "telegram_id": group.telegram_id,
-                "title": group.title,
-                "username": group.username,
+                "id": main_group.id,
+                "telegram_id": main_group.telegram_id,
+                "title": title,
+                "username": main_group.username,
                 "total_messages": total_messages,
                 "total_questions": total_questions,
                 "answered_questions": answered_questions,
@@ -83,6 +99,8 @@ async def get_groups(db: AsyncSession = Depends(get_db)):
                 "total_ai_cost": cost,
             })
 
+        # ID bo'yicha teskari tartibda qaytaramiz
+        final_result.sort(key=lambda x: x['id'], reverse=True)
         return final_result
     finally:
         pass
@@ -91,20 +109,25 @@ async def get_groups(db: AsyncSession = Depends(get_db)):
 @router.get("/{group_id}")
 async def get_group_detail(group_id: int, db: AsyncSession = Depends(get_db)):
     try:
+        # Berilgan ID bo'yicha guruhni topamiz
         result = await db.execute(select(Group).filter(Group.id == group_id))
-        group = result.scalars().first()
+        target_group = result.scalars().first()
 
-        if not group:
+        if not target_group:
             raise HTTPException(status_code=404, detail="Group not found")
 
-        count_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == group_id))
+        # Shu nomdagi barcha guruhlarni topamiz
+        g_result = await db.execute(select(Group.id).filter(Group.title == target_group.title))
+        all_ids = [row[0] for row in g_result.all()]
+
+        count_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id.in_(all_ids)))
         message_count = count_res.scalar() or 0
 
         return {
-            "id": group.id,
-            "telegram_id": group.telegram_id,
-            "title": group.title,
-            "username": group.username,
+            "id": target_group.id,
+            "telegram_id": target_group.telegram_id,
+            "title": target_group.title,
+            "username": target_group.username,
             "messages_count": message_count,
         }
     finally:
@@ -122,13 +145,18 @@ async def get_group_messages(
     offset: int = 0,
 ):
     try:
+        # Berilgan ID bo'yicha guruhni topamiz
         g_result = await db.execute(select(Group).filter(Group.id == group_id))
-        group = g_result.scalars().first()
+        target_group = g_result.scalars().first()
 
-        if not group:
+        if not target_group:
             raise HTTPException(status_code=404, detail="Group not found")
 
-        query = select(Message).filter(Message.group_id == group_id)
+        # Shu nomdagi barcha guruhlarni topamiz
+        all_g_result = await db.execute(select(Group.id).filter(Group.title == target_group.title))
+        all_ids = [row[0] for row in all_g_result.all()]
+
+        query = select(Message).filter(Message.group_id.in_(all_ids))
 
         if search:
             query = query.filter(Message.text.ilike(f"%{search}%"))
@@ -186,10 +214,10 @@ async def get_group_messages(
 
         return {
             "group": {
-                "id": group.id,
-                "telegram_id": group.telegram_id,
-                "title": group.title,
-                "username": group.username,
+                "id": target_group.id,
+                "telegram_id": target_group.telegram_id,
+                "title": target_group.title,
+                "username": target_group.username,
             },
             "total": total,
             "limit": limit,
@@ -203,15 +231,25 @@ async def get_group_messages(
 @router.delete("/{group_id}")
 async def delete_group(group_id: int, db: AsyncSession = Depends(get_db)):
     try:
+        # Berilgan ID bo'yicha guruhni topamiz
         g_result = await db.execute(select(Group).filter(Group.id == group_id))
-        group = g_result.scalars().first()
-        if not group:
+        target_group = g_result.scalars().first()
+        if not target_group:
             raise HTTPException(status_code=404, detail="Group not found")
         
-        # Jumlatan shu guruhning barcha xabarlarini ham o'chiramiz
-        await db.execute(delete(Message).filter(Message.group_id == group_id))
-        await db.delete(group)
+        # Shu nomdagi barcha guruhlarni topamiz
+        all_g_result = await db.execute(select(Group).filter(Group.title == target_group.title))
+        subgroups = all_g_result.scalars().all()
+        ids = [g.id for g in subgroups]
+
+        # Barcha tegishli xabarlarni o'chiramiz
+        await db.execute(delete(Message).filter(Message.group_id.in_(ids)))
+        
+        # Barcha tegishli guruhlarni o'chiramiz
+        for sg in subgroups:
+            await db.delete(sg)
+            
         await db.commit()
-        return {"status": "success", "message": "Guruh va uning barcha xabarlari o'chirildi"}
+        return {"status": "success", "message": f"'{target_group.title}' nomi ostidagi barcha guruhlar va ularning xabarlari o'chirildi"}
     finally:
         pass
