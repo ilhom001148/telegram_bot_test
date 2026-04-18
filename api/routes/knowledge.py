@@ -46,13 +46,24 @@ def extract_text_from_file(file_path: str, filename: str) -> str:
     else:
         raise ValueError(f"Qo'llab-quvvatlanmaydigan fayl formati: {ext}")
 
+def split_text_into_chunks(text: str, chunk_size: int = 30000) -> List[str]:
+    """Matnni bo'laklarga bo'lib beradi."""
+    if not text:
+        return []
+    chunks = []
+    for i in range(0, len(text), chunk_size):
+        chunks.append(text[i:i + chunk_size])
+    return chunks
+
 async def extract_knowledge_api(text: str, db: AsyncSession):
     # 1. Sozlamalarni DB dan olish
     from bot.crud import get_setting
     provider_raw = await get_setting(db, "ai_provider", "openai")
     provider = provider_raw.lower() if provider_raw else "openai"
     
-    text = text[:100000] # Text limit oshirildi (100k belgi)
+    # 2. Matnni bo'laklarga bo'lish
+    chunks = split_text_into_chunks(text, chunk_size=30000)
+    all_extracted_knowledge = []
     
     prompt = (
         "Senga quyida bir nechta sahifali text beriladi. Ushbu textdan BARCHA MUHIM ma'lumotlarni SAVOL va JAVOB ko'rinishida ajratib ol. "
@@ -61,68 +72,72 @@ async def extract_knowledge_api(text: str, db: AsyncSession):
         "Natijani FAQAT JSON formatida qaytar: {\"knowledge\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
     )
 
-    try:
-        content = ""
-        if provider == "groq":
-            api_key = await get_setting(db, "groq_api_key", os.getenv("GROQ_API_KEY", ""))
-            client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1", timeout=120.0)
-            response = await client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": "You are a professional knowledge extractor. Return only a JSON object with a 'knowledge' key containing a list of Q&A pairs."},
-                    {"role": "user", "content": f"{prompt}\n\nTEXT:\n{text}"}
-                ],
-                response_format={ "type": "json_object" }
-            )
-            content = response.choices[0].message.content
+    for chunk in chunks:
+        try:
+            content = ""
+            if provider == "groq":
+                api_key = await get_setting(db, "groq_api_key", os.getenv("GROQ_API_KEY", ""))
+                client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1", timeout=120.0)
+                response = await client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": "You are a professional knowledge extractor. Return only a JSON object with a 'knowledge' key containing a list of Q&A pairs."},
+                        {"role": "user", "content": f"{prompt}\n\nTEXT CHUNK:\n{chunk}"}
+                    ],
+                    response_format={ "type": "json_object" }
+                )
+                content = response.choices[0].message.content
 
-        elif provider == "gemini":
-            import google.generativeai as genai
-            api_key = await get_setting(db, "gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = await model.generate_content_async(
-                f"{prompt}\n\nTEXT:\n{text}",
-                generation_config={"response_mime_type": "application/json"},
-                request_options={"timeout": 120}
-            )
-            content = response.text
+            elif provider == "gemini":
+                import google.generativeai as genai
+                api_key = await get_setting(db, "gemini_api_key", os.getenv("GEMINI_API_KEY", ""))
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                response = await model.generate_content_async(
+                    f"{prompt}\n\nTEXT CHUNK:\n{chunk}",
+                    generation_config={"response_mime_type": "application/json"},
+                    request_options={"timeout": 120}
+                )
+                content = response.text
 
-        else: # OpenAI
-            api_key = await get_setting(db, "openai_api_key", os.getenv("OPENAI_API_KEY", ""))
-            client = AsyncOpenAI(api_key=api_key, timeout=120.0)
-            response = await client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a professional knowledge extractor. Return only a JSON object with a 'knowledge' key containing a list of Q&A pairs."},
-                    {"role": "user", "content": f"{prompt}\n\nTEXT:\n{text}"}
-                ],
-                response_format={ "type": "json_object" }
-            )
-            content = response.choices[0].message.content
+            else: # OpenAI
+                api_key = await get_setting(db, "openai_api_key", os.getenv("OPENAI_API_KEY", ""))
+                client = AsyncOpenAI(api_key=api_key, timeout=120.0)
+                response = await client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are a professional knowledge extractor. Return only a JSON object with a 'knowledge' key containing a list of Q&A pairs."},
+                        {"role": "user", "content": f"{prompt}\n\nTEXT CHUNK:\n{chunk}"}
+                    ],
+                    response_format={ "type": "json_object" }
+                )
+                content = response.choices[0].message.content
 
-        # JSONni aqlli parslash
-        data = json.loads(content)
-        if isinstance(data, dict):
-            if "knowledge" in data:
-                return data["knowledge"]
-            if "items" in data:
-                return data["items"]
-            # To'g'ridan-to'g'ri lug'at bo'lsa, qidirib ko'ramiz
-            for key in data:
-                if isinstance(data[key], list) and len(data[key]) > 0:
-                    return data[key]
-        if isinstance(data, list):
-            return data
+            # JSONni aqlli parslash
+            data = json.loads(content)
+            chunk_knowledge = []
+            if isinstance(data, dict):
+                if "knowledge" in data:
+                    chunk_knowledge = data["knowledge"]
+                elif "items" in data:
+                    chunk_knowledge = data["items"]
+                else:
+                    # To'g'ridan-to'g'ri lug'at bo'lsa, qidirib ko'ramiz
+                    for key in data:
+                        if isinstance(data[key], list) and len(data[key]) > 0:
+                            chunk_knowledge = data[key]
+                            break
+            elif isinstance(data, list):
+                chunk_knowledge = data
             
-        return []
+            if chunk_knowledge:
+                all_extracted_knowledge.extend(chunk_knowledge)
 
-    except Exception as e:
-        print(f"Extraction API Error ({provider}): {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"AI tahlilida xatolik ({provider}): {str(e)}"
-        )
+        except Exception as e:
+            print(f"Extraction Chunk Error ({provider}): {str(e)}")
+            continue # Bitta bo'lak xato bersa, keyingisiga o'tamiz
+            
+    return all_extracted_knowledge
 
 @router.get("/", response_model=List[KnowledgeResponse])
 async def get_knowledge_list(db: AsyncSession = Depends(get_db)):

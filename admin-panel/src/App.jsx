@@ -1291,7 +1291,7 @@ function KnowledgeBase({ token, showFlash, askConfirm }) {
        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
        body: JSON.stringify({ items: extractedData })
     })
-    .then(() => { setSaving(true); setExtractedData(null); showFlash('Bilimlar saqlandi'); fetchKb(); })
+    .then(() => { setSaving(false); setExtractedData(null); showFlash('Bilimlar saqlandi'); fetchKb(); })
     .catch(() => { setSaving(false); showFlash('Saqlashda xato', 'error'); });
   };
 
