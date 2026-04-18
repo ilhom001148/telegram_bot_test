@@ -26,6 +26,7 @@ const Icons = {
   Grid: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm7 0h5v-6h-5v6zm6 0h5v-6h-5v6zM11 11h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>,
   List: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>,
   Search: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
+  ExternalLink: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>,
 };
 
 const getAvatarColor = (name) => {
@@ -172,12 +173,16 @@ function ArchiveManager({ token }) {
                            <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{q.full_name}</div>
                            <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginTop:'4px'}}>@{q.username || 'anonim'}</div>
                         </td>
-                        <td 
-                            className="clickable-text"
-                            style={{fontSize:'0.95rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer', padding:'25px 10px'}} 
-                            onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text || ''); }}
-                        >
-                            {q.telegram_app_link ? <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{q.text}</a> : q.text}
+                        <td style={{fontSize:'0.95rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer', padding:'25px 10px'}} >
+                            <span onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text || ''); }}>{q.text}</span>
+                            {q.telegram_app_link && (
+                               <a href={q.telegram_app_link} className="tg-icon-link" 
+                                  onClick={e => e.stopPropagation()} 
+                                  title="Telegramda ko'rish"
+                                  style={{marginLeft:'8px', opacity:0.6, verticalAlign:'middle'}}>
+                                 <Icons.ExternalLink style={{width:'14px', height:'14px'}} />
+                               </a>
+                            )}
                         </td>
                         <td style={{fontSize:'0.95rem', padding:'25px 10px'}}>
                            {answeringId === q.id ? (
@@ -1359,10 +1364,17 @@ function Dashboard({ token }) {
                   <div key={q.id} className="unanswered-item" style={{display: 'block', padding:'1rem', background:'rgba(255,255,255,0.02)', borderRadius:'12px', marginBottom:'10px'}}>
                     <div className="flex-between" style={{alignItems: 'flex-start', gap:'15px'}}>
                       <div style={{flex:1}}>
-                        <div style={{fontSize:'0.9rem', lineHeight:1.4}}>
-                          {q.telegram_app_link ? (
-                            <a href={q.telegram_app_link} className="tg-link" title="Telegramda ko'rish">{q.text}</a>
-                          ) : q.text}
+                        <div style={{fontSize:'0.9rem', lineHeight:1.4, cursor:'pointer', position:'relative'}} 
+                             onClick={() => {setAnsweringId(q.id); setAnswerText('');}}>
+                          {q.text}
+                          {q.telegram_app_link && (
+                            <a href={q.telegram_app_link} className="tg-icon-link" 
+                               onClick={e => e.stopPropagation()} 
+                               title="Telegramda ko'rish"
+                               style={{marginLeft:'8px', opacity:0.6, fontSize:'0.8rem', verticalAlign:'middle'}}>
+                              <Icons.ExternalLink style={{width:'14px', height:'14px'}} />
+                            </a>
+                          )}
                         </div>
                         <div style={{fontSize:'0.7rem', color:'var(--text-muted)', marginTop:'5px'}}>{q.full_name} • {q.group_title}</div>
                       </div>
@@ -1751,9 +1763,15 @@ function Messages({ token }) {
                       style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0', cursor:'pointer'}}
                       onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}
                     >
-                        {msg.telegram_app_link ? (
-                            <a href={msg.telegram_app_link} className="tg-link" title="Telegramda ko'rish">{msg.text}</a>
-                        ) : msg.text}
+                        <span onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}>{msg.text}</span>
+                        {msg.telegram_app_link && (
+                           <a href={msg.telegram_app_link} target="_blank" className="tg-icon-link" 
+                              onClick={e => e.stopPropagation()} 
+                              title="Telegramda ko'rish"
+                              style={{marginLeft:'8px', opacity:0.6, verticalAlign:'middle'}}>
+                             <Icons.ExternalLink style={{width:'14px', height:'14px'}} />
+                           </a>
+                        )}
                     </div>
                     <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'8px'}}>
                        {new Date(msg.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
@@ -2009,7 +2027,15 @@ function GroupHistory({ token, group, onBack }) {
                          style={{fontSize:'1rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer'}}
                          onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}
                      >
-                        {m.telegram_app_link ? <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{m.text}</a> : m.text}
+                         <span onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}>{m.text}</span>
+                         {m.telegram_app_link && (
+                            <a href={m.telegram_app_link} className="tg-icon-link" 
+                               onClick={e => e.stopPropagation()} 
+                               title="Telegramda ko'rish"
+                               style={{marginLeft:'8px', opacity:0.6, verticalAlign:'middle'}}>
+                              <Icons.ExternalLink style={{width:'16px', height:'16px'}} />
+                            </a>
+                         )}
                      </div>
                    </td>
                    <td style={{padding:'25px 10px'}}>

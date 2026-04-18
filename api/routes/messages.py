@@ -81,7 +81,7 @@ async def get_messages(
                 "prompt_tokens": message.prompt_tokens,
                 "completion_tokens": message.completion_tokens,
                 "total_tokens": message.total_tokens,
-                "created_at": message.created_at,
+                "created_at": message.created_at.isoformat() if message.created_at else None,
                 "answer_text": answer.text if answer else (message.text if message.is_answered and not message.answered_by_bot else None)
             })
 
