@@ -23,6 +23,8 @@ const Icons = {
   User: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
   Clock: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>,
   Shield: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>,
+  Grid: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm7 0h5v-6h-5v6zm6 0h5v-6h-5v6zM11 11h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>,
+  List: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>,
 };
 
 const getAvatarColor = (name) => {
@@ -539,6 +541,7 @@ function CompaniesManager({ token }) {
   const [deleteId, setDeleteId] = useState(null);
   const [flash, setFlash] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('grid');
 
   const showMsg = (text, type = 'success') => {
     setFlash({ text, type });
@@ -672,8 +675,8 @@ function CompaniesManager({ token }) {
         <h2 className="header-title" style={{margin:0}}>Kompaniyalar boshqaruvi</h2>
       </div>
 
-      {/* Search Input for Companies */}
-      <div style={{marginBottom:'1rem'}}>
+      {/* Search & View Toggle */}
+      <div style={{marginBottom:'1rem', display:'flex', alignItems:'center', gap:'1rem', flexWrap:'wrap'}}>
         <input 
           type="text" 
           placeholder="Qidirish (Nomi yoki raqami bo'yicha)..." 
@@ -681,27 +684,111 @@ function CompaniesManager({ token }) {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
         />
+        
+        <div style={{display:'flex', background:'rgba(255,255,255,0.05)', padding:'4px', borderRadius:'12px', border:'1px solid var(--card-border)'}}>
+           <button 
+             onClick={() => setViewMode('grid')}
+             style={{padding:'8px 12px', borderRadius:'8px', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', fontSize:'0.85rem',
+               background: viewMode === 'grid' ? 'var(--primary)' : 'transparent', 
+               color: viewMode === 'grid' ? '#fff' : 'var(--text-muted)',
+               transition: 'all 0.3s'}}
+             title="Board ko'rinishi">
+             <Icons.Grid /> <span className="hide-mobile">Board</span>
+           </button>
+           <button 
+             onClick={() => setViewMode('list')}
+             style={{padding:'8px 12px', borderRadius:'8px', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:'8px', fontSize:'0.85rem',
+               background: viewMode === 'list' ? 'var(--primary)' : 'transparent', 
+               color: viewMode === 'list' ? '#fff' : 'var(--text-muted)',
+               transition: 'all 0.3s'}}
+             title="Ro'yxat ko'rinishi">
+             <Icons.List /> <span className="hide-mobile">Ro'yxat</span>
+           </button>
+        </div>
       </div>
 
-
       {loading ? <div className="loader"/> : (
-        <div className="grid-cards" style={{marginTop:'1.5rem'}}>
-          {companies.filter(c => 
-            c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || 
-            (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
-            (c.phone && (c.phone+'').includes(searchQuery))
-          ).length === 0 ? (
-            <div className="glass-card" style={{gridColumn:'1 / -1', textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
-              <div style={{opacity:0.4, marginBottom:'1rem'}}><Icons.Company /></div>
-              <p>Hech qanday ma'lumot topilmadi.</p>
-              <p style={{fontSize:'0.85rem', marginTop:'5px'}}>Kompaniyalar har 24 soatda avtomatik ravishda tashqi bazadan yangilanadi.</p>
-            </div>
-          ) : (
-            companies.filter(c => 
+        <React.Fragment>
+          {(() => {
+            const filtered = companies.filter(c => 
               c.name.toLowerCase().includes((searchQuery||'').toLowerCase()) || 
               (c.brand_name && c.brand_name.toLowerCase().includes((searchQuery||'').toLowerCase())) ||
               (c.phone && (c.phone+'').includes(searchQuery))
-            ).map(c => (
+            );
+
+            if (filtered.length === 0) {
+              return (
+                <div className="glass-card" style={{marginTop:'1.5rem', textAlign:'center', padding:'4rem 2rem', color:'var(--text-muted)'}}>
+                  <div style={{opacity:0.4, marginBottom:'1rem'}}><Icons.Company /></div>
+                  <p>Hech qanday ma'lumot topilmadi.</p>
+                  <p style={{fontSize:'0.85rem', marginTop:'5px'}}>Kompaniyalar har 24 soatda avtomatik ravishda tashqi bazadan yangilanadi.</p>
+                </div>
+              );
+            }
+
+            if (viewMode === 'list') {
+              return (
+                <div className="glass-card" style={{marginTop:'1.5rem', padding:0, overflowX:'auto', border:'1px solid var(--card-border)'}}>
+                  <table className="premium-table" style={{width:'100%', borderCollapse:'collapse'}}>
+                    <thead>
+                      <tr style={{background:'rgba(255,255,255,0.03)', borderBottom:'1px solid var(--card-border)'}}>
+                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Kompaniya</th>
+                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Direktor / Mas'ul</th>
+                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Telefon</th>
+                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Status</th>
+                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Harakat</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map(c => (
+                        <tr key={c.id} onClick={() => openEdit(c)} style={{borderBottom:'1px solid rgba(255,255,255,0.05)', cursor:'pointer', transition:'background 0.2s'}} 
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <td style={{padding:'1rem'}}>
+                            <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                              <div style={{width:36, height:36, borderRadius:8, overflow:'hidden', background:'rgba(255,255,255,0.05)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                {c.logo_url ? <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <Icons.Company style={{width:18, opacity:0.5}}/>}
+                              </div>
+                              <div>
+                                <div style={{fontWeight:600, fontSize:'0.9rem'}}>{c.name}</div>
+                                <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>ID: #{c.id.toString().replace('ext-','')}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{padding:'1rem'}}>
+                            <div style={{fontSize:'0.9rem'}}>{c.director || c.responsible_name || '—'}</div>
+                            {c.brand_name && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.brand_name}</div>}
+                          </td>
+                          <td style={{padding:'1rem', fontSize:'0.9rem'}}>{c.phone || '—'}</td>
+                          <td style={{padding:'1rem'}}>
+                             <div className={`status-indicator ${statusClassMap[c.status] || 'status-new'}`} style={{fontSize:'0.8rem', padding:'4px 10px'}}>
+                                {(statusLabel[c.status]||statusLabel['Yangi']).label}
+                             </div>
+                          </td>
+                          <td style={{padding:'1rem'}} onClick={e => e.stopPropagation()}>
+                            <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                               <div onClick={() => handleToggle(c.id)} style={{cursor:'pointer', width:36, height:18, borderRadius:9, 
+                                  background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                                  display:'flex', alignItems:'center', padding:'2px', transition:'background 0.3s'}}>
+                                  <div style={{width:14, height:14, borderRadius:'50%', background:'#fff',
+                                    transform: c.is_active ? 'translateX(18px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
+                               </div>
+                               {!isExternal(c.id) && (
+                                  <button onClick={()=>setDeleteId(c.id)} style={{background:'none', border:'none', color:'var(--danger)', cursor:'pointer', padding:4, opacity:0.7}} title="O'chirish">🗑</button>
+                               )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid-cards" style={{marginTop:'1.5rem'}}>
+                {filtered.map(c => (
               <div key={c.id} className="premium-card company-card fadeInUp" 
                    style={{ animationDelay: `${companies.indexOf(c) * 0.05}s` }}
                    onClick={() => openEdit(c)}>
@@ -750,9 +837,12 @@ function CompaniesManager({ token }) {
                 </div>
               </div>
             ))
-          )}
-        </div>
-      )}
+            }
+          </div>
+        );
+      })()}
+    </React.Fragment>
+  )}
 
       {/* Slide-in Form Modal */}
       {showForm && (
