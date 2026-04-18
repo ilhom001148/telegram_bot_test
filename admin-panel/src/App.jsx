@@ -25,6 +25,7 @@ const Icons = {
   Shield: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>,
   Grid: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm7 0h5v-6h-5v6zm6 0h5v-6h-5v6zM11 11h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>,
   List: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>,
+  Search: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
 };
 
 const getAvatarColor = (name) => {
@@ -677,13 +678,18 @@ function CompaniesManager({ token }) {
 
       {/* Search & View Toggle */}
       <div style={{marginBottom:'1rem', display:'flex', alignItems:'center', gap:'1rem', flexWrap:'wrap'}}>
-        <input 
-          type="text" 
-          placeholder="Qidirish (Nomi yoki raqami bo'yicha)..." 
-          style={{...inp, width: '100%', maxWidth: '400px'}}
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-        />
+        <div style={{position:'relative', flex:1, maxWidth:'400px'}}>
+           <div style={{position:'absolute', left:'14px', top:'50%', transform:'translateY(-50%)', color:'var(--text-muted)', display:'flex', pointerEvents:'none'}}>
+              <Icons.Search />
+           </div>
+           <input 
+             type="text" 
+             placeholder="Qidirish (Nomi yoki raqami bo'yicha)..." 
+             style={{...inp, width: '100%', paddingLeft:'42px'}}
+             value={searchQuery}
+             onChange={e => setSearchQuery(e.target.value)}
+           />
+        </div>
         
         <div style={{display:'flex', background:'rgba(255,255,255,0.05)', padding:'4px', borderRadius:'12px', border:'1px solid var(--card-border)'}}>
            <button 
