@@ -106,25 +106,42 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
     provider = await get_db_setting("ai_provider", "openai")
     custom_system_prompt = await get_db_setting("system_prompt", "")
     company_info = await get_db_setting("company_info", "")
+    kb_only_mode = await get_db_setting("kb_only_mode", "false")
 
     # 2. System Promptni shakllantirish
     if context:
-        system_prompt = (
-            "Sen foydali, xushmuomala yordamchi botsan. Quyida senga maxsus o'rgatilgan (Knowledge Base) tayyor bilim berilgan. "
-            "Mavzu IT yoki boshqa soha bo'lishidan QAT'IY NAZAR, agar ushbu maxsus baza o'zida foydalanuvchining savoliga mos javobni ishora qilsa, "
-            "o'sha bilimlarni yetkaz.\n\n"
-            f"Kompaniya haqida umumiy ma'lumot: {company_info}\n\n"
-            f"Senga o'rgatilgan MAXSUS BAZA ma'lumotlari:\n{context}"
-        )
+        if kb_only_mode == "true":
+            system_prompt = (
+                "Sen foydali yordamchi botsan. Vazifang: FAQAT quyidagi MAXSUS BAZA ma'lumotlaridan foydalanib javob berish. "
+                "O'zingning umumiy bilimlaringni aslo ishlatma. Agar savolga javob ushbu bazada bo'lmasa, FAQAT 'NOT_FOUND' so'zini qaytar.\n\n"
+                f"MAXSUS BAZA:\n{context}"
+            )
+        else:
+            system_prompt = (
+                "Sen foydali, xushmuomala yordamchi botsan. Quyida senga maxsus o'rgatilgan (Knowledge Base) tayyor bilim berilgan. "
+                "Mavzu IT yoki boshqa soha bo'lishidan QAT'IY NAZAR, agar ushbu maxsus baza o'zida foydalanuvchining savoliga mos javobni ishora qilsa, "
+                "o'sha bilimlarni yetkaz.\n\n"
+                f"Kompaniya haqida umumiy ma'lumot: {company_info}\n\n"
+                f"Senga o'rgatilgan MAXSUS BAZA ma'lumotlari:\n{context}"
+            )
     elif custom_system_prompt:
         system_prompt = f"{custom_system_prompt}\n\nKompaniya ma'lumotlari: {company_info}"
+        if kb_only_mode == "true":
+             system_prompt += "\nMUHIM: Agar javob senga berilgan ma'lumotlarda bo'lmasa, FAQAT 'NOT_FOUND' qaytar."
     else:
-        system_prompt = (
-            "Sen jahondagi eng yuqori malakali, aqlli va professional AI yordamchisan. "
-            f"Kompaniya ma'lumotlari: {company_info}\n"
-            "Sening vazifang: Har qanday mavzuda foydalanuvchi savollariga aniq, lisoniy to'g'ri va foydali javob berish! "
-            "Agar savolga javob berish uchun maxsus bazada ma'lumot bo'lmasa, o'zingning umumiy bilimlaringdan foydalan."
-        )
+        if kb_only_mode == "true":
+            system_prompt = (
+                "Sen FAQAT kompaniya ma'lumotlari va bilimlar bazasi asosida javob beradigan botsan. "
+                "O'zingning umumiy bilimlaringni ishlatma. Agar javob topilmasa, FAQAT 'NOT_FOUND' so'zini qaytar.\n"
+                f"Kompaniya ma'lumotlari: {company_info}"
+            )
+        else:
+            system_prompt = (
+                "Sen jahondagi eng yuqori malakali, aqlli va professional AI yordamchisan. "
+                f"Kompaniya ma'lumotlari: {company_info}\n"
+                "Sening vazifang: Har qanday mavzuda foydalanuvchi savollariga aniq, lisoniy to'g'ri va foydali javob berish! "
+                "Agar savolga javob berish uchun maxsus bazada ma'lumot bo'lmasa, o'zingning umumiy bilimlaringdan foydalan."
+            )
 
     try:
         # 3. Provayderga qarab so'rov yuborish

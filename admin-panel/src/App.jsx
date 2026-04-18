@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const API_URL = window.location.port === '5173' || window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : '';
 
@@ -1844,7 +1844,7 @@ function GroupHistory({ token, group, onBack }) {
 function BotSettings({ token, showFlash, askConfirm }) {
   const [s, setS] = useState({ 
     system_prompt: '', company_info: '', maintenance_mode: 'false', maintenance_text: '',
-    tracking_mode: 'false', stt_mode: 'local', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
+    tracking_mode: 'false', kb_only_mode: 'false', stt_mode: 'local', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
@@ -1858,6 +1858,7 @@ function BotSettings({ token, showFlash, askConfirm }) {
           maintenance_mode: d.maintenance_mode || 'false',
           maintenance_text: d.maintenance_text || 'Hozirda tizimda texnik ishlar olib borilmoqda. Tez orada qaytamiz!',
           tracking_mode: d.tracking_mode || 'false',
+          kb_only_mode: d.kb_only_mode || 'false',
           stt_mode: d.stt_mode || 'local',
           ai_provider: d.ai_provider || 'openai',
           openai_api_key: d.openai_api_key || '',
@@ -2003,6 +2004,25 @@ function BotSettings({ token, showFlash, askConfirm }) {
                     const newVal = e.target.checked ? 'true' : 'false';
                     setS({...s, tracking_mode: newVal});
                     save('tracking_mode', newVal);
+                  }} 
+                />
+                <span className="slider round"></span>
+             </label>
+          </div>
+
+          <div className="flex-between" style={{marginBottom:'1rem'}}>
+             <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                <div className="stat-icon-wrapper" style={{margin:0, color:'var(--primary)', background:'rgba(99, 102, 241, 0.1)'}}><Icons.Shield /></div>
+                <div className="summary-title" style={{margin:0}}>KB Only Mode (Faqat bazadan)</div>
+             </div>
+             <label className="switch">
+                <input 
+                  type="checkbox" 
+                  checked={s.kb_only_mode === 'true'} 
+                  onChange={e => {
+                    const newVal = e.target.checked ? 'true' : 'false';
+                    setS({...s, kb_only_mode: newVal});
+                    save('kb_only_mode', newVal);
                   }} 
                 />
                 <span className="slider round"></span>

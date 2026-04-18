@@ -128,12 +128,21 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
     kb_match = await search_knowledge(db, text)
     context = kb_match.answer if kb_match else None
     
+    # [NEW] KB Only Mode check
+    kb_only_mode = await get_setting(db, "kb_only_mode", "false")
+    if kb_only_mode == "true" and not context:
+        return # Ma'lumot topilmadi, jim turamiz
+
     ai_res = await get_ai_answer_async(text, context=context)
     ai_text = ai_res.get("text", "")
     usage = ai_res.get("usage")
 
     if ai_text.strip() == "IGNORE":
         await message.reply(get_string("only_it", user_lang))
+        return
+
+    # [NEW] AI topa olmagan bo'lsa (KB only rejimida)
+    if ai_text.strip() == "NOT_FOUND":
         return
 
     if not ai_text:
@@ -306,10 +315,19 @@ async def handle_group_message(message: TgMessage):
                 kb_match = await search_knowledge(db, text)
                 context = kb_match.answer if kb_match else None
                 
+                # [NEW] KB Only Mode check
+                kb_only_mode = await get_setting(db, "kb_only_mode", "false")
+                if kb_only_mode == "true" and not context:
+                    return # Ma'lumot topilmadi, jim turamiz
+
                 ai_res = await get_ai_answer_async(text, context=context)
                 ai_text = ai_res.get("text", "")
                 usage = ai_res.get("usage")
                 
+                # [NEW] AI topa olmagan bo'lsa (KB only rejimida)
+                if ai_text.strip() == "NOT_FOUND":
+                    return
+
                 if not ai_text:
                     return
                 
@@ -378,12 +396,22 @@ async def handle_channel_post(message: TgMessage):
                 if await get_setting(db, "tracking_mode", "false") == "true":
                     return
                 
+                # Knowledge base qidirish
                 kb_match = await search_knowledge(db, text)
                 context = kb_match.answer if kb_match else None
                 
+                # [NEW] KB Only Mode check
+                kb_only_mode = await get_setting(db, "kb_only_mode", "false")
+                if kb_only_mode == "true" and not context:
+                    return # Ma'lumot topilmadi, jim turamiz
+
                 ai_res = await get_ai_answer_async(text, context=context)
                 ai_text = ai_res.get("text", "")
                 usage = ai_res.get("usage")
+
+                # [NEW] AI topa olmagan bo'lsa (KB only rejimida)
+                if ai_text.strip() == "NOT_FOUND":
+                    return
 
                 if not ai_text:
                     return
