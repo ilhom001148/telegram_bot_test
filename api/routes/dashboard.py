@@ -68,23 +68,15 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
 
         unanswered_formatted = []
         for msg, grp in latest_unanswered_raw:
-            telegram_link = None
-            if grp:
-                if grp.username:
-                    username = grp.username.lstrip('@')
-                    telegram_link = f"https://t.me/{username}/{msg.telegram_message_id}"
-                elif grp.telegram_id:
-                    chat_id_str = str(grp.telegram_id)
-                    if chat_id_str.startswith("-100"):
-                        chat_id_str = chat_id_str[4:]
-                    telegram_link = f"https://t.me/c/{chat_id_str}/{msg.telegram_message_id}"
-
+            # Manually link group to msg for property usage
+            msg.group = grp
             unanswered_formatted.append({
                 "id": msg.id,
                 "text": msg.text,
                 "full_name": msg.full_name,
                 "group_title": grp.title if grp else "Noma'lum",
-                "telegram_link": telegram_link,
+                "telegram_link": msg.telegram_link,
+                "telegram_app_link": msg.telegram_app_link,
                 "created_at": msg.created_at.isoformat() if msg.created_at else None
             })
 

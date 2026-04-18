@@ -172,22 +172,27 @@ async def get_group_messages(
         total = total_res.scalar() or 0
 
         messages_res = await db.execute(
-            query.order_by(Message.id.desc())
+            query.options(joinedload(Message.group))
+            .order_by(Message.id.desc())
             .offset(offset)
             .limit(limit)
         )
         messages = messages_res.scalars().all()
 
+        # Savollarning javoblarini yig'ish (Optimallashgan)
+        q_msg_ids = [m.telegram_message_id for m in messages]
+        group_ids = list(set([m.group_id for m in messages]))
+        
+        ans_map = {}
+        if q_msg_ids:
+            ans_query = select(Message).filter(Message.group_id.in_(group_ids), Message.reply_to_message_id.in_(q_msg_ids))
+            ans_res = await db.execute(ans_query)
+            answers = ans_res.scalars().all()
+            ans_map = {f"{a.group_id}_{a.reply_to_message_id}": a for a in answers}
+
         items = []
         for message in messages:
-            # Ushbu xabarga berilgan javobni qidirish
-            ans_res = await db.execute(
-                select(Message)
-                .filter(Message.group_id == message.group_id)
-                .filter(Message.reply_to_message_id == message.telegram_message_id)
-                .limit(1)
-            )
-            answer = ans_res.scalars().first()
+            answer = ans_map.get(f"{message.group_id}_{message.telegram_message_id}")
 
             items.append({
                 "id": message.id,

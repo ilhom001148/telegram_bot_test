@@ -43,7 +43,8 @@ async def get_messages(
         total = total_res.scalar() or 0
 
         messages_res = await db.execute(
-            query.order_by(Message.id.desc())
+            query.options(joinedload(Message.group))
+            .order_by(Message.id.desc())
             .offset(offset)
             .limit(limit)
         )

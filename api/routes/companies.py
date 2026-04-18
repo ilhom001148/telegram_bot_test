@@ -56,6 +56,24 @@ def serialize_company(c: Company) -> dict:
 _ext_cache = {"data": [], "fetched_at": 0}
 CACHE_TTL = 86400  # 24 soat (soniyada)
 
+OVERRIDES_FILE = "data/external_overrides.json"
+os.makedirs("data", exist_ok=True)
+
+def load_overrides():
+    if not os.path.exists(OVERRIDES_FILE):
+        return {}
+    try:
+        with open(OVERRIDES_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_override(comp_id: str, is_active: bool):
+    overrides = load_overrides()
+    overrides[comp_id] = is_active
+    with open(OVERRIDES_FILE, "w") as f:
+        json.dump(overrides, f)
+
 # ─── GET external live ────────────────────────────────────────────────────────
 @router.get("/external")
 async def get_external_companies():
@@ -153,22 +171,30 @@ async def get_external_companies():
                     # 5. Logo
                     logo = c.get("logo_url") or c.get("image") or c.get("logo") or c.get("avatar") or None
 
-                    # 6. Status
+                    # 6. Status & Overrides
                     now_str = datetime.now().isoformat()
                     base_status = str(c.get("status") or "").lower()
                     is_active_api = bool(c.get("is_real") or c.get("is_active") or base_status == "active")
                     
+                    comp_id = f"ext-{c.get('id') or i}"
+                    
+                    # Apply local overrides
+                    overrides = load_overrides()
+                    is_active = is_active_api
+                    if comp_id in overrides:
+                        is_active = overrides[comp_id]
+
                     if iso_expired and iso_expired < now_str:
                         calc_status = "To'xtatilgan"
                     elif base_status in ["canceled", "cancelled", "deleted", "inactive"]:
                         calc_status = "Bekor qilingan"
-                    elif is_active_api:
+                    elif is_active:
                         calc_status = "Faol"
                     else:
                         calc_status = "Yangi"
 
                     results.append({
-                        "id": f"ext-{c.get('id') or i}",
+                        "id": comp_id,
                         "name": comp_name,
                         "brand_name": c.get("brand_name") or c.get("brand") or "",
                         "phone": comp_phone,
@@ -178,7 +204,7 @@ async def get_external_companies():
                         "subscription_start": c.get("created_at") or c.get("start_date") or None,
                         "subscription_end": iso_expired or exp_raw or None,
                         "status": calc_status,
-                        "is_active": True,
+                        "is_active": is_active,
                         "logo_url": logo,
                         "main_currency": c.get("currency") or "UZS",
                     })
@@ -285,14 +311,43 @@ async def update_company(
 
 # ─── PATCH toggle active ───────────────────────────────────────────────────────
 @router.patch("/{company_id}/toggle")
-async def toggle_company_active(company_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Company).filter(Company.id == company_id))
-    company = result.scalars().first()
-    if not company:
-        raise HTTPException(status_code=404, detail="Kompaniya topilmadi")
-    company.is_active = not company.is_active
-    await db.commit()
-    return {"id": company.id, "is_active": company.is_active}
+async def toggle_company_active(company_id: str, db: AsyncSession = Depends(get_db)):
+    if company_id.startswith("ext-"):
+        # Handle External Persistence
+        overrides = load_overrides()
+        # Find current state in cache
+        current_state = True
+        for c in _ext_cache["data"]:
+            if c["id"] == company_id:
+                current_state = c["is_active"]
+                break
+        
+        new_state = not current_state
+        save_override(company_id, new_state)
+        
+        # Update cache immediately for feedback
+        for c in _ext_cache["data"]:
+            if c["id"] == company_id:
+                c["is_active"] = new_state
+                # Update status text
+                if new_state: c["status"] = "Faol"
+                else: c["status"] = "Nofaol"
+                break
+                
+        return {"id": company_id, "is_active": new_state}
+    
+    # Handle Local DB Persistence
+    try:
+        cid_int = int(company_id)
+        result = await db.execute(select(Company).filter(Company.id == cid_int))
+        company = result.scalars().first()
+        if not company:
+            raise HTTPException(status_code=404, detail="Kompaniya topilmadi")
+        company.is_active = not company.is_active
+        await db.commit()
+        return {"id": company.id, "is_active": company.is_active}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID noto'g'ri formatda")
 
 # ─── DELETE ───────────────────────────────────────────────────────────────────
 @router.delete("/{company_id}")

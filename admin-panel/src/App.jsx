@@ -177,7 +177,7 @@ function ArchiveManager({ token }) {
                             style={{fontSize:'0.95rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer', padding:'25px 10px'}} 
                             onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text || ''); }}
                         >
-                            {q.telegram_app_link ? <a href={q.telegram_app_link} onClick={e => e.stopPropagation()} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed var(--primary)'}} title="Telegramda ochish">{q.text}</a> : q.text}
+                            {q.telegram_app_link ? <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{q.text}</a> : q.text}
                         </td>
                         <td style={{fontSize:'0.95rem', padding:'25px 10px'}}>
                            {answeringId === q.id ? (
@@ -626,9 +626,17 @@ function CompaniesManager({ token }) {
 
   // ── Toggle active ─────────────────────────────────────────
   const handleToggle = async (id) => {
-    const res = await fetch(`${API_URL}/companies/${id}/toggle`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    setCompanies(prev => prev.map(c => c.id === id ? { ...c, is_active: data.is_active } : c));
+    try {
+      const res = await fetch(`${API_URL}/companies/${id}/toggle`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (res.ok) {
+        setCompanies(prev => prev.map(c => c.id === id ? { ...c, is_active: data.is_active, status: data.is_active ? 'Faol' : 'To\'xtatilgan' } : c));
+      } else {
+        showMsg(data.detail || 'Xatolik yuz berdi', 'error');
+      }
+    } catch (err) {
+      showMsg('Server bilan ulanishda xatolik', 'error');
+    }
   };
 
   // ── Delete ────────────────────────────────────────────────
@@ -1351,7 +1359,11 @@ function Dashboard({ token }) {
                   <div key={q.id} className="unanswered-item" style={{display: 'block', padding:'1rem', background:'rgba(255,255,255,0.02)', borderRadius:'12px', marginBottom:'10px'}}>
                     <div className="flex-between" style={{alignItems: 'flex-start', gap:'15px'}}>
                       <div style={{flex:1}}>
-                        <div style={{fontSize:'0.9rem', lineHeight:1.4}}>{q.text}</div>
+                        <div style={{fontSize:'0.9rem', lineHeight:1.4}}>
+                          {q.telegram_app_link ? (
+                            <a href={q.telegram_app_link} className="tg-link" title="Telegramda ko'rish">{q.text}</a>
+                          ) : q.text}
+                        </div>
                         <div style={{fontSize:'0.7rem', color:'var(--text-muted)', marginTop:'5px'}}>{q.full_name} • {q.group_title}</div>
                       </div>
                       {answeringId !== q.id && <button className="btn btn-sm" onClick={() => {setAnsweringId(q.id); setAnswerText('');}}>Javob berish</button>}
@@ -1739,7 +1751,9 @@ function Messages({ token }) {
                       style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0', cursor:'pointer'}}
                       onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}
                     >
-                        {msg.text}
+                        {msg.telegram_app_link ? (
+                            <a href={msg.telegram_app_link} className="tg-link" title="Telegramda ko'rish">{msg.text}</a>
+                        ) : msg.text}
                     </div>
                     <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'8px'}}>
                        {new Date(msg.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
@@ -1995,7 +2009,7 @@ function GroupHistory({ token, group, onBack }) {
                          style={{fontSize:'1rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer'}}
                          onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}
                      >
-                        {m.telegram_app_link ? <a href={m.telegram_app_link} onClick={e => e.stopPropagation()} style={{color: 'inherit', textDecoration: 'none', borderBottom: '1px dashed var(--primary)'}} title="Telegramda ochish">{m.text}</a> : m.text}
+                        {m.telegram_app_link ? <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{m.text}</a> : m.text}
                      </div>
                    </td>
                    <td style={{padding:'25px 10px'}}>
