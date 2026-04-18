@@ -40,6 +40,18 @@ const getInitials = (name) => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 };
 
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    // Robust parsing for different formats
+    const d = new Date(dateStr.toString().replace(' ', 'T'));
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'});
+  } catch (e) {
+    return dateStr;
+  }
+};
+
 function ArchiveManager({ token }) {
   const [summaries, setSummaries] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -168,21 +180,17 @@ function ArchiveManager({ token }) {
                   <tbody>
                     {questions.map(q => (
                       <tr key={q.id} style={{height: '100px', verticalAlign: 'top'}}>
-                        <td style={{whiteSpace:'nowrap', fontSize:'0.85rem', padding:'25px 15px', color:'var(--text-muted)'}}>{q.created_at}</td>
+                        <td style={{whiteSpace:'nowrap', fontSize:'0.85rem', padding:'25px 15px', color:'var(--text-muted)'}}>{formatDate(q.created_at)}</td>
                         <td style={{padding:'25px 10px'}}>
                            <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{q.full_name}</div>
                            <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginTop:'4px'}}>@{q.username || 'anonim'}</div>
                         </td>
-                        <td style={{fontSize:'0.95rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer', padding:'25px 10px'}} >
-                            <span onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text || ''); }}>{q.text}</span>
-                            {q.telegram_app_link && (
-                               <a href={q.telegram_app_link} className="tg-icon-link" 
-                                  onClick={e => e.stopPropagation()} 
-                                  title="Telegramda ko'rish"
-                                  style={{marginLeft:'8px', opacity:0.6, verticalAlign:'middle'}}>
-                                 <Icons.ExternalLink style={{width:'14px', height:'14px'}} />
-                               </a>
-                            )}
+                        <td style={{fontSize:'0.95rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer', padding:'25px 10px'}} 
+                            onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text || ''); }}
+                        >
+                            {q.telegram_app_link ? (
+                               <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{q.text}</a>
+                            ) : q.text}
                         </td>
                         <td style={{fontSize:'0.95rem', padding:'25px 10px'}}>
                            {answeringId === q.id ? (
@@ -1366,17 +1374,11 @@ function Dashboard({ token }) {
                       <div style={{flex:1}}>
                         <div style={{fontSize:'0.9rem', lineHeight:1.4, cursor:'pointer', position:'relative'}} 
                              onClick={() => {setAnsweringId(q.id); setAnswerText('');}}>
-                          {q.text}
-                          {q.telegram_app_link && (
-                            <a href={q.telegram_app_link} className="tg-icon-link" 
-                               onClick={e => e.stopPropagation()} 
-                               title="Telegramda ko'rish"
-                               style={{marginLeft:'8px', opacity:0.6, fontSize:'0.8rem', verticalAlign:'middle'}}>
-                              <Icons.ExternalLink style={{width:'14px', height:'14px'}} />
-                            </a>
-                          )}
+                          {q.telegram_app_link ? (
+                            <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{q.text}</a>
+                          ) : q.text}
                         </div>
-                        <div style={{fontSize:'0.7rem', color:'var(--text-muted)', marginTop:'5px'}}>{q.full_name} • {q.group_title}</div>
+                        <div style={{fontSize:'0.7rem', color:'var(--text-muted)', marginTop:'5px'}}>{q.full_name} • {q.group_title} • {formatDate(q.created_at)}</div>
                       </div>
                       {answeringId !== q.id && <button className="btn btn-sm" onClick={() => {setAnsweringId(q.id); setAnswerText('');}}>Javob berish</button>}
                     </div>
@@ -1763,18 +1765,12 @@ function Messages({ token }) {
                       style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0', cursor:'pointer'}}
                       onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}
                     >
-                        <span onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}>{msg.text}</span>
-                        {msg.telegram_app_link && (
-                           <a href={msg.telegram_app_link} target="_blank" className="tg-icon-link" 
-                              onClick={e => e.stopPropagation()} 
-                              title="Telegramda ko'rish"
-                              style={{marginLeft:'8px', opacity:0.6, verticalAlign:'middle'}}>
-                             <Icons.ExternalLink style={{width:'14px', height:'14px'}} />
-                           </a>
-                        )}
+                        {msg.telegram_app_link ? (
+                            <a href={msg.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{msg.text}</a>
+                        ) : msg.text}
                     </div>
                     <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'8px'}}>
-                       {new Date(msg.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}
+                       {formatDate(msg.created_at)}
                     </div>
                   </td>
                   <td style={{padding:'20px 10px'}}>
@@ -2001,25 +1997,22 @@ function GroupHistory({ token, group, onBack }) {
               {msgs.length > 0 ? msgs.map(m => (
                  <tr key={m.id} style={{height: '110px', verticalAlign:'top'}}>
                    <td style={{padding:'25px 20px', fontSize:'0.85rem', color:'var(--text-muted)', fontWeight:'600'}}>
-                     {new Date(m.created_at).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit'})}
-                     <div style={{fontSize:'0.7rem', marginTop:'4px', opacity:0.6}}>
-                        {new Date(m.created_at).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'})}
-                     </div>
+                      {formatDate(m.created_at)}
                    </td>
                    <td style={{padding:'25px 10px'}}>
-                     <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                       <div className="user-avatar" style={{
-                         background: getAvatarColor(m.full_name || 'U'), 
-                         width:'36px', height:'36px', fontSize:'0.85rem'
-                       }}>
-                         {getInitials(m.full_name || 'U')}
-                       </div>
-                       <div>
-                         <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
-                         {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
-                         {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
-                       </div>
-                     </div>
+                      <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                        <div className="user-avatar" style={{
+                          background: getAvatarColor(m.full_name || 'U'), 
+                          width:'36px', height:'36px', fontSize:'0.85rem'
+                        }}>
+                          {getInitials(m.full_name || 'U')}
+                        </div>
+                        <div>
+                          <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
+                          {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
+                          {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
+                        </div>
+                      </div>
                    </td>
                    <td style={{padding:'30px 10px'}}>
                      <div 
@@ -2027,15 +2020,9 @@ function GroupHistory({ token, group, onBack }) {
                          style={{fontSize:'1rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer'}}
                          onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}
                      >
-                         <span onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}>{m.text}</span>
-                         {m.telegram_app_link && (
-                            <a href={m.telegram_app_link} className="tg-icon-link" 
-                               onClick={e => e.stopPropagation()} 
-                               title="Telegramda ko'rish"
-                               style={{marginLeft:'8px', opacity:0.6, verticalAlign:'middle'}}>
-                              <Icons.ExternalLink style={{width:'16px', height:'16px'}} />
-                            </a>
-                         )}
+                        {m.telegram_app_link ? (
+                            <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{m.text}</a>
+                        ) : m.text}
                      </div>
                    </td>
                    <td style={{padding:'25px 10px'}}>
