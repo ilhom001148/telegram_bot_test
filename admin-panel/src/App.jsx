@@ -985,13 +985,49 @@ function CompaniesManager({ token }) {
 function CustomersManager({ token }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [qLoading, setQLoading] = useState(false);
+  const [ansText, setAnsText] = useState({});
+  const [sending, setSending] = useState({});
 
-  useEffect(() => {
+  const fetchUsers = () => {
     fetch(`${API_URL}/users/`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => res.json())
       .then(d => { setUsers(d || []); setLoading(false); })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchUsers();
   }, [token]);
+
+  const openQuestions = (user) => {
+    setSelectedUser(user);
+    setQLoading(true);
+    fetch(`${API_URL}/messages/?user_id=${user.telegram_id}&is_question=true&limit=50`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(d => { setQuestions(d.items || []); setQLoading(false); })
+      .catch(() => setQLoading(false));
+  };
+
+  const handleReply = (qId) => {
+    const text = ansText[qId];
+    if (!text || !text.trim()) return;
+    setSending({...sending, [qId]: true});
+    fetch(`${API_URL}/questions/${qId}/answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ text })
+    })
+    .then(() => {
+      setSending({...sending, [qId]: false});
+      setAnsText({...ansText, [qId]: ''});
+      openQuestions(selectedUser);
+      fetchUsers();
+    })
+    .catch(() => setSending({...sending, [qId]: false}));
+  };
 
   return (
     <>
@@ -1046,7 +1082,11 @@ function CustomersManager({ token }) {
                       <div style={{fontWeight:'600', color:'var(--primary)'}}>{u.total_messages} ta</div>
                     </td>
                     <td style={{textAlign:'center'}}>
-                      <span className={`badge ${u.total_questions > 0 ? 'badge-unanswered' : 'badge-kb'}`} style={{fontSize:'0.75rem', minWidth:'50px'}}>
+                      <span className={`badge ${u.total_questions > 0 ? 'badge-unanswered pointer' : 'badge-kb pointer'}`} 
+                            style={{fontSize:'0.75rem', minWidth:'80px', cursor:'pointer', transition:'transform 0.2s'}}
+                            onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+                            onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                            onClick={() => openQuestions(u)}>
                         {u.total_questions} ta savol
                       </span>
                     </td>
@@ -1060,6 +1100,61 @@ function CustomersManager({ token }) {
                 )) : <tr><td colSpan="6" style={{textAlign:'center', padding:'4rem', color:'var(--text-muted)'}}>Hozircha mijozlar topilmadi.</td></tr>}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {selectedUser && (
+        <div className="modal-overlay" style={{zIndex: 1000}}>
+          <div className="glass-card" style={{width:'90%', maxWidth:'800px', maxHeight:'90vh', overflow:'hidden', display:'flex', flexDirection:'column', padding:0}}>
+            <div style={{padding:'1.5rem', borderBottom:'1px solid var(--card-border)', display:'flex', justifyContent:'space-between', alignItems:'center', background:'rgba(255,255,255,0.03)'}}>
+               <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                  <div className="user-avatar" style={{background:getAvatarColor(selectedUser.full_name||'U'), width:32, height:32, fontSize:'0.8rem'}}>
+                    {getInitials(selectedUser.full_name||'U')}
+                  </div>
+                  <h3 style={{margin:0, fontSize:'1.1rem'}}>{selectedUser.full_name} savollari</h3>
+               </div>
+               <button className="icon-btn" onClick={() => setSelectedUser(null)}>✕</button>
+            </div>
+
+            <div style={{padding:'1.5rem', overflowY:'auto', flex:1}}>
+               {qLoading ? <div className="loader"></div> : (
+                 <div style={{display:'flex', flexDirection:'column', gap:'1.5rem'}}>
+                    {questions.length === 0 ? <p style={{textAlign:'center', color:'var(--text-muted)'}}>Savollar topilmadi.</p> : questions.map(q => (
+                      <div key={q.id} style={{background:'rgba(255,255,255,0.02)', borderRadius:'12px', padding:'1.25rem', border:'1px solid var(--card-border)'}}>
+                         <div style={{display:'flex', justifyContent:'space-between', marginBottom:'0.75rem'}}>
+                            <span style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{new Date(q.created_at).toLocaleString('uz-UZ')}</span>
+                            <span className={`badge ${q.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.65rem'}}>
+                               {q.is_answered ? 'Javob berilgan' : 'Javob kutilmoqda'}
+                            </span>
+                         </div>
+                         <p style={{margin:0, fontSize:'0.95rem', lineHeight:'1.5'}}>{q.text}</p>
+                         
+                         {q.is_answered ? (
+                            <div style={{marginTop:'1rem', padding:'1rem', background:'rgba(16, 185, 129, 0.05)', borderRadius:'10px', borderLeft:'3px solid var(--success)'}}>
+                               <div style={{fontSize:'0.7rem', color:'var(--success)', marginBottom:'4px', fontWeight:'600'}}>BIZNING JAVOB:</div>
+                               <p style={{margin:0, fontSize:'0.9rem', color:'rgba(255,255,255,0.8)'}}>{q.answer_text || 'AI tomonidan javob berilgan'}</p>
+                            </div>
+                         ) : (
+                            <div style={{marginTop:'1.25rem'}}>
+                               <textarea 
+                                  placeholder="Javobingizni yozing..." 
+                                  style={{width:'100%', padding:'12px', borderRadius:'10px', background:'rgba(0,0,0,0.2)', border:'1px solid var(--card-border)', color:'#fff', fontSize:'0.9rem'}}
+                                  value={ansText[q.id] || ''}
+                                  onChange={e => setAnsText({...ansText, [q.id]: e.target.value})}
+                               />
+                               <div style={{display:'flex', justifyContent:'flex-end', marginTop:'10px'}}>
+                                  <button className="btn btn-sm" onClick={() => handleReply(q.id)} disabled={sending[q.id] || !ansText[q.id]?.trim()}>
+                                     {sending[q.id] ? 'Yuborilmoqda...' : 'Javobni yuborish'}
+                                  </button>
+                               </div>
+                            </div>
+                         )}
+                      </div>
+                    ))}
+                 </div>
+               )}
+            </div>
           </div>
         </div>
       )}

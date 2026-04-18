@@ -15,7 +15,7 @@ async def get_messages(
     search: str | None = None,
     is_question: bool | None = None,
     is_answered: bool | None = None,
-    group_id: int | None = None,
+    user_id: int | None = None,
     limit: int = 10,
     offset: int = 0,
 ):
@@ -24,6 +24,9 @@ async def get_messages(
 
         if search:
             query = query.filter(Message.text.ilike(f"%{search}%"))
+
+        if user_id is not None:
+            query = query.filter(Message.user_id == user_id)
 
         if is_question is not None:
             query = query.filter(Message.is_question == is_question)
@@ -45,8 +48,19 @@ async def get_messages(
         )
         messages = messages_res.scalars().all()
 
+        # Savollarning javoblarini yig'ish (Optimallashgan)
+        q_msg_ids = [m.telegram_message_id for m in messages if m.is_question]
+        group_ids = list(set([m.group_id for m in messages if m.is_question]))
+        ans_map = {}
+        if q_msg_ids:
+            ans_query = select(Message).filter(Message.group_id.in_(group_ids), Message.reply_to_message_id.in_(q_msg_ids))
+            ans_res = await db.execute(ans_query)
+            answers = ans_res.scalars().all()
+            ans_map = {f"{a.group_id}_{a.reply_to_message_id}": a for a in answers}
+
         result = []
         for message in messages:
+            answer = ans_map.get(f"{message.group_id}_{message.telegram_message_id}")
             result.append({
                 "id": message.id,
                 "telegram_message_id": message.telegram_message_id,
@@ -65,6 +79,8 @@ async def get_messages(
                 "prompt_tokens": message.prompt_tokens,
                 "completion_tokens": message.completion_tokens,
                 "total_tokens": message.total_tokens,
+                "created_at": message.created_at,
+                "answer_text": answer.text if answer else (message.text if message.is_answered and not message.answered_by_bot else None)
             })
 
         return {
