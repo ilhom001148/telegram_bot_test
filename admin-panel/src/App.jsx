@@ -1117,10 +1117,20 @@ function CustomersManager({ token }) {
                <button className="icon-btn" onClick={() => setSelectedUser(null)}>✕</button>
             </div>
 
-            <div style={{padding:'1.5rem', overflowY:'auto', flex:1}}>
-               {qLoading ? <div className="loader"></div> : (
+            <div style={{padding:'1.5rem', overflowY:'auto', flex:1, minHeight:'300px'}}>
+               {qLoading ? (
+                 <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', gap:'15px', padding:'4rem 0'}}>
+                    <div className="loader"></div>
+                    <div style={{color:'var(--text-muted)', fontSize:'0.9rem'}}>Savollar yuklanmoqda...</div>
+                 </div>
+               ) : (
                  <div style={{display:'flex', flexDirection:'column', gap:'1.5rem'}}>
-                    {questions.length === 0 ? <p style={{textAlign:'center', color:'var(--text-muted)'}}>Savollar topilmadi.</p> : questions.map(q => (
+                    {!questions || questions.length === 0 ? (
+                      <div style={{textAlign:'center', padding:'4rem 0', color:'var(--text-muted)'}}>
+                         <div style={{fontSize:'3rem', marginBottom:'1rem', opacity:0.3}}><Icons.History /></div>
+                         <p>Ushbu foydalanuvchida hali savollar mavjud emas.</p>
+                      </div>
+                    ) : questions.map(q => (
                       <div key={q.id} style={{background:'rgba(255,255,255,0.02)', borderRadius:'12px', padding:'1.25rem', border:'1px solid var(--card-border)'}}>
                          <div style={{display:'flex', justifyContent:'space-between', marginBottom:'0.75rem'}}>
                             <span style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{new Date(q.created_at).toLocaleString('uz-UZ')}</span>

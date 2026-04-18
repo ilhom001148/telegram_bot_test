@@ -16,6 +16,7 @@ async def get_messages(
     is_question: bool | None = None,
     is_answered: bool | None = None,
     user_id: int | None = None,
+    group_id: int | None = None,
     limit: int = 10,
     offset: int = 0,
 ):
