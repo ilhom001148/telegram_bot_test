@@ -125,8 +125,10 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
         return
         
     # Avval bazadan qidiramiz
-    kb_match = await search_knowledge(db, text)
-    context = kb_match.answer if kb_match else None
+    kb_matches = await search_knowledge(db, text)
+    context = None
+    if kb_matches:
+        context = "\n---\n".join([f"Ma'lumot {i+1}:\nSavol: {m.question}\nJavob: {m.answer}" for i, m in enumerate(kb_matches)])
     
     # [NEW] KB Only Mode check
     kb_only_mode = await get_setting(db, "kb_only_mode", "false")
@@ -312,8 +314,10 @@ async def handle_group_message(message: TgMessage):
                     return
                 
                 # Knowledge base qidirish
-                kb_match = await search_knowledge(db, text)
-                context = kb_match.answer if kb_match else None
+                kb_matches = await search_knowledge(db, text)
+                context = None
+                if kb_matches:
+                    context = "\n---\n".join([f"Ma'lumot {i+1}:\nSavol: {m.question}\nJavob: {m.answer}" for i, m in enumerate(kb_matches)])
                 
                 # [NEW] KB Only Mode check
                 kb_only_mode = await get_setting(db, "kb_only_mode", "false")
@@ -397,8 +401,10 @@ async def handle_channel_post(message: TgMessage):
                     return
                 
                 # Knowledge base qidirish
-                kb_match = await search_knowledge(db, text)
-                context = kb_match.answer if kb_match else None
+                kb_matches = await search_knowledge(db, text)
+                context = None
+                if kb_matches:
+                    context = "\n---\n".join([f"Ma'lumot {i+1}:\nSavol: {m.question}\nJavob: {m.answer}" for i, m in enumerate(kb_matches)])
                 
                 # [NEW] KB Only Mode check
                 kb_only_mode = await get_setting(db, "kb_only_mode", "false")

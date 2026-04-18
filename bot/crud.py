@@ -155,17 +155,54 @@ async def get_all_knowledge(db: AsyncSession):
     return result.scalars().all()
 
 
-async def search_knowledge(db: AsyncSession, query_text: str) -> KnowledgeBase | None:
-    search_term = f"%{query_text.lower()}%"
-    result = await db.execute(
-        select(KnowledgeBase).filter(
-            or_(
-                KnowledgeBase.question.ilike(search_term),
-                KnowledgeBase.answer.ilike(search_term)
-            )
+async def search_knowledge(db: AsyncSession, query_text: str, limit: int = 3) -> list[KnowledgeBase]:
+    # 1. Keywordsga ajratish (2 tadan ortiq harfli so'zlar)
+    keywords = [w.lower() for w in query_text.split() if len(w) > 2]
+    if not keywords:
+        # Agar so'zlar juda qisqa bo'lsa, to'liq matn bo'yicha qidirib ko'ramiz
+        search_term = f"%{query_text.lower()}%"
+        result = await db.execute(
+            select(KnowledgeBase).filter(
+                or_(
+                    KnowledgeBase.question.ilike(search_term),
+                    KnowledgeBase.answer.ilike(search_term)
+                )
+            ).limit(limit)
         )
+        return list(result.scalars().all())
+
+    # 2. Har bir keyword bo'yicha OR qidiruvi (Kandidatlarni yig'ish)
+    filters = []
+    for kw in keywords:
+        filters.append(KnowledgeBase.question.ilike(f"%{kw}%"))
+        filters.append(KnowledgeBase.answer.ilike(f"%{kw}%"))
+    
+    result = await db.execute(
+        select(KnowledgeBase).filter(or_(*filters))
     )
-    return result.scalars().first()
+    candidates = result.scalars().all()
+    
+    # 3. Python orqali ranking (Relevanthik bo'yicha saralash)
+    ranked = []
+    for cand in candidates:
+        score = 0
+        cand_text = f"{cand.question or ''} {cand.answer or ''}".lower()
+        # Nechta keyword qatnashganligini sanaymiz
+        for kw in keywords:
+            if kw in cand_text:
+                score += 1
+        
+        # Agar savol qismida aniq moslik bo'lsa, qo'shimcha ball beramiz
+        if query_text.lower() in (cand.question or "").lower():
+            score += 2
+            
+        ranked.append((score, cand))
+    
+    # Skor bo'yicha kamayish tartibida saralash
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    
+    # Faqat mos kelganlarini qaytarish
+    return [item[1] for item in ranked[:limit] if item[0] > 0]
 
 
 async def create_knowledge(db: AsyncSession, question: str, answer: str) -> KnowledgeBase:

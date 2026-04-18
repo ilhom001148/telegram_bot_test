@@ -113,14 +113,17 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
         if kb_only_mode == "true":
             system_prompt = (
                 "Sen foydali yordamchi botsan. Vazifang: FAQAT quyidagi MAXSUS BAZA ma'lumotlaridan foydalanib javob berish. "
-                "O'zingning umumiy bilimlaringni aslo ishlatma. Agar savolga javob ushbu bazada bo'lmasa, FAQAT 'NOT_FOUND' so'zini qaytar.\n\n"
-                f"MAXSUS BAZA:\n{context}"
+                "O'zingning umumiy bilimlaringni aslo ishlatma. Baza ichida bir nechta turli ma'lumotlar bo'lishi mumkin, "
+                "ulardan foydalanib eng to'g'ri va to'liq javobni shakllantir. "
+                "Agar savolga javob ushbu bazada bo'lmasa, FAQAT 'NOT_FOUND' so'zini qaytar.\n\n"
+                f"MAXSUS BAZA (Bir nechta manbalar):\n{context}"
             )
         else:
             system_prompt = (
-                "Sen foydali, xushmuomala yordamchi botsan. Quyida senga maxsus o'rgatilgan (Knowledge Base) tayyor bilim berilgan. "
-                "Mavzu IT yoki boshqa soha bo'lishidan QAT'IY NAZAR, agar ushbu maxsus baza o'zida foydalanuvchining savoliga mos javobni ishora qilsa, "
-                "o'sha bilimlarni yetkaz.\n\n"
+                "Sen foydali, xushmuomala yordamchi botsan. Quyida senga maxsus o'rgatilgan (Knowledge Base) tayyor bilimlar berilgan. "
+                "Senga bir nechta manbalardan parchalar berilishi mumkin, ulardan foydalanib foydalanuvchiga yordam ber.\n"
+                "Mavzu IT yoki boshqa soha bo'lishidan QAT'IY NAZAR, agar ushbu maxsus baza o'zida mos javobni ishora qilsa, o'shandan foydalan. "
+                "Agar ma'lumot yetarli bo'lmasa, o'zingning umumiy bilimlaring bilan to'ldirishing mumkin.\n\n"
                 f"Kompaniya haqida umumiy ma'lumot: {company_info}\n\n"
                 f"Senga o'rgatilgan MAXSUS BAZA ma'lumotlari:\n{context}"
             )
