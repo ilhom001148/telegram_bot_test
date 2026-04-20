@@ -332,7 +332,7 @@ async def handle_group_message(message: TgMessage):
                 full_name=message.from_user.full_name if message.from_user else None,
                 username=message.from_user.username if message.from_user else None,
                 text=text,
-                is_question=is_question if not is_staff else False, # Count as question only if NOT staff
+                is_question=is_question, 
                 is_staff=is_staff,
                 reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             )
@@ -346,7 +346,7 @@ async def handle_group_message(message: TgMessage):
                     await mark_question_answered(db=db, question=replied_question, answered_by_bot=message.from_user.is_bot)
 
             # AI JAVOB BERISH - BACKGROUND TASK
-            if is_question and not is_staff:
+            if is_question:
                 if await get_setting(db, "tracking_mode", "false") == "false":
                     user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
                     # Fonda bajarish (Webhook darhol OK qaytarishi uchun)

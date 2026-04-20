@@ -39,11 +39,12 @@ def detect_question(text: str) -> bool:
         "nima", "qanday", "nega", "qachon", "kim", "qancha", "qaysi", "qanaqa", 
         "nechta", "qayerda", "nimaga", "qilib", "ber", "yordam", "maslahat",
         "ishlamayapti", "xato", "chiqmayapti", "error", "bug", "muammo", "tushunmadim",
-        "tushuntir", "ayt", "gapir", "qanday", "qilsam", "bo'ladi", "qilsa",
+        "tushuntir", "ayt", "gapir", "qilsam", "bo'ladi", "qilsa", "mumkin", "kerak",
+        "bilmoqchi", "aytsangiz", "yordamingiz", "narxi", "qancha", "manzil", "qayer",
         # Russian
         "что", "как", "почему", "когда", "кто", "сколько", "какой", "где",
         "помоги", "совет", "ошибка", "проблема", "баг", "не работает", "почему",
-        "скажи", "объясни", "подскажи"
+        "скажи", "объясни", "подскажи", "цена", "адрес", "где находится"
     ]
     
     text_lower = text.lower().strip()
