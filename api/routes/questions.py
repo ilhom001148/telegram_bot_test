@@ -41,8 +41,7 @@ async def get_all_questions(
     offset: int = 0,
 ):
     query = select(Message).options(joinedload(Message.group)).filter(
-        Message.is_question == True,
-        Message.is_staff == False
+        Message.is_question == True
     )
     
     count_query = select(func.count()).select_from(query.alias())
@@ -71,8 +70,7 @@ async def get_unanswered_questions(
 ):
     query = select(Message).options(joinedload(Message.group)).filter(
         Message.is_question == True,
-        Message.is_answered == False,
-        Message.is_staff == False
+        Message.is_answered == False
     )
     
     count_query = select(func.count()).select_from(query.alias())

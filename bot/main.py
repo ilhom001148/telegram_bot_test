@@ -346,7 +346,8 @@ async def handle_group_message(message: TgMessage):
                     await mark_question_answered(db=db, question=replied_question, answered_by_bot=message.from_user.is_bot)
 
             # AI JAVOB BERISH - BACKGROUND TASK
-            if is_question:
+            username_lower = (message.from_user.username or "").lower()
+            if is_question and not is_staff and "uyqur" not in username_lower:
                 if await get_setting(db, "tracking_mode", "false") == "false":
                     user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
                     # Fonda bajarish (Webhook darhol OK qaytarishi uchun)
