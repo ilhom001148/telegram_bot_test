@@ -6,6 +6,7 @@ from aiogram.enums import ChatType
 from aiogram.types import Message as TgMessage, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, ChatMemberUpdated
 from aiogram.filters import CommandStart, Command
 from aiogram.client.session.aiohttp import AiohttpSession
+from sqlalchemy import select
 
 from bot.config import TELEGRAM_TOKEN, TELEGRAM_PROXY, SUPERADMINS
 from bot.db import SessionLocal
