@@ -226,6 +226,74 @@ async def handle_private_message(message: TgMessage):
     return
 
 
+async def respond_with_ai(message: TgMessage, text: str, user_lang: str, q_msg_db_id: int):
+    """AI javobini fonda tayyorlaydi va yuboradi (Webhook timeout oldini olish uchun)."""
+    async with SessionLocal() as db:
+        try:
+            # Re-fetch q_msg to ensure it's attached to the current session
+            from bot.models import Message as DbMessage
+            from bot.models import Group as DbGroup
+            result = await db.execute(select(DbMessage).filter(DbMessage.id == q_msg_db_id))
+            q_msg = result.scalars().first()
+            if not q_msg:
+                return
+
+            # Group objectni ham olish
+            result = await db.execute(select(DbGroup).filter(DbGroup.id == q_msg.group_id))
+            group = result.scalars().first()
+
+            # Knowledge base qidirish
+            kb_matches = await search_knowledge(db, text)
+            context = None
+            if kb_matches:
+                context = "\n---\n".join([f"Ma'lumot {i+1}:\nSavol: {m.question}\nJavob: {m.answer}" for i, m in enumerate(kb_matches)])
+            
+            # [NEW] KB Only Mode check
+            kb_only_mode = await get_setting(db, "kb_only_mode", "false")
+            if kb_only_mode == "true" and not context:
+                return 
+
+            ai_res = await get_ai_answer_async(text, context=context)
+            ai_text = ai_res.get("text", "")
+            usage = ai_res.get("usage")
+            
+            if ai_text.strip() == "NOT_FOUND" or not ai_text:
+                return
+
+            if ai_text.strip() == "IGNORE":
+                if user_lang:
+                    await message.reply(get_string("only_it", user_lang))
+                return
+
+            sent_msg = await message.reply(ai_text)
+
+            # Bot javobini saqlash
+            await create_message(
+                db=db,
+                telegram_message_id=sent_msg.message_id,
+                group_id=q_msg.group_id,
+                user_id=None,
+                full_name="AI Bot",
+                username=None,
+                text=ai_text,
+                is_question=False,
+                reply_to_message_id=message.message_id,
+                ai_provider=usage.get("provider") if usage else None,
+                ai_model=usage.get("model") if usage else None,
+                prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
+                completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
+                total_tokens=usage.get("total_tokens", 0) if usage else 0,
+            )
+            
+            # Savolni bazada 'Javob berildi' deb belgilash
+            await mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
+            print(f"✅ AI responded to message {message.message_id} in group {group.title if group else 'N/A'}")
+        except Exception as e:
+            print(f"❌ Background AI Error: {e}")
+        finally:
+            await db.close()
+
+
 @dp.message(F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
 async def handle_group_message(message: TgMessage):
     # Tizim xabarlarini (foydalanuvchi qo'shilishi, chiqishi va h.k.) inobatga olmaymiz
@@ -276,60 +344,12 @@ async def handle_group_message(message: TgMessage):
                 if replied_question and not replied_question.is_answered:
                     await mark_question_answered(db=db, question=replied_question, answered_by_bot=message.from_user.is_bot)
 
-            # AI JAVOB BERISH (Faqat xodim bo'lmasa)
+            # AI JAVOB BERISH - BACKGROUND TASK
             if is_question and not is_staff:
-                # Til (Guruhda bo'lsa ham foydalanuvchi tilini bazadan olamiz)
-                user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
-                lang = user.language_code
-                
-                # [NEW] Tracking Mode (Faqat sanash rejimi)
-                if await get_setting(db, "tracking_mode", "false") == "true":
-                    return
-                
-                # Knowledge base qidirish
-                kb_matches = await search_knowledge(db, text)
-                context = None
-                if kb_matches:
-                    context = "\n---\n".join([f"Ma'lumot {i+1}:\nSavol: {m.question}\nJavob: {m.answer}" for i, m in enumerate(kb_matches)])
-                
-                # [NEW] KB Only Mode check
-                kb_only_mode = await get_setting(db, "kb_only_mode", "false")
-                if kb_only_mode == "true" and not context:
-                    return # Ma'lumot topilmadi, jim turamiz
-
-                ai_res = await get_ai_answer_async(text, context=context)
-                ai_text = ai_res.get("text", "")
-                usage = ai_res.get("usage")
-                
-                # [NEW] AI topa olmagan bo'lsa (KB only rejimida)
-                if ai_text.strip() == "NOT_FOUND":
-                    return
-
-                if not ai_text:
-                    return
-                
-                sent_msg = await message.reply(ai_text)
-
-                # Bot javobini saqlash
-                await create_message(
-                    db=db,
-                    telegram_message_id=sent_msg.message_id,
-                    group_id=group.id,
-                    user_id=None,
-                    full_name="AI Bot",
-                    username=None,
-                    text=ai_text,
-                    is_question=False,
-                    reply_to_message_id=message.message_id,
-                    ai_provider=usage.get("provider") if usage else None,
-                    ai_model=usage.get("model") if usage else None,
-                    prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
-                    completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
-                    total_tokens=usage.get("total_tokens", 0) if usage else 0,
-                )
-                
-                # Savolni bazada 'Javob berildi' deb belgilash
-                await mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
+                if await get_setting(db, "tracking_mode", "false") == "false":
+                    user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
+                    # Fonda bajarish (Webhook darhol OK qaytarishi uchun)
+                    asyncio.create_task(respond_with_ai(message, text, user.language_code, q_msg.id))
         except Exception as e:
             print("ERROR:", e)
         finally:
@@ -370,50 +390,8 @@ async def handle_channel_post(message: TgMessage):
 
             # Agar savol bo'lsa va tracking rejimi o'chiq bo'lsa, AI javob beradi
             if is_question:
-                if await get_setting(db, "tracking_mode", "false") == "true":
-                    return
-                
-                # Knowledge base qidirish
-                kb_matches = await search_knowledge(db, text)
-                context = None
-                if kb_matches:
-                    context = "\n---\n".join([f"Ma'lumot {i+1}:\nSavol: {m.question}\nJavob: {m.answer}" for i, m in enumerate(kb_matches)])
-                
-                # [NEW] KB Only Mode check
-                kb_only_mode = await get_setting(db, "kb_only_mode", "false")
-                if kb_only_mode == "true" and not context:
-                    return # Ma'lumot topilmadi, jim turamiz
-
-                ai_res = await get_ai_answer_async(text, context=context)
-                ai_text = ai_res.get("text", "")
-                usage = ai_res.get("usage")
-
-                # [NEW] AI topa olmagan bo'lsa (KB only rejimida)
-                if ai_text.strip() == "NOT_FOUND":
-                    return
-
-                if not ai_text:
-                    return
-
-                sent_msg = await message.answer(ai_text)
-
-                await create_message(
-                    db=db,
-                    telegram_message_id=sent_msg.message_id,
-                    group_id=group.id,
-                    user_id=None,
-                    full_name="AI Bot",
-                    username=None,
-                    text=ai_text,
-                    is_question=False,
-                    reply_to_message_id=message.message_id,
-                    ai_provider=usage.get("provider") if usage else None,
-                    ai_model=usage.get("model") if usage else None,
-                    prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
-                    completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
-                    total_tokens=usage.get("total_tokens", 0) if usage else 0,
-                )
-                await mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
+                if await get_setting(db, "tracking_mode", "false") == "false":
+                    asyncio.create_task(respond_with_ai(message, text, "uz", q_msg.id))
 
         except Exception as e:
             print("CHANNEL ERROR:", e)
@@ -511,6 +489,7 @@ async def start_bot():
                 print("⚠️ WEBHOOK_URL topilmadi. Polling rejimida boshlanmoqda...")
                 # Lokal ishga tushirishda Webhook bilan konflikt bo'lmasligi uchun uni o'chiramiz
                 await bot.delete_webhook(drop_pending_updates=True)
+                await bot.session.close() # Close any lingering sessions before starting polling
                 await dp.start_polling(bot, skip_updates=True)
                 break
         except Exception as e:
@@ -531,5 +510,3 @@ if __name__ == "__main__":
         asyncio.run(start_bot())
     except KeyboardInterrupt:
         print("Bot to'xtadi.")
-
-

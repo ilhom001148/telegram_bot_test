@@ -100,6 +100,16 @@ async def create_message(
     total_tokens: int = 0,
     is_staff: bool = False,
 ) -> Message:
+    # Dublikatni tekshirish
+    stmt = select(Message).filter(
+        Message.group_id == group_id,
+        Message.telegram_message_id == telegram_message_id
+    )
+    result = await db.execute(stmt)
+    existing_msg = result.scalars().first()
+    if existing_msg:
+        return existing_msg
+
     msg = Message(
         telegram_message_id=telegram_message_id,
         group_id=group_id,
