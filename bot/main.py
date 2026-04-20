@@ -152,26 +152,7 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
 
     sent_msg = await message.reply(ai_text)
     
-    # [NEW] Shaxsiy xabarlarda ham bot javobini saqlash (Tokenlar bilan)
-    if message.chat.type == ChatType.PRIVATE:
-        # Guruh ID sifatida foydalanuvchi ID si ishlatiladi (get_or_create_group mantiqi bo'yicha)
-        group = await get_or_create_group(db, message.chat.id, message.from_user.full_name)
-        await create_message(
-            db=db,
-            telegram_message_id=sent_msg.message_id,
-            group_id=group.id,
-            user_id=None,
-            full_name="AI Bot",
-            username=None,
-            text=ai_text,
-            is_question=False,
-            reply_to_message_id=message.message_id,
-            ai_provider=usage.get("provider") if usage else None,
-            ai_model=usage.get("model") if usage else None,
-            prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
-            completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
-            total_tokens=usage.get("total_tokens", 0) if usage else 0,
-        )
+    # Shaxsiy xabarlarda bot javobini saqlash o'chirildi
 
 
 @dp.message(F.voice)
@@ -241,16 +222,8 @@ async def handle_voice(message: TgMessage):
 
 @dp.message(F.chat.type == ChatType.PRIVATE)
 async def handle_private_message(message: TgMessage):
-    async with SessionLocal() as db:
-        try:
-            user = await get_or_create_user(db, message.from_user.id, message.from_user.full_name, message.from_user.username)
-            text = message.text or message.caption or ""
-            # Bot buyruqlarini o'tkazib yuborish
-            if text.strip().startswith("/"):
-                return
-            await process_text_message(message, text, db, user.language_code)
-        finally:
-            await db.close()
+    # Shaxsiy xabarlarga javob berish to'xtatildi
+    return
 
 
 @dp.message(F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}))
