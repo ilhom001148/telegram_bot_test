@@ -38,7 +38,8 @@ COPY . .
 # This replaces any local 'dist' folder
 COPY --from=builder /app/admin-panel/dist /app/admin-panel/dist
 
-# The default port for Render is 10000, but we use ${PORT} from env
+# The default port for Render is 10000
+ENV PORT=10000
 EXPOSE 10000
 
 # Start command

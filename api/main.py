@@ -115,6 +115,10 @@ app.mount("/logos", StaticFiles(directory=logos_path), name="logos")
 def root():
     return {"message": "API is running"}
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "message": "Render health check passed"}
+
 @app.post("/webhook/bot")
 async def telegram_webhook(update: dict):
     """
@@ -169,7 +173,7 @@ async def bot_status():
     try:
         bot = get_bot()
         me = await bot.get_me()
-        await bot.session.close()
+        # await bot.session.close()  <-- DO NOT CLOSE SESSION HERE, it kills the bot!
         return {
             "status": "online",
             "bot_username": me.username,
