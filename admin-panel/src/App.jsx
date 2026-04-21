@@ -594,6 +594,12 @@ function CompaniesManager({ token }) {
   const [flash, setFlash] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
+  const [groupBy, setGroupBy] = useState('status'); // status, activity, responsible
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+
+  const toggleGroup = (id) => {
+    setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const showMsg = (text, type = 'success') => {
     setFlash({ text, type });
@@ -770,6 +776,21 @@ function CompaniesManager({ token }) {
              <Icons.List /> <span className="hide-mobile">Ro'yxat</span>
            </button>
         </div>
+
+        {viewMode === 'list' && (
+          <div style={{display:'flex', alignItems:'center', gap:'8px', background:'rgba(255,255,255,0.03)', padding:'4px 12px', borderRadius:'12px', border:'1px solid var(--card-border)'}}>
+            <span style={{fontSize:'0.75rem', color:'var(--text-muted)', fontWeight:'600'}}>GURUHLASH:</span>
+            <select 
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value)}
+              style={{background:'none', border:'none', color:'#fff', fontSize:'0.85rem', cursor:'pointer', outline:'none', fontWeight:'600'}}
+            >
+              <option value="status" style={{background:'#1a1a1a'}}>Status bo'yicha</option>
+              <option value="activity" style={{background:'#1a1a1a'}}>Faollik bo'yicha</option>
+              <option value="responsible" style={{background:'#1a1a1a'}}>Mas'ul bo'yicha</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {loading ? <div className="loader"/> : (
@@ -792,91 +813,111 @@ function CompaniesManager({ token }) {
             }
 
             if (viewMode === 'list') {
-              const statuses = [
-                { id: 'FAOL', title: 'Faol Kompaniyalar', color: '#10b981' },
-                { id: 'Yangi', title: 'Yangi Kompaniyalar', color: '#6366f1' },
-                { id: 'To\'xtatilgan', title: 'To\'xtatilganlar', color: '#f59e0b' },
-                { id: 'Bekor qilingan', title: 'Bekor qilinganlar', color: '#ef4444' }
-              ];
+              // Grouping Logic
+              let groups = [];
+              if (groupBy === 'status') {
+                groups = [
+                  { id: 'FAOL', title: 'Faol Kompaniyalar', color: '#10b981', items: filtered.filter(c => c.status === 'FAOL') },
+                  { id: 'Yangi', title: 'Yangi Kompaniyalar', color: '#6366f1', items: filtered.filter(c => c.status === 'Yangi') },
+                  { id: 'To\'xtatilgan', title: 'To\'xtatilganlar', color: '#f59e0b', items: filtered.filter(c => c.status === 'To\'xtatilgan') },
+                  { id: 'Bekor qilingan', title: 'Bekor qilinganlar', color: '#ef4444', items: filtered.filter(c => c.status === 'Bekor qilingan') }
+                ];
+              } else if (groupBy === 'activity') {
+                groups = [
+                  { id: 'active', title: 'Faol Korxonalar', color: '#10b981', items: filtered.filter(c => c.is_active) },
+                  { id: 'inactive', title: 'Faol emas (To\'xtatilgan)', color: '#ef4444', items: filtered.filter(c => !c.is_active) }
+                ];
+              } else if (groupBy === 'responsible') {
+                const responsibles = [...new Set(filtered.map(c => c.responsible_name || 'Mas\'ul biriktirilmagan'))];
+                groups = responsibles.map((name, idx) => ({
+                  id: `resp-${idx}`,
+                  title: name,
+                  color: getAvatarColor(name),
+                  items: filtered.filter(c => (c.responsible_name || 'Mas\'ul biriktirilmagan') === name)
+                }));
+              }
 
               return (
                 <div style={{marginTop:'1.5rem'}}>
-                  {statuses.map(st => {
-                    const groupRows = filtered.filter(c => c.status === st.id);
-                    if (groupRows.length === 0) return null;
-
-                    return (
+                  {groups.map(st => st.items.length > 0 && (
                       <div key={st.id} className="list-group-section">
-                        <div className="list-group-header" style={{borderBottomColor: `${st.color}44`}}>
-                          <Icons.ChevronDown />
+                        <div 
+                          className="list-group-header" 
+                          onClick={() => toggleGroup(st.id)}
+                          style={{borderBottomColor: `${st.color}44`, cursor:'pointer'}}
+                        >
+                          <div style={{transform: collapsedGroups[st.id] ? 'rotate(-90deg)' : 'rotate(0deg)', transition:'transform 0.2s', display:'flex'}}>
+                            <Icons.ChevronDown />
+                          </div>
                           <div className="status-pill" style={{background: st.color}}>
                             {st.title}
                           </div>
-                          <span className="header-count">{groupRows.length} ta korxona</span>
+                          <span className="header-count">{st.items.length} ta korxona</span>
                         </div>
 
-                        <table className="clickup-table">
-                          <thead>
-                            <tr>
-                              <th className="clickup-column-header" style={{width:'35%'}}>Kompaniya nomi</th>
-                              <th className="clickup-column-header">Direktor / Mas'ul</th>
-                              <th className="clickup-column-header">Telefon</th>
-                              <th className="clickup-column-header" style={{textAlign:'center'}}>Status</th>
-                              <th className="clickup-column-header" style={{textAlign:'center'}}>Harakat</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {groupRows.map(c => (
-                              <tr key={c.id} className="clickup-row" onClick={() => openEdit(c)}>
-                                <td>
-                                  <div className="name-cell">
-                                    <div className="status-dot" style={{background: st.color}}></div>
-                                    <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                                      <div style={{width:32, height:32, borderRadius:8, overflow:'hidden', background:'rgba(255,255,255,0.05)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,0.05)'}}>
-                                        {c.logo_url ? <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <Icons.Company style={{width:16, opacity:0.3}}/>}
-                                      </div>
-                                      <div>
-                                        <div style={{fontWeight:700, fontSize:'0.93rem', color:'#fff'}}>{c.name}</div>
-                                        <div style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>#ID {c.id.toString().replace('ext-','')}</div>
+                        {!collapsedGroups[st.id] && (
+                          <table className="clickup-table">
+                            <thead>
+                              <tr>
+                                <th className="clickup-column-header" style={{width:'35%'}}>Kompaniya nomi</th>
+                                <th className="clickup-column-header">Direktor / Mas'ul</th>
+                                <th className="clickup-column-header">Telefon</th>
+                                <th className="clickup-column-header" style={{textAlign:'center'}}>Status</th>
+                                <th className="clickup-column-header" style={{textAlign:'center'}}>Harakat</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {st.items.map(c => (
+                                <tr key={c.id} className="clickup-row" onClick={() => openEdit(c)}>
+                                  <td>
+                                    <div className="name-cell">
+                                      <div className="status-dot" style={{background: st.color}}></div>
+                                      <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                                        <div style={{width:32, height:32, borderRadius:8, overflow:'hidden', background:'rgba(255,255,255,0.05)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,0.05)'}}>
+                                          {c.logo_url ? <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <Icons.Company style={{width:16, opacity:0.3}}/>}
+                                        </div>
+                                        <div>
+                                          <div style={{fontWeight:700, fontSize:'0.93rem', color:'#fff'}}>{c.name}</div>
+                                          <div style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>#ID {c.id.toString().replace('ext-','')}</div>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                </td>
-                                <td>
-                                  <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#e2e8f0'}}>{c.director || c.responsible_name || '—'}</div>
-                                  {c.brand_name && <div style={{fontSize:'0.7rem', color:'var(--primary)', fontWeight:'500'}}>{c.brand_name}</div>}
-                                </td>
-                                <td>
-                                  <div className="meta-icon-group">
-                                    <Icons.Phone style={{width:14}} />
-                                    <span style={{fontSize:'0.85rem', color:'var(--text-secondary)'}}>{c.phone || '—'}</span>
-                                  </div>
-                                </td>
-                                <td style={{textAlign:'center'}}>
-                                   <span className={`badge ${statusClassMap[c.status] || 'badge-kb'}`} style={{fontSize:'0.65rem', padding:'4px 10px'}}>
-                                      {(statusLabel[c.status]||statusLabel['Yangi']).label}
-                                   </span>
-                                </td>
-                                <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
-                                  <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'15px'}}>
-                                     <div onClick={() => handleToggle(c.id)} style={{cursor:'pointer', width:34, height:18, borderRadius:9, 
-                                        background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
-                                        display:'flex', alignItems:'center', padding:'2px', transition:'background 0.3s'}}>
-                                        <div style={{width:14, height:14, borderRadius:'50%', background:'#fff',
-                                          transform: c.is_active ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
-                                     </div>
-                                     {!isExternal(c.id) && (
-                                        <button onClick={()=>setDeleteId(c.id)} style={{background:'none', border:'none', color:'var(--danger)', cursor:'pointer', padding:4, opacity:0.6, fontSize:'1rem'}} title="O'chirish">🗑</button>
-                                     )}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                  </td>
+                                  <td>
+                                    <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#e2e8f0'}}>{c.director || c.responsible_name || '—'}</div>
+                                    {c.brand_name && <div style={{fontSize:'0.7rem', color:'var(--primary)', fontWeight:'500'}}>{c.brand_name}</div>}
+                                  </td>
+                                  <td>
+                                    <div className="meta-icon-group">
+                                      <Icons.Phone style={{width:14}} />
+                                      <span style={{fontSize:'0.85rem', color:'var(--text-secondary)'}}>{c.phone || '—'}</span>
+                                    </div>
+                                  </td>
+                                  <td style={{textAlign:'center'}}>
+                                     <span className={`badge ${statusClassMap[c.status] || 'badge-kb'}`} style={{fontSize:'0.65rem', padding:'4px 10px'}}>
+                                        {(statusLabel[c.status]||statusLabel['Yangi']).label}
+                                     </span>
+                                  </td>
+                                  <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
+                                    <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'15px'}}>
+                                       <div onClick={() => handleToggle(c.id)} style={{cursor:'pointer', width:34, height:18, borderRadius:9, 
+                                          background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                                          display:'flex', alignItems:'center', padding:'2px', transition:'background 0.3s'}}>
+                                          <div style={{width:14, height:14, borderRadius:'50%', background:'#fff',
+                                            transform: c.is_active ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
+                                       </div>
+                                       {!isExternal(c.id) && (
+                                          <button onClick={()=>setDeleteId(c.id)} style={{background:'none', border:'none', color:'var(--danger)', cursor:'pointer', padding:4, opacity:0.6, fontSize:'1rem'}} title="O'chirish">🗑</button>
+                                       )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
                       </div>
-                    );
-                  })}
+                  ))}
                 </div>
               );
             }
