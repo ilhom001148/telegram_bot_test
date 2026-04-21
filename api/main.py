@@ -120,20 +120,28 @@ def health_check():
     return {"status": "ok", "message": "Render health check passed"}
 
 @app.post("/webhook/bot")
+@app.post("/webhook/bot/")
 async def telegram_webhook(update: dict):
     """
     Telegram webhook endpoint + External Company Webhook Fallback.
     """
+    # Debug uchun log: xabar kelayotganini ko'rish
+    # print("DEBUG: Incoming webhook update:", update)
+    
     # 1. Agar Telegramdan kelayotgan xabar bo'lsa
     if "update_id" in update:
-        from bot.main import dp
-        from bot.bot_instance import get_bot
-        from aiogram.types import Update
-        
-        bot = get_bot()
-        telegram_update = Update(**update)
-        await dp.feed_update(bot, telegram_update)
-        return {"ok": True}
+        try:
+            from bot.main import dp
+            from bot.bot_instance import get_bot
+            from aiogram.types import Update
+            
+            bot = get_bot()
+            telegram_update = Update(**update)
+            await dp.feed_update(bot, telegram_update)
+            return {"ok": True}
+        except Exception as e:
+            print(f"❌ Webhook Processing Error: {e}")
+            return {"ok": False, "error": str(e)}
         
     # 2. Agar BOSHQA TIZIMDAN (Tashqi bot) kelayotgan JSON Data bo'lsa
     from bot.db import SessionLocal
