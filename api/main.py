@@ -30,7 +30,8 @@ async def init_db():
             ("prompt_tokens", "INTEGER DEFAULT 0"),
             ("completion_tokens", "INTEGER DEFAULT 0"),
             ("total_tokens", "INTEGER DEFAULT 0"),
-            ("is_staff", "BOOLEAN DEFAULT FALSE")
+            ("is_staff", "BOOLEAN DEFAULT FALSE"),
+            ("answered_at", "TIMESTAMP NULL")
         ]
         
         for col_name, col_type in columns:
