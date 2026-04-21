@@ -792,61 +792,91 @@ function CompaniesManager({ token }) {
             }
 
             if (viewMode === 'list') {
+              const statuses = [
+                { id: 'FAOL', title: 'Faol Kompaniyalar', color: '#10b981' },
+                { id: 'Yangi', title: 'Yangi Kompaniyalar', color: '#6366f1' },
+                { id: 'To\'xtatilgan', title: 'To\'xtatilganlar', color: '#f59e0b' },
+                { id: 'Bekor qilingan', title: 'Bekor qilinganlar', color: '#ef4444' }
+              ];
+
               return (
-                <div className="glass-card" style={{marginTop:'1.5rem', padding:0, overflowX:'auto', border:'1px solid var(--card-border)'}}>
-                  <table className="premium-table" style={{width:'100%', borderCollapse:'collapse'}}>
-                    <thead>
-                      <tr style={{background:'rgba(255,255,255,0.03)', borderBottom:'1px solid var(--card-border)'}}>
-                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Kompaniya</th>
-                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Direktor / Mas'ul</th>
-                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Telefon</th>
-                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Status</th>
-                        <th style={{padding:'1rem', textAlign:'left', fontSize:'0.85rem', color:'var(--text-muted)'}}>Harakat</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map(c => (
-                        <tr key={c.id} onClick={() => openEdit(c)} style={{borderBottom:'1px solid rgba(255,255,255,0.05)', cursor:'pointer', transition:'background 0.2s'}} 
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{padding:'1rem'}}>
-                            <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                              <div style={{width:36, height:36, borderRadius:8, overflow:'hidden', background:'rgba(255,255,255,0.05)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                                {c.logo_url ? <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <Icons.Company style={{width:18, opacity:0.5}}/>}
-                              </div>
-                              <div>
-                                <div style={{fontWeight:600, fontSize:'0.9rem'}}>{c.name}</div>
-                                <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>ID: #{c.id.toString().replace('ext-','')}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{padding:'1rem'}}>
-                            <div style={{fontSize:'0.9rem'}}>{c.director || c.responsible_name || '—'}</div>
-                            {c.brand_name && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{c.brand_name}</div>}
-                          </td>
-                          <td style={{padding:'1rem', fontSize:'0.9rem'}}>{c.phone || '—'}</td>
-                          <td style={{padding:'1rem'}}>
-                             <div className={`status-indicator ${statusClassMap[c.status] || 'status-new'}`} style={{fontSize:'0.8rem', padding:'4px 10px'}}>
-                                {(statusLabel[c.status]||statusLabel['Yangi']).label}
-                             </div>
-                          </td>
-                          <td style={{padding:'1rem'}} onClick={e => e.stopPropagation()}>
-                            <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                               <div onClick={() => handleToggle(c.id)} style={{cursor:'pointer', width:36, height:18, borderRadius:9, 
-                                  background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
-                                  display:'flex', alignItems:'center', padding:'2px', transition:'background 0.3s'}}>
-                                  <div style={{width:14, height:14, borderRadius:'50%', background:'#fff',
-                                    transform: c.is_active ? 'translateX(18px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
-                               </div>
-                               {!isExternal(c.id) && (
-                                  <button onClick={()=>setDeleteId(c.id)} style={{background:'none', border:'none', color:'var(--danger)', cursor:'pointer', padding:4, opacity:0.7}} title="O'chirish">🗑</button>
-                               )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div style={{marginTop:'1.5rem'}}>
+                  {statuses.map(st => {
+                    const groupRows = filtered.filter(c => c.status === st.id);
+                    if (groupRows.length === 0) return null;
+
+                    return (
+                      <div key={st.id} className="list-group-section">
+                        <div className="list-group-header" style={{borderBottomColor: `${st.color}44`}}>
+                          <Icons.ChevronDown />
+                          <div className="status-pill" style={{background: st.color}}>
+                            {st.title}
+                          </div>
+                          <span className="header-count">{groupRows.length} ta korxona</span>
+                        </div>
+
+                        <table className="clickup-table">
+                          <thead>
+                            <tr>
+                              <th className="clickup-column-header" style={{width:'35%'}}>Kompaniya nomi</th>
+                              <th className="clickup-column-header">Direktor / Mas'ul</th>
+                              <th className="clickup-column-header">Telefon</th>
+                              <th className="clickup-column-header" style={{textAlign:'center'}}>Status</th>
+                              <th className="clickup-column-header" style={{textAlign:'center'}}>Harakat</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {groupRows.map(c => (
+                              <tr key={c.id} className="clickup-row" onClick={() => openEdit(c)}>
+                                <td>
+                                  <div className="name-cell">
+                                    <div className="status-dot" style={{background: st.color}}></div>
+                                    <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                                      <div style={{width:32, height:32, borderRadius:8, overflow:'hidden', background:'rgba(255,255,255,0.05)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,0.05)'}}>
+                                        {c.logo_url ? <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <Icons.Company style={{width:16, opacity:0.3}}/>}
+                                      </div>
+                                      <div>
+                                        <div style={{fontWeight:700, fontSize:'0.93rem', color:'#fff'}}>{c.name}</div>
+                                        <div style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>#ID {c.id.toString().replace('ext-','')}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#e2e8f0'}}>{c.director || c.responsible_name || '—'}</div>
+                                  {c.brand_name && <div style={{fontSize:'0.7rem', color:'var(--primary)', fontWeight:'500'}}>{c.brand_name}</div>}
+                                </td>
+                                <td>
+                                  <div className="meta-icon-group">
+                                    <Icons.Phone style={{width:14}} />
+                                    <span style={{fontSize:'0.85rem', color:'var(--text-secondary)'}}>{c.phone || '—'}</span>
+                                  </div>
+                                </td>
+                                <td style={{textAlign:'center'}}>
+                                   <span className={`badge ${statusClassMap[c.status] || 'badge-kb'}`} style={{fontSize:'0.65rem', padding:'4px 10px'}}>
+                                      {(statusLabel[c.status]||statusLabel['Yangi']).label}
+                                   </span>
+                                </td>
+                                <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
+                                  <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'15px'}}>
+                                     <div onClick={() => handleToggle(c.id)} style={{cursor:'pointer', width:34, height:18, borderRadius:9, 
+                                        background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                                        display:'flex', alignItems:'center', padding:'2px', transition:'background 0.3s'}}>
+                                        <div style={{width:14, height:14, borderRadius:'50%', background:'#fff',
+                                          transform: c.is_active ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
+                                     </div>
+                                     {!isExternal(c.id) && (
+                                        <button onClick={()=>setDeleteId(c.id)} style={{background:'none', border:'none', color:'var(--danger)', cursor:'pointer', padding:4, opacity:0.6, fontSize:'1rem'}} title="O'chirish">🗑</button>
+                                     )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             }
