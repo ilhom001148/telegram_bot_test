@@ -82,6 +82,7 @@ async def get_messages(
                 "completion_tokens": message.completion_tokens,
                 "total_tokens": message.total_tokens,
                 "created_at": message.created_at.isoformat() if message.created_at else None,
+                "answered_at": message.answered_at.isoformat() if message.answered_at else None,
                 "answer_text": answer.text if answer else (message.text if message.is_answered and not message.answered_by_bot else None)
             })
 
@@ -123,6 +124,8 @@ async def get_message_detail(message_id: int, db: AsyncSession = Depends(get_db)
             "prompt_tokens": message.prompt_tokens,
             "completion_tokens": message.completion_tokens,
             "total_tokens": message.total_tokens,
+            "created_at": message.created_at.isoformat() if message.created_at else None,
+            "answered_at": message.answered_at.isoformat() if message.answered_at else None,
         }
 
     finally:
@@ -229,6 +232,7 @@ async def get_questions_by_date(date: str, db: AsyncSession = Depends(get_db)):
                 "full_name": q.full_name,
                 "is_answered": q.is_answered,
                 "created_at": q.created_at.strftime("%H:%M"),
+                "answered_at": q.answered_at.strftime("%H:%M") if q.answered_at else None,
                 "username": q.username,
                 "answer_text": answer.text if answer else (q.text if q.is_answered and not q.answered_by_bot else None),
                 "answered_by": answer.full_name if answer else ("Admin" if q.is_answered and not q.answered_by_bot else None)

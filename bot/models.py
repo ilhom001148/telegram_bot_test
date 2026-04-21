@@ -64,6 +64,7 @@ class Message(Base):
     reply_to_message_id = Column(Integer, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    answered_at = Column(DateTime(timezone=True), nullable=True)
 
     group = relationship("Group", back_populates="messages")
 
@@ -150,4 +151,4 @@ class Company(Base):
     subscription_start = Column(DateTime(timezone=True), nullable=True)  # Obuna boshlanishi
     subscription_end = Column(DateTime(timezone=True), nullable=True)    # Obuna tugashi
     is_active = Column(Boolean, default=True)                       # Yoqilgan / O'chirilgan
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

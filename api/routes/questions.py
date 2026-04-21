@@ -33,6 +33,7 @@ def serialize_question(q):
         "completion_tokens": q.completion_tokens,
         "total_tokens": q.total_tokens,
         "is_staff": q.is_staff,
+        "answered_at": q.answered_at.isoformat() if q.answered_at else None,
     }
 
 @router.get("/")

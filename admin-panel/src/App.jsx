@@ -180,10 +180,23 @@ function ArchiveManager({ token }) {
                   <tbody>
                     {questions.map(q => (
                       <tr key={q.id} style={{height: '100px', verticalAlign: 'top'}}>
-                        <td style={{whiteSpace:'nowrap', fontSize:'0.85rem', padding:'25px 15px', color:'var(--text-muted)'}}>{formatDate(q.created_at)}</td>
+                        <td style={{whiteSpace:'nowrap', fontSize:'0.85rem', padding:'25px 15px', color:'var(--text-muted)'}}>
+                           {q.telegram_app_link ? (
+                             <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{formatDate(q.created_at)}</a>
+                           ) : formatDate(q.created_at)}
+                        </td>
                         <td style={{padding:'25px 10px'}}>
-                           <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{q.full_name}</div>
-                           <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginTop:'4px'}}>@{q.username || 'anonim'}</div>
+                           {q.telegram_app_link ? (
+                             <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} style={{textDecoration:'none', color:'inherit'}} title="Telegramda ko'rish">
+                               <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{q.full_name}</div>
+                               <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginTop:'4px'}}>@{q.username || 'anonim'}</div>
+                             </a>
+                           ) : (
+                             <>
+                               <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{q.full_name}</div>
+                               <div style={{fontSize:'0.8rem', color:'var(--text-muted)', marginTop:'4px'}}>@{q.username || 'anonim'}</div>
+                             </>
+                           )}
                         </td>
                         <td style={{fontSize:'0.95rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer', padding:'25px 10px'}} 
                             onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text || ''); }}
@@ -210,11 +223,27 @@ function ArchiveManager({ token }) {
                                </form>
                            ) : (
                                q.answer_text ? (
-                                  <div onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text); }} style={{cursor:'pointer', padding:'10px', background:'rgba(255,255,255,0.03)', borderRadius:'10px'}} title="Tahrirlash uchun bosing">
-                                     <div style={{color:'var(--primary)', fontWeight:'700', fontSize:'0.7rem', textTransform:'uppercase', marginBottom:'6px'}}>
-                                        {q.answered_by || 'Bot'} JAVOBI:
+                                  <div style={{position:'relative', padding:'10px', background:'rgba(255,255,255,0.03)', borderRadius:'10px'}}>
+                                     <div onClick={() => { setAnsweringId(q.id); setAnswerText(q.answer_text); }} style={{cursor:'pointer'}} title="Tahrirlash uchun bosing">
+                                        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px'}}>
+                                           <div style={{color:'var(--primary)', fontWeight:'700', fontSize:'0.7rem', textTransform:'uppercase'}}>
+                                              {q.answered_by || 'Bot'} JAVOBI:
+                                           </div>
+                                           {q.answered_at && (
+                                              <div style={{fontSize:'0.65rem', color:'var(--text-muted)'}}>
+                                                 Javob vaqti: {q.answered_at}
+                                              </div>
+                                           )}
+                                        </div>
+                                        <div style={{color:'#e2e8f0'}}>{q.answer_text}</div>
                                      </div>
-                                     {q.answer_text}
+                                     {q.telegram_app_link && (
+                                        <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} 
+                                           style={{display:'inline-block', marginTop:'8px', fontSize:'0.7rem', textDecoration:'underline'}}
+                                           title="Telegramda ko'rish">
+                                           Telegramda ko'rish ↗
+                                        </a>
+                                     )}
                                   </div>
                                ) : (
                                  <div style={{textAlign:'center'}}>
@@ -225,6 +254,11 @@ function ArchiveManager({ token }) {
                            )}
                         </td>
                         <td style={{textAlign:'center', padding:'25px 10px'}}>
+                           {q.is_answered && (
+                              <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginBottom:'5px'}}>
+                                 {q.answered_at ? q.answered_at : 'Yaqinda'}
+                              </div>
+                           )}
                            <span className={`badge ${q.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.75rem', padding:'6px 14px'}}>
                               {q.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
                            </span>
@@ -1378,7 +1412,15 @@ function Dashboard({ token }) {
                             <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{q.text}</a>
                           ) : q.text}
                         </div>
-                        <div style={{fontSize:'0.7rem', color:'var(--text-muted)', marginTop:'5px'}}>{q.full_name} • {q.group_title} • {formatDate(q.created_at)}</div>
+                        <div style={{fontSize:'0.7rem', color:'var(--text-muted)', marginTop:'5px'}}>
+                           {q.telegram_app_link ? (
+                             <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} style={{color:'inherit'}} title="Telegramda ko'rish">
+                               {q.full_name} • {q.group_title} • {formatDate(q.created_at)}
+                             </a>
+                           ) : (
+                             <>{q.full_name} • {q.group_title} • {formatDate(q.created_at)}</>
+                           )}
+                        </div>
                       </div>
                       {answeringId !== q.id && <button className="btn btn-sm" onClick={() => {setAnsweringId(q.id); setAnswerText('');}}>Javob berish</button>}
                     </div>
@@ -1753,9 +1795,18 @@ function Messages({ token }) {
                       <div className="user-avatar" style={{background: getAvatarColor(msg.full_name || 'U')}}>
                         {getInitials(msg.full_name || 'U')}
                       </div>
-                      <div>
-                        <div style={{fontWeight:'700', fontSize:'1rem'}}>{msg.full_name}</div>
-                        {msg.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{msg.username}</div>}
+                      <div style={{flex:1}}>
+                        {msg.telegram_app_link ? (
+                           <a href={msg.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} style={{textDecoration:'none', color:'inherit'}} title="Telegramda ko'rish">
+                              <div style={{fontWeight:'700', fontSize:'1rem'}}>{msg.full_name}</div>
+                              {msg.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{msg.username}</div>}
+                           </a>
+                        ) : (
+                           <>
+                              <div style={{fontWeight:'700', fontSize:'1rem'}}>{msg.full_name}</div>
+                              {msg.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{msg.username}</div>}
+                           </>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -1770,7 +1821,9 @@ function Messages({ token }) {
                         ) : msg.text}
                     </div>
                     <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'8px'}}>
-                       {formatDate(msg.created_at)}
+                       {msg.telegram_app_link ? (
+                          <a href={msg.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{formatDate(msg.created_at)}</a>
+                       ) : formatDate(msg.created_at)}
                     </div>
                   </td>
                   <td style={{padding:'20px 10px'}}>
@@ -1796,16 +1849,23 @@ function Messages({ token }) {
                          </div>
                       </form>
                     ) : (
-                      <div onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }} style={{cursor:'pointer'}}>
-                        {msg.is_staff ? (
-                          <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.15)', color:'var(--primary)'}}>Xodim xabari</span>
-                        ) : (
-                          <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{boxShadow: msg.is_answered ? 'none' : '0 0 15px rgba(239, 68, 68, 0.3)'}}>
-                            {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
-                          </span>
+                      <>
+                        {msg.is_answered && (
+                           <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginBottom:'5px'}}>
+                              Javob: {msg.answered_at ? formatDate(msg.answered_at) : 'Yaqinda'}
+                           </div>
                         )}
-                        {msg.is_answered && <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginTop:'5px'}}>Qayta javob berish</div>}
-                      </div>
+                        <div onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }} style={{cursor:'pointer'}}>
+                          {msg.is_staff ? (
+                            <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.15)', color:'var(--primary)'}}>Xodim xabari</span>
+                          ) : (
+                            <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{boxShadow: msg.is_answered ? 'none' : '0 0 15px rgba(239, 68, 68, 0.3)'}}>
+                              {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
+                            </span>
+                          )}
+                          {msg.is_answered && <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginTop:'5px'}}>Qayta javob berish</div>}
+                        </div>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -1997,22 +2057,42 @@ function GroupHistory({ token, group, onBack }) {
               {msgs.length > 0 ? msgs.map(m => (
                  <tr key={m.id} style={{height: '110px', verticalAlign:'top'}}>
                    <td style={{padding:'25px 20px', fontSize:'0.85rem', color:'var(--text-muted)', fontWeight:'600'}}>
-                      {formatDate(m.created_at)}
+                       {m.telegram_app_link ? (
+                         <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{formatDate(m.created_at)}</a>
+                       ) : formatDate(m.created_at)}
                    </td>
                    <td style={{padding:'25px 10px'}}>
-                      <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                        <div className="user-avatar" style={{
-                          background: getAvatarColor(m.full_name || 'U'), 
-                          width:'36px', height:'36px', fontSize:'0.85rem'
-                        }}>
-                          {getInitials(m.full_name || 'U')}
+                      {m.telegram_app_link ? (
+                         <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} style={{textDecoration:'none', color:'inherit'}} title="Telegramda ko'rish">
+                            <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                               <div className="user-avatar" style={{
+                                 background: getAvatarColor(m.full_name || 'U'), 
+                                 width:'36px', height:'36px', fontSize:'0.85rem'
+                               }}>
+                                 {getInitials(m.full_name || 'U')}
+                               </div>
+                               <div>
+                                 <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
+                                 {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
+                                 {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
+                               </div>
+                            </div>
+                         </a>
+                      ) : (
+                        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                          <div className="user-avatar" style={{
+                            background: getAvatarColor(m.full_name || 'U'), 
+                            width:'36px', height:'36px', fontSize:'0.85rem'
+                          }}>
+                            {getInitials(m.full_name || 'U')}
+                          </div>
+                          <div>
+                            <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
+                            {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
+                            {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
+                          </div>
                         </div>
-                        <div>
-                          <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
-                          {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
-                          {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
-                        </div>
-                      </div>
+                      )}
                    </td>
                    <td style={{padding:'30px 10px'}}>
                      <div 
@@ -2057,7 +2137,7 @@ function GroupHistory({ token, group, onBack }) {
                    </td>
                    <td style={{padding:'30px 10px', textAlign:'center'}}>
                       <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.75rem', padding:'6px 14px', opacity: m.is_question ? 1 : 0.4}}>
-                         {m.is_answered ? 'Javob berilgan' : (m.is_staff ? 'Xodim' : 'Kutilmoqda')}
+                         {m.is_answered && m.answered_at ? `(${formatDate(m.answered_at)}) ` : ''}{m.is_answered ? 'Javob berilgan' : (m.is_staff ? 'Xodim' : 'Kutilmoqda')}
                       </span>
                     </td>
                  </tr>

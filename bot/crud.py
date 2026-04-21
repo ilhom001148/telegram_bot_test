@@ -155,6 +155,7 @@ async def mark_question_answered(
 ) -> Message:
     question.is_answered = True
     question.answered_by_bot = answered_by_bot
+    question.answered_at = func.now()
     await db.commit()
     await db.refresh(question)
     return question
