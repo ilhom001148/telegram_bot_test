@@ -27,6 +27,10 @@ const Icons = {
   List: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>,
   Search: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
   ExternalLink: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>,
+  Flag: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/></svg>,
+  Calendar: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5v-5z"/></svg>,
+  ChevronDown: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>,
+  Add: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>,
 };
 
 const getAvatarColor = (name) => {
@@ -1769,120 +1773,117 @@ function Messages({ token }) {
 
   return (
     <>
-      <div className="flex-between" style={{marginBottom:'2.5rem'}}>
+      <div className="flex-between" style={{marginBottom:'1rem'}}>
          <h2 className="header-title" style={{margin:0}}>Muloqotlar jurnali</h2>
-         <a href={`${API_URL}/export/messages`} className="btn btn-sm" style={{padding:'10px 24px'}}>
+         <a href={`${API_URL}/export/messages`} className="btn btn-sm btn-outline" style={{padding:'8px 20px', border:'1px solid rgba(255,255,255,0.1)'}}>
             📥 Excel yuklab olish
          </a>
       </div>
 
-      <div className="glass-card" style={{padding:'1.5rem'}}>
-        <div className="table-wrapper">
-          <table className="premium-table">
-            <thead>
-              <tr>
-                <th style={{padding:'20px'}}>Foydalanuvchi</th>
-                <th>Xabar (Savol)</th>
-                <th>Guruh</th>
-                <th style={{textAlign:'center'}}>Holati</th>
-              </tr>
-            </thead>
-            <tbody>
-              {messages.map(msg => (
-                <tr key={msg.id} style={{height: '90px', verticalAlign: 'top'}}>
-                  <td style={{padding:'20px'}}>
-                    <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-                      <div className="user-avatar" style={{background: getAvatarColor(msg.full_name || 'U')}}>
-                        {getInitials(msg.full_name || 'U')}
-                      </div>
-                      <div style={{flex:1}}>
-                        {msg.telegram_app_link ? (
-                           <a href={msg.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} style={{textDecoration:'none', color:'inherit'}} title="Telegramda ko'rish">
-                              <div style={{fontWeight:'700', fontSize:'1rem'}}>{msg.full_name}</div>
-                              {msg.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{msg.username}</div>}
-                           </a>
-                        ) : (
-                           <>
-                              <div style={{fontWeight:'700', fontSize:'1rem'}}>{msg.full_name}</div>
-                              {msg.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{msg.username}</div>}
-                           </>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{maxWidth:'300px', padding:'20px 10px'}}>
-                    <div 
-                      className="clickable-text"
-                      style={{fontSize:'0.95rem', lineHeight:'1.6', color:'#e2e8f0', cursor:'pointer'}}
-                      onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}
-                    >
-                        {msg.telegram_app_link ? (
-                            <a href={msg.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{msg.text}</a>
-                        ) : msg.text}
-                    </div>
-                    <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'8px'}}>
-                       {msg.telegram_app_link ? (
-                          <a href={msg.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{formatDate(msg.created_at)}</a>
-                       ) : formatDate(msg.created_at)}
-                    </div>
-                  </td>
-                  <td style={{padding:'20px 10px'}}>
-                    <div className="messenger-group-tag">
-                      <Icons.Groups style={{width:12}}/>
-                      {msg.group_title}
-                    </div>
-                  </td>
-                  <td style={{padding:'20px 10px', textAlign:'center'}}>
-                    {answeringId === msg.id ? (
-                      <form onSubmit={(e) => handleSendAnswer(e, msg.id)} style={{minWidth:'200px'}}>
-                         <textarea 
-                            rows="2" 
-                            value={answerText} 
-                            onChange={e => setAnswerText(e.target.value)}
-                            placeholder="Javob yozing..."
-                            style={{width:'100%', padding:'8px', fontSize:'0.85rem', marginBottom:'8px', borderRadius:'8px', background:'rgba(0,0,0,0.2)', color:'#fff', border:'1px solid var(--primary)'}}
-                            autoFocus
-                         />
-                         <div style={{display:'flex', gap:'5px'}}>
-                            <button type="submit" className="btn btn-sm" disabled={sending} style={{flex:1, fontSize:'0.7rem'}}>{sending ? '...' : 'Yuborish'}</button>
-                            <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.7rem'}}>✖</button>
-                         </div>
-                      </form>
-                    ) : (
-                      <>
-                        {msg.is_answered && (
-                           <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginBottom:'5px'}}>
-                              Javob: {msg.answered_at ? formatDate(msg.answered_at) : 'Yaqinda'}
-                           </div>
-                        )}
-                        <div onClick={() => { if(!msg.is_staff) { setAnsweringId(msg.id); setAnswerText(''); } }} style={{cursor: msg.is_staff ? 'default' : 'pointer'}}>
-                          {msg.is_staff ? (
-                            <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.2)', color:'var(--primary)', fontWeight:'700', padding:'6px 14px'}}>Xodim xabari</span>
-                          ) : (
-                            <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{boxShadow: msg.is_answered ? 'none' : '0 0 15px rgba(239, 68, 68, 0.3)', padding:'6px 14px'}}>
-                              {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
-                            </span>
-                          )}
-                          {!msg.is_staff && msg.is_answered && <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginTop:'5px'}}>Qayta javob berish</div>}
-                        </div>
-                        <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginTop:'5px'}}>
-                           Yozildi: {formatDate(msg.created_at)}
-                        </div>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div style={{marginBottom:'2rem'}}>
+        {[
+          { id: 'unanswered', title: 'Kutilmoqda', color: '#ef4444', items: messages.filter(m => !m.is_answered) },
+          { id: 'answered', title: 'Javob berilgan', color: '#10b981', items: messages.filter(m => m.is_answered) }
+        ].map(group => group.items.length > 0 && (
+          <div key={group.id} className="list-group-section">
+            <div className="list-group-header" style={{borderBottomColor: `${group.color}44`}}>
+              <Icons.ChevronDown />
+              <div className="status-pill" style={{background: group.color}}>
+                {group.title}
+              </div>
+              <span className="header-count">{group.items.length} xabar</span>
+            </div>
 
-        <div className="flex-between" style={{marginTop:'2rem', padding:'0 1rem'}}>
-          <button className="btn btn-sm btn-outline" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{padding:'8px 20px'}}>Orqaga</button>
-          <div style={{fontSize:'0.9rem', fontWeight:'600'}}>
-             Varaq <span style={{color: 'var(--primary)'}}>{page + 1}</span> / {Math.ceil(total / 15) || 1}
+            <table className="clickup-table">
+              <thead>
+                <tr>
+                  <th className="clickup-column-header" style={{width:'40%'}}>Xabar va Mazmuni</th>
+                  <th className="clickup-column-header">Kimdan / Assignee</th>
+                  <th className="clickup-column-header">Vaqt / Due</th>
+                  <th className="clickup-column-header" style={{textAlign:'center'}}>Priority</th>
+                  <th className="clickup-column-header" style={{textAlign:'center'}}>Guruh</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.items.map(msg => (
+                  <tr key={msg.id} className="clickup-row">
+                    <td>
+                      <div className="name-cell">
+                        <div className="status-dot" style={{background: group.color}}></div>
+                        <div style={{flex:1, minWidth:0}}>
+                          <div 
+                            className="task-text" 
+                            style={{cursor:'pointer'}} 
+                            onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}
+                            title={msg.text}
+                          >
+                            {msg.text}
+                          </div>
+                          {answeringId === msg.id && (
+                            <form onSubmit={(e) => handleSendAnswer(e, msg.id)} style={{marginTop:'12px', background:'rgba(0,0,0,0.2)', padding:'12px', borderRadius:'8px', border:'1px solid var(--primary)'}}>
+                              <textarea 
+                                rows="2" 
+                                value={answerText} 
+                                onChange={e => setAnswerText(e.target.value)}
+                                placeholder="Javob yozing..."
+                                style={{width:'100%', background:'transparent', border:'none', color:'#fff', outline:'none', fontSize:'0.85rem'}}
+                                autoFocus
+                              />
+                              <div style={{display:'flex', gap:'8px', marginTop:'8px'}}>
+                                <button type="submit" className="btn btn-sm" disabled={sending} style={{fontSize:'0.7rem'}}>{sending ? '...' : 'Yuborish'}</button>
+                                <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.7rem'}}>Bekor qilish</button>
+                              </div>
+                            </form>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                        <div className="user-avatar" style={{background: getAvatarColor(msg.full_name || 'U'), width:24, height:24, fontSize:'0.7rem'}}>
+                          {getInitials(msg.full_name || 'U')}
+                        </div>
+                        <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#fff'}}>
+                          {msg.full_name?.split(' ')[0]}
+                          {msg.is_staff && <span style={{marginLeft:'5px', color:'var(--primary)', fontSize:'0.65rem'}}>🛡️</span>}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="meta-icon-group" title={formatDate(msg.created_at)}>
+                        <Icons.Calendar />
+                        <span style={{fontSize:'0.75rem'}}>{msg.created_at?.split('T')[0]?.split('-').slice(1).join('/')}</span>
+                      </div>
+                    </td>
+                    <td style={{textAlign:'center'}}>
+                      <div title={msg.is_staff ? 'Staff Message' : 'Normal Priority'}>
+                        <Icons.Flag className={`priority-flag priority-${msg.is_staff ? 'urgent' : (msg.text.length > 100 ? 'high' : 'normal')}`} />
+                      </div>
+                    </td>
+                    <td style={{textAlign:'center'}}>
+                      <div className="messenger-group-tag" style={{display:'inline-block', fontSize:'0.7rem', padding:'2px 8px'}}>
+                        {msg.group_title?.substring(0, 15)}{msg.group_title?.length > 15 ? '...' : ''}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="clickup-footer-action">
+              <Icons.Add />
+              <span>Yangi topshiriq qo'shish (Mock)</span>
+            </div>
           </div>
-          <button className="btn btn-sm" disabled={(page + 1) * 15 >= total} onClick={() => setPage(p => p + 1)} style={{padding:'8px 20px'}}>Oldinga</button>
+        ))}
+      </div>
+
+      <div className="flex-between" style={{marginTop:'2rem', padding:'1rem', background:'rgba(255,255,255,0.02)', borderRadius:'12px'}}>
+        <div style={{display:'flex', gap:'12px'}}>
+          <button className="btn btn-sm btn-outline" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{padding:'8px 20px'}}>Orqaga</button>
+          <button className="btn btn-sm btn-outline" disabled={(page + 1) * 15 >= total} onClick={() => setPage(p => p + 1)} style={{padding:'8px 20px'}}>Oldinga</button>
+        </div>
+        <div style={{fontSize:'0.9rem', fontWeight:'600', color:'var(--text-muted)'}}>
+           Varaq <span style={{color: 'var(--primary)'}}>{page + 1}</span> / {Math.ceil(total / 15) || 1}
         </div>
       </div>
     </>
