@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete, cast, Integer, and_
+from sqlalchemy.orm import joinedload
 from api.dependencies import get_db
 from bot.models import Group, Message
 

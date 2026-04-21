@@ -2078,7 +2078,10 @@ function GroupHistory({ token, group, onBack }) {
     fetch(`${API_URL}/groups/${group.id}/messages?limit=50`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => res.json())
       .then(d => { setMsgs(d.items || []); setLoading(false); })
-      .catch(() => { setLoading(false); }); 
+      .catch((err) => { 
+        console.error("Group History Fetch Error:", err);
+        setLoading(false); 
+      }); 
   };
 
   useEffect(() => { 
