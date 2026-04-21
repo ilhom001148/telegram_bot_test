@@ -32,6 +32,7 @@ def serialize_question(q):
         "prompt_tokens": q.prompt_tokens,
         "completion_tokens": q.completion_tokens,
         "total_tokens": q.total_tokens,
+        "is_staff": q.is_staff,
     }
 
 @router.get("/")
@@ -41,7 +42,8 @@ async def get_all_questions(
     offset: int = 0,
 ):
     query = select(Message).options(joinedload(Message.group)).filter(
-        Message.is_question == True
+        Message.is_question == True,
+        Message.is_staff == False
     )
     
     count_query = select(func.count()).select_from(query.alias())
@@ -70,7 +72,8 @@ async def get_unanswered_questions(
 ):
     query = select(Message).options(joinedload(Message.group)).filter(
         Message.is_question == True,
-        Message.is_answered == False
+        Message.is_answered == False,
+        Message.is_staff == False
     )
     
     count_query = select(func.count()).select_from(query.alias())
@@ -108,6 +111,9 @@ async def answer_question(
 
     if not question:
         raise HTTPException(status_code=404, detail="Xabar topilmadi")
+    
+    if question.is_staff:
+        raise HTTPException(status_code=403, detail="Support xabarlariga bu yerdan javob berib bo'lmaydi")
     
     # Guruh yoki shaxsiy chat ekanini aniqlash
     chat_id = question.group.telegram_id if question.group else question.user_id

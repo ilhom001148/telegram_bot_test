@@ -332,7 +332,7 @@ async def handle_group_message(message: TgMessage):
                 full_name=message.from_user.full_name if message.from_user else None,
                 username=message.from_user.username if message.from_user else None,
                 text=text,
-                is_question=is_question, 
+                is_question=is_question if not is_staff else False, # Count as question only if NOT staff
                 is_staff=is_staff,
                 reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             )

@@ -97,7 +97,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
 
         most_active_user_query = await db.execute(
             select(Message.full_name, Message.username, func.count(Message.id).label('q_count'))
-            .filter(Message.is_question == True)
+            .filter(Message.is_question == True, Message.is_staff == False)
             .group_by(Message.user_id, Message.full_name, Message.username)
             .order_by(func.count(Message.id).desc())
             .limit(1)
@@ -127,7 +127,12 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
             trending_formatted = globals()['topics_cache']["data"]
         else:
             try:
-                recent_qs_query = await db.execute(select(Message.text).filter(Message.is_question == True).order_by(Message.id.desc()).limit(50))
+                recent_qs_query = await db.execute(
+                    select(Message.text)
+                    .filter(Message.is_question == True, Message.is_staff == False)
+                    .order_by(Message.id.desc())
+                    .limit(50)
+                )
                 recent_qs = recent_qs_query.all()
                 if not recent_qs:
                     trending_formatted = []

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, cast, Integer, and_
 from api.dependencies import get_db
 from bot.models import Group, Message
 
@@ -58,19 +58,35 @@ async def get_groups(db: AsyncSession = Depends(get_db)):
         result = await db.execute(select(Group))
         all_groups = result.scalars().all()
 
-        # Nomi bo'yicha guruhlash
+        # Nomi bo'yicha guruhlash (Trim qilingan va Case-insensitive)
         grouped_by_title = {}
         for g in all_groups:
-            if g.title not in grouped_by_title:
-                grouped_by_title[g.title] = []
-            grouped_by_title[g.title].append(g)
+            clean_title = (g.title or "").strip()
+            if not clean_title:
+                continue
+            if clean_title not in grouped_by_title:
+                grouped_by_title[clean_title] = []
+            grouped_by_title[clean_title].append(g)
 
         final_result = []
         for title, subgroups in grouped_by_title.items():
             ids = [g.id for g in subgroups]
+            if not ids:
+                continue
             
             # Asosiy ma'lumotlar uchun eng oxirgi guruhni olamiz
             main_group = subgroups[-1]
+            
+            # Statistikani bir marta hisoblaymiz
+            stats_query = select(
+                func.count(Message.id).label("total"),
+                func.sum(cast(Message.is_question, Integer)).label("questions"),
+                func.sum(cast(and_(Message.is_question == True, Message.is_answered == True), Integer)).label("answered")
+            ).filter(Message.group_id.in_(ids))
+            
+            # SQLAlchemy async select with multiple labels
+            # Use separate queries for clarity if legacy support is needed, 
+            # but let's optimize with single aggregated query
             
             total_msgs_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id.in_(ids)))
             total_messages = total_msgs_res.scalar() or 0

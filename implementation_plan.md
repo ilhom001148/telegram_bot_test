@@ -44,6 +44,12 @@ Admin paneldagi chap taraf yon menyusiga yupang-yangi **"👥 Mijozlar (CRM)"** 
 ## User Review Required
 
 > [!WARNING]
+> This plan aims to synchronize the bot's behavior with the user's requirements:
+1. Support users' messages should be stored in the database but **not answered** from the Admin Panel.
+2. The bot should correctly detect questions and answer from the database/AI unless "Tracking Mode" is enabled.
+3. Clean up the "Questions" list in the Admin Panel to exclude staff messages.
+4. **[NEW]** Fix the "Groups" section in the Admin Panel which is currently not showing data.
+> 
 > Tizim xabarlarni taymer(vaqt) bilan yuborishi uchun sizga "Botni qayta yoqish" (Restart) hamda bazaga yangi jadval (Table) qo'shayotganligimiz sabab, ma'lumotlar bazasi structurasi yangilanadi. Bu sizning hozirgi yozishmalaringiz va bilimlar ro'yxatiga zarracha zarar qilmaydi, lekin xabardor qilib qoyish zimmamda. 
 > 
 > **Tasdiqlaysizmi? Ishni boshlashim mumkinmi?**
