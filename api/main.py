@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
@@ -77,6 +77,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# [NEW] Logging Middleware - Render loglarida so'rovlarni ko'rish uchun
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    # Faqat API va Webhook so'rovlarini log qilamiz (statik fayllarni emas)
+    if request.url.path.startswith(("/webhook", "/api-status", "/health", "/auth")):
+        print(f"DEBUG: {request.method} {request.url.path}")
+    return await call_next(request)
+
+# [NEW] Webhook routes - Eng yuqoriga o'tkazildi (Priority)
+@app.get("/webhook/bot")
+@app.get("/webhook/bot/")
+async def telegram_webhook_test():
+    return {"status": "active", "message": "Webhook endpoint is active (Wait for POST from Telegram)"}
+
+@app.post("/webhook/bot")
+@app.post("/webhook/bot/")
+async def telegram_webhook(update: dict):
+    """
+    Telegram webhook endpoint + External Company Webhook Fallback.
+    """
+    # 1. Agar Telegramdan kelayotgan xabar bo'lsa
+    if "update_id" in update:
+        try:
+            from bot.main import dp
+            from bot.bot_instance import get_bot
+            from aiogram.types import Update
+            
+            bot = get_bot()
+            telegram_update = Update(**update)
+            await dp.feed_update(bot, telegram_update)
+            return {"ok": True}
+        except Exception as e:
+            print(f"❌ Webhook Processing Error: {e}")
+            return {"ok": False, "error": str(e)}
+
+    # 2. Agar BOSHQA TIZIMDAN (Tashqi bot) kelayotgan JSON Data bo'lsa
+    from bot.db import SessionLocal
+    from bot.models import Company
+    
+    async with SessionLocal() as db:
+        try:
+            name = update.get("name") or update.get("company_name") or update.get("title") or "Tashqi Tizim Kompaniyasi"
+            phone = update.get("phone") or update.get("phone_number") or update.get("contact")
+            director = update.get("director") or update.get("owner") or update.get("fullname")
+            
+            new_company = Company(
+                name=str(name),
+                phone=str(phone) if phone else None,
+                director=str(director) if director else None,
+                status="Yangi",
+                is_active=True
+            )
+            
+            db.add(new_company)
+            await db.commit()
+            return {"status": "success", "message": "Ma'lumotlar 'Kompaniyalar' paneliga saqlandi"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
 import asyncio
 from bot.main import start_bot
 
@@ -119,56 +178,6 @@ def root():
 def health_check():
     return {"status": "ok", "message": "Render health check passed"}
 
-@app.post("/webhook/bot")
-@app.post("/webhook/bot/")
-async def telegram_webhook(update: dict):
-    """
-    Telegram webhook endpoint + External Company Webhook Fallback.
-    """
-    # Debug uchun log: xabar kelayotganini ko'rish
-    # print("DEBUG: Incoming webhook update:", update)
-    
-    # 1. Agar Telegramdan kelayotgan xabar bo'lsa
-    if "update_id" in update:
-        try:
-            from bot.main import dp
-            from bot.bot_instance import get_bot
-            from aiogram.types import Update
-            
-            bot = get_bot()
-            telegram_update = Update(**update)
-            await dp.feed_update(bot, telegram_update)
-            return {"ok": True}
-        except Exception as e:
-            print(f"❌ Webhook Processing Error: {e}")
-            return {"ok": False, "error": str(e)}
-        
-    # 2. Agar BOSHQA TIZIMDAN (Tashqi bot) kelayotgan JSON Data bo'lsa
-    from bot.db import SessionLocal
-    from bot.models import Company
-    
-    async with SessionLocal() as db:
-        try:
-            # Tashqi bot qanday nom bilan yuborganini taxminan o'qiymiz
-            name = update.get("name") or update.get("company_name") or update.get("title") or "Tashqi Tizim Kompaniyasi"
-            phone = update.get("phone") or update.get("phone_number") or update.get("contact")
-            director = update.get("director") or update.get("owner") or update.get("fullname")
-            
-            new_company = Company(
-                name=str(name),
-                phone=str(phone) if phone else None,
-                director=str(director) if director else None,
-                status="Yangi",
-                is_active=True
-            )
-            
-            db.add(new_company)
-            await db.commit()
-            print(f"✅ Tashqi Webhook orqali yangi kompaniya saqlandi: {name}")
-            return {"status": "success", "message": "Ma'lumotlar 'Kompaniyalar' paneliga saqlandi"}
-        except Exception as e:
-            print("Webhook Company Save Error:", e)
-            return {"status": "error", "message": str(e)}
 
 @app.get("/bot-status")
 async def bot_status():

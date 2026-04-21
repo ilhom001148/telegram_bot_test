@@ -17,8 +17,14 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
         total_groups_result = await db.execute(select(func.count(Group.title.distinct())))
         total_groups = total_groups_result.scalar() or 0
         
+        # Statistikalar
+        # 1. Jami xabarlar (Faqat userlar + Staff)
         total_messages_result = await db.execute(select(func.count(Message.id)))
         total_messages = total_messages_result.scalar() or 0
+        
+        # 2. Jami xabarlar (Faqat userlar)
+        total_messages_no_staff_result = await db.execute(select(func.count(Message.id)).filter(Message.is_staff == False))
+        total_messages_no_staff = total_messages_no_staff_result.scalar() or 0
         
         total_users_result = await db.execute(select(func.count(Message.user_id.distinct())))
         total_users = total_users_result.scalar() or 0

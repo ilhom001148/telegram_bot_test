@@ -476,7 +476,8 @@ async def start_bot():
                     await asyncio.sleep(3600)
             elif WEBHOOK_URL:
                 # ✅ O'z webhookimizni to'g'ridan-to'g'ri Telegramga ro'yxatdan o'tkazamiz
-                webhook_endpoint = f"{WEBHOOK_URL.rstrip('/')}/webhook/bot"
+                clean_url = WEBHOOK_URL.strip().rstrip('/')
+                webhook_endpoint = f"{clean_url}/webhook/bot"
                 await bot.set_webhook(
                     url=webhook_endpoint,
                     drop_pending_updates=True,
