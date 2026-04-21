@@ -30,28 +30,36 @@ def detect_question(text: str) -> bool:
         return False
     
     # 1. Belgilar orqali (Signs)
-    if "?" in text or "!" in text: # ! ham ko'pincha yordam so'rashni bildiradi
+    # Undov belgisini avtomatik savol deb ko'rmaymiz, faqat so'roq belgisi
+    if "?" in text:
         return True
     
-    # 2. Savol va yordam so'zlari (Uzbek & Russian)
+    # 2. O'zbekcha savol qo'shimchalari (-mi, -chi, -a)
+    # Masalan: "keldimi", "qalay-chi", "shunaqami?"
+    text_lower = text.lower().strip()
+    import re
+    if re.search(r'(\w+mi|\w+-mi|\w+chi|\w+-chi|\w+-a)\b', text_lower):
+        return True
+
+    # 3. Savol va yordam so'zlari (Uzbek & Russian)
+    # Soha so'zlari qo'shildi: narxi, manzil, kvadrat, bormi
     question_keywords = [
         # Uzbek
         "nima", "qanday", "nega", "qachon", "kim", "qancha", "qaysi", "qanaqa", 
         "nechta", "qayerda", "nimaga", "qilib", "ber", "yordam", "maslahat",
-        "ishlamayapti", "xato", "chiqmayapti", "error", "bug", "muammo", "tushunmadim",
+        "ishlamayapti", "xato", "chiqmayapti", "muammo", "tushunmadim",
         "tushuntir", "ayt", "gapir", "qilsam", "bo'ladi", "qilsa", "mumkin", "kerak",
-        "bilmoqchi", "aytsangiz", "yordamingiz", "narxi", "qancha", "manzil", "qayer",
+        "bilmoqchi", "aytsangiz", "yordamingiz", "narxi", "manzil", "qayer",
+        "tashrif", "qurilish", "kvadrat", "dokument", "shartnoma", "qachon", "bormi",
         # Russian
         "что", "как", "почему", "когда", "кто", "сколько", "какой", "где",
-        "помоги", "совет", "ошибка", "проблема", "баг", "не работает", "почему",
+        "помоги", "совет", "ошибка", "проблема", "баг", "не работает",
         "скажи", "объясни", "подскажи", "цена", "адрес", "где находится"
     ]
     
-    text_lower = text.lower().strip()
     words = text_lower.split()
-    
     # Faqat bitta so'z bo'lsa va u savol bo'lmasa (masalan: "Salom")
-    if len(words) <= 1 and not ("?" in text_lower):
+    if len(words) <= 1 and "?" not in text_lower:
         return False
 
     return any(word in text_lower for word in question_keywords)
@@ -65,10 +73,12 @@ async def is_question_ai(text: str) -> bool:
     # 2. Agar noaniq bo'lsa, AI dan juda qisqa so'raymiz
     provider = await get_db_setting("ai_provider", "openai")
     prompt = (
-        "TASK: Analyze the user message and determine if it requires a helpful response from an AI assistant. "
-        "Return 'TRUE' if the message is: a question, a help request, a technical problem report, or a request for a task. "
-        "Return 'FALSE' if the message is: just a greeting (Salom/Hi), a thank you (Rahmat/Thanks), "
-        "a simple agreement (Ok/Xo'p), social small talk, or random noise. "
+        "USER CONTEXT: You are a question detection validator for 'UyQur', a real estate development and construction company. "
+        "Users in Telegram groups ask about apartment prices, construction materials (cement, bricks), square meters, locations, and visits. "
+        "TASK: Analyze the user message and determine if it requires a helpful response from an AI assistant or a sales agent. "
+        "Return 'TRUE' if the message is: a question, a help request, a technical problem report, or an inquiry about property/services. "
+        "Return 'FALSE' if the message is: a greeting (Salom/Hi), a thank you (Rahmat/Thanks), a plain statement without intent, "
+        "or social small talk. Be strict: if it doesn't need an answer, return FALSE. "
         "Only respond with 'TRUE' or 'FALSE'."
     )
     
@@ -214,49 +224,7 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
         }
 
 
-async def transcribe_audio(file_path: str) -> str:
-    """Ovozni matnga aylantirish — Cloud API (Groq yoki OpenAI)."""
-    # STT faqat Cloud API orqali (Render free tier uchun lokal model sig'maydi)
-    provider = await get_db_setting("ai_provider", "openai")
-    stt_mode = await get_db_setting("stt_mode", "cloud")
-    
-    # 3. Cloud API (Fallback yoki Asosiy)
-    try:
-        if not os.path.exists(file_path):
-            print(f"❌ XATO: Audio fayl topilmadi: {file_path}")
-            return ""
+# Transcription functionality removed as per user request
 
-        if provider == "groq":
-            api_key = await get_db_setting("groq_api_key", os.getenv("GROQ_API_KEY", ""))
-            if not api_key:
-                print("❌ GROQ_API_KEY topilmadi!")
-                return ""
-                
-            client = AsyncOpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
-            
-            with open(file_path, "rb") as audio_file:
-                transcription = await client.audio.transcriptions.create(
-                    model="whisper-large-v3",
-                    file=audio_file
-                )
-            return transcription.text
-            
-        else: # Default OpenAI for Audio transcription
-            api_key = await get_db_setting("openai_api_key", os.getenv("OPENAI_API_KEY", ""))
-            if not api_key:
-                print("❌ OPENAI_API_KEY topilmadi!")
-                return ""
-            client = AsyncOpenAI(api_key=api_key)
-            
-            with open(file_path, "rb") as audio_file:
-                transcription = await client.audio.transcriptions.create(
-                    model="whisper-1",
-                    file=audio_file
-                )
-            return transcription.text
-
-    except Exception as e:
-        print(f"STT Cloud Error ({provider}):", e)
-        return ""
 
 # Sinxron versiya o'chirildi, chunki bot to'liq asinxron bo'ldi.

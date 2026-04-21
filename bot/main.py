@@ -21,7 +21,7 @@ from bot.crud import (
     update_user_language,
     get_group_question_count
 )
-from bot.ai import detect_question, is_question_ai, get_ai_answer_async, transcribe_audio
+from bot.ai import detect_question, is_question_ai, get_ai_answer_async
 from bot.strings import get_string
 from bot.stats import router as stats_router
 # Sinxronizatsiya endi kerak emas, live ko'rinishga o'tildi
@@ -156,69 +156,7 @@ async def process_text_message(message: TgMessage, text: str, db, user_lang: str
     # Shaxsiy xabarlarda bot javobini saqlash o'chirildi
 
 
-@dp.message(F.voice)
-async def handle_voice(message: TgMessage):
-    async with SessionLocal() as db:
-        try:
-            # 1. Ovozli xabarni yuklab olish
-            file_id = message.voice.file_id
-            file = await message.bot.get_file(file_id)
-            file_path = f"voice_{file_id}.oga"
-            await message.bot.download_file(file.file_path, file_path)
-            
-            # 2. Transkripsiya qilish (Matnga aylantirish)
-            print(f"🎙 Processing voice from {message.from_user.id}...")
-            text = await transcribe_audio(file_path)
-            
-            # 3. Vaqtinchalik faylni o'chirish
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                
-            final_text = f"[Ovozli xabar]: {text}" if text else "[Ovozli xabar: Tahlil qilib bo'lmadi yoki bo'sh]"
-                
-            # 4. Bazaga saqlash
-            # Guruh yoki shaxsiy chatligini aniqlaymiz
-            is_group = message.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]
-            
-            if is_group:
-                group = await get_or_create_group(
-                    db=db,
-                    telegram_id=message.chat.id,
-                    title=message.chat.title or "Unknown Group",
-                    username=getattr(message.chat, "username", None),
-                )
-                group_id = group.id
-            else:
-                group = await get_or_create_group(db, message.chat.id, message.from_user.full_name)
-                group_id = group.id
-            
-            # [NEW] Staff/Admin check
-            is_staff = False
-            if is_group and message.from_user:
-                is_staff = await is_user_staff(message.chat.id, message.from_user.id)
-    
-            is_question = await is_question_ai(text) if text else False
-            
-            await create_message(
-                db=db,
-                telegram_message_id=message.message_id,
-                group_id=group_id,
-                user_id=message.from_user.id if message.from_user else None,
-                full_name=message.from_user.full_name if message.from_user else None,
-                username=message.from_user.username if message.from_user else None,
-                text=final_text,
-                is_question=is_question if not is_staff else False, # Count as question only if NOT staff
-                is_staff=is_staff,
-                reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
-            )
-            print(f"✅ Voice saved to DB: {message.from_user.id}")
-            
-            # AI ga yubormaymiz va javob bermaymiz - faqat baza uchun.
-            
-        except Exception as e:
-            print("VOICE ERROR:", e)
-        finally:
-            await db.close()
+# Voice message handling removed as per user request
 
 
 @dp.message(F.chat.type == ChatType.PRIVATE)
@@ -319,8 +257,9 @@ async def handle_group_message(message: TgMessage):
             if text.strip().startswith("/"):
                 return
 
-            # [NEW] Staff/Admin check
-            is_staff = await is_user_staff(message.chat.id, message.from_user.id) if message.from_user else False
+            # [NEW] Staff/Admin check (Automatically catch "uyqur" usernames)
+            username_lower = (message.from_user.username or "").lower() if message.from_user else ""
+            is_staff = ("uyqur" in username_lower) or (await is_user_staff(message.chat.id, message.from_user.id) if message.from_user else False)
 
             is_question = await is_question_ai(text)
             # Xabarni saqlash

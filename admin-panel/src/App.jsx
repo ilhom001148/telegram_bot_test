@@ -1855,15 +1855,18 @@ function Messages({ token }) {
                               Javob: {msg.answered_at ? formatDate(msg.answered_at) : 'Yaqinda'}
                            </div>
                         )}
-                        <div onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }} style={{cursor:'pointer'}}>
+                        <div onClick={() => { if(!msg.is_staff) { setAnsweringId(msg.id); setAnswerText(''); } }} style={{cursor: msg.is_staff ? 'default' : 'pointer'}}>
                           {msg.is_staff ? (
-                            <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.15)', color:'var(--primary)'}}>Xodim xabari</span>
+                            <span className="badge badge-kb" style={{background:'rgba(99, 102, 241, 0.2)', color:'var(--primary)', fontWeight:'700', padding:'6px 14px'}}>Xodim xabari</span>
                           ) : (
-                            <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{boxShadow: msg.is_answered ? 'none' : '0 0 15px rgba(239, 68, 68, 0.3)'}}>
+                            <span className={`badge ${msg.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{boxShadow: msg.is_answered ? 'none' : '0 0 15px rgba(239, 68, 68, 0.3)', padding:'6px 14px'}}>
                               {msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}
                             </span>
                           )}
-                          {msg.is_answered && <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginTop:'5px'}}>Qayta javob berish</div>}
+                          {!msg.is_staff && msg.is_answered && <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginTop:'5px'}}>Qayta javob berish</div>}
+                        </div>
+                        <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginTop:'5px'}}>
+                           Yozildi: {formatDate(msg.created_at)}
                         </div>
                       </>
                     )}
@@ -2097,8 +2100,8 @@ function GroupHistory({ token, group, onBack }) {
                    <td style={{padding:'30px 10px'}}>
                      <div 
                          className="clickable-text"
-                         style={{fontSize:'1rem', lineHeight:'1.7', color:'#e2e8f0', cursor:'pointer'}}
-                         onClick={() => { setAnsweringId(m.id); setAnswerText(''); }}
+                         style={{fontSize:'1rem', lineHeight:'1.7', color:'#e2e8f0', cursor: m.is_staff ? 'default' : 'pointer'}}
+                         onClick={() => { if(!m.is_staff) { setAnsweringId(m.id); setAnswerText(''); } }}
                      >
                         {m.telegram_app_link ? (
                             <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{m.text}</a>
@@ -2136,9 +2139,19 @@ function GroupHistory({ token, group, onBack }) {
                       )}
                    </td>
                    <td style={{padding:'30px 10px', textAlign:'center'}}>
-                      <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.75rem', padding:'6px 14px', opacity: m.is_question ? 1 : 0.4}}>
-                         {m.is_answered && m.answered_at ? `(${formatDate(m.answered_at)}) ` : ''}{m.is_answered ? 'Javob berilgan' : (m.is_staff ? 'Xodim' : 'Kutilmoqda')}
-                      </span>
+                       <div style={{display:'flex', flexDirection:'column', gap:'5px', alignItems:'center'}}>
+                          <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.7rem', padding:'6px 14px', width:'100%', textAlign:'center'}}>
+                             {m.is_answered ? 'Javob berilgan' : (m.is_staff ? 'Xodim' : 'Kutilmoqda')}
+                          </span>
+                          <div style={{fontSize:'0.65rem', color:'var(--text-muted)'}}>
+                             Yozildi: {formatDate(m.created_at)}
+                          </div>
+                          {m.answered_at && (
+                             <div style={{fontSize:'0.65rem', color:'var(--primary)', fontWeight:'600'}}>
+                                Javob: {formatDate(m.answered_at)}
+                             </div>
+                          )}
+                       </div>
                     </td>
                  </tr>
               )) : <tr><td colSpan="5" style={{textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>Tarixda ma'lumotlar topilmadi.</td></tr>}
@@ -2150,10 +2163,10 @@ function GroupHistory({ token, group, onBack }) {
   </>);
 }
 
+
 function BotSettings({ token, showFlash, askConfirm }) {
   const [s, setS] = useState({ 
-    system_prompt: '', company_info: '', maintenance_mode: 'false', maintenance_text: '',
-    tracking_mode: 'false', kb_only_mode: 'false', stt_mode: 'local', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
+    tracking_mode: 'false', kb_only_mode: 'false', ai_provider: 'openai', openai_api_key: '', groq_api_key: '', gemini_api_key: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
@@ -2168,7 +2181,6 @@ function BotSettings({ token, showFlash, askConfirm }) {
           maintenance_text: d.maintenance_text || 'Hozirda tizimda texnik ishlar olib borilmoqda. Tez orada qaytamiz!',
           tracking_mode: d.tracking_mode || 'false',
           kb_only_mode: d.kb_only_mode || 'false',
-          stt_mode: d.stt_mode || 'local',
           ai_provider: d.ai_provider || 'openai',
           openai_api_key: d.openai_api_key || '',
           groq_api_key: d.groq_api_key || '',
@@ -2266,17 +2278,6 @@ function BotSettings({ token, showFlash, askConfirm }) {
             </button>
           </div>
 
-          <div className="form-group" style={{marginTop:'1.5rem'}}>
-            <label>Ovozni aniqlash (STT) rejimi</label>
-            <select 
-              value={s.stt_mode} 
-              onChange={e => { setS({...s, stt_mode: e.target.value}); save('stt_mode', e.target.value); }}
-              style={{width:'100%', padding:'0.875rem', borderRadius:'0.75rem', background:'rgba(0,0,0,0.3)', color:'#fff', border:'1px solid var(--card-border)'}}
-            >
-              <option value="local">Lokal Whisper (Bepul, FFMPEG shart)</option>
-              <option value="cloud">Cloud API (Pullik, OpenAI/Groq)</option>
-            </select>
-          </div>
        </div>
 
        {/* Maintenance Mode Section */}

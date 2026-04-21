@@ -228,6 +228,7 @@ async def get_group_messages(
                 "created_at": message.created_at.isoformat() if message.created_at else None,
                 "answer_text": answer.text if answer else None,
                 "answered_by": answer.full_name if answer else None,
+                "answered_at": answer.created_at.isoformat() if answer and answer.created_at else None,
                 "ai_provider": answer.ai_provider if answer else None,
                 "ai_model": answer.ai_model if answer else None,
                 "total_tokens": answer.total_tokens if answer else 0,
