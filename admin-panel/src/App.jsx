@@ -788,6 +788,7 @@ function CompaniesManager({ token }) {
               <option value="status" style={{background:'#1a1a1a'}}>Status bo'yicha</option>
               <option value="activity" style={{background:'#1a1a1a'}}>Faollik bo'yicha</option>
               <option value="responsible" style={{background:'#1a1a1a'}}>Mas'ul bo'yicha</option>
+              <option value="time" style={{background:'#1a1a1a'}}>Vaqt bo'yicha</option>
             </select>
           </div>
         )}
@@ -835,6 +836,51 @@ function CompaniesManager({ token }) {
                   color: getAvatarColor(name),
                   items: filtered.filter(c => (c.responsible_name || 'Mas\'ul biriktirilmagan') === name)
                 }));
+              } else if (groupBy === 'time') {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                const thisWeek = new Date(today);
+                thisWeek.setDate(today.getDate() - 7);
+                const thisMonth = new Date(today);
+                thisMonth.setMonth(today.getMonth() - 1);
+
+                const bugun = [];
+                const kecha = [];
+                const shuHafta = [];
+                const shuOy = [];
+                const oldinroq = [];
+
+                filtered.forEach(c => {
+                  const dateStr = c.subscription_start || c.created_at;
+                  if (!dateStr) {
+                    oldinroq.push(c);
+                    return;
+                  }
+                  const d = new Date(dateStr);
+                  if (isNaN(d.getTime())) {
+                    oldinroq.push(c);
+                  } else if (d >= today) {
+                    bugun.push(c);
+                  } else if (d >= yesterday) {
+                    kecha.push(c);
+                  } else if (d >= thisWeek) {
+                    shuHafta.push(c);
+                  } else if (d >= thisMonth) {
+                    shuOy.push(c);
+                  } else {
+                    oldinroq.push(c);
+                  }
+                });
+
+                groups = [
+                  { id: 'bugun', title: 'Bugun qo\'shilganlar', color: '#10b981', items: bugun },
+                  { id: 'kecha', title: 'Kecha qo\'shilganlar', color: '#3b82f6', items: kecha },
+                  { id: 'shuHafta', title: 'Shu hafta qo\'shilganlar', color: '#6366f1', items: shuHafta },
+                  { id: 'shuOy', title: 'Shu oy qo\'shilganlar', color: '#8b5cf6', items: shuOy },
+                  { id: 'oldinroq', title: 'Oldinroq qo\'shilganlar', color: '#64748b', items: oldinroq }
+                ];
               }
 
               return (
