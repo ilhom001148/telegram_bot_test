@@ -836,6 +836,16 @@ function CompaniesManager({ token }) {
                   color: getAvatarColor(name),
                   items: filtered.filter(c => (c.responsible_name || 'Mas\'ul biriktirilmagan') === name)
                 }));
+              } else if (groupBy === 'time') {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                const last7Days = new Date(today);
+                last7Days.setDate(today.getDate() - 7);
+                const last30Days = new Date(today);
+                last30Days.setDate(today.getDate() - 30);
+
                 const ranges = [
                   { id: 'bugun', title: 'Bugun', min: today, max: new Date(2100, 0, 1) },
                   { id: 'kecha', title: 'Kecha', min: yesterday, max: today },
