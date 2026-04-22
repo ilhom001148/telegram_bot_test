@@ -868,6 +868,11 @@ function CompaniesManager({ token }) {
                     const nofaol = itemsInTime.filter(c => !c.is_active);
                     
                     if (faol.length > 0) {
+                      faol.sort((a, b) => {
+                        const da = a.subscription_end ? new Date(a.subscription_end) : new Date(2100, 0, 1);
+                        const db = b.subscription_end ? new Date(b.subscription_end) : new Date(2100, 0, 1);
+                        return da - db;
+                      });
                       groups.push({
                         id: `${r.id}-faol`,
                         title: `${r.title} (Faol)`,
@@ -876,6 +881,11 @@ function CompaniesManager({ token }) {
                       });
                     }
                     if (nofaol.length > 0) {
+                      nofaol.sort((a, b) => {
+                        const da = a.subscription_end ? new Date(a.subscription_end) : new Date(2100, 0, 1);
+                        const db = b.subscription_end ? new Date(b.subscription_end) : new Date(2100, 0, 1);
+                        return da - db;
+                      });
                       groups.push({
                         id: `${r.id}-nofaol`,
                         title: `${r.title} (Nofaol)`,
