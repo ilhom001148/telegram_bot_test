@@ -836,51 +836,45 @@ function CompaniesManager({ token }) {
                   color: getAvatarColor(name),
                   items: filtered.filter(c => (c.responsible_name || 'Mas\'ul biriktirilmagan') === name)
                 }));
-              } else if (groupBy === 'time') {
-                const now = new Date();
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const yesterday = new Date(today);
-                yesterday.setDate(today.getDate() - 1);
-                const thisWeek = new Date(today);
-                thisWeek.setDate(today.getDate() - 7);
-                const thisMonth = new Date(today);
-                thisMonth.setMonth(today.getMonth() - 1);
+                const ranges = [
+                  { id: 'bugun', title: 'Bugun', min: today, max: new Date(2100, 0, 1) },
+                  { id: 'kecha', title: 'Kecha', min: yesterday, max: today },
+                  { id: 'last7', title: 'Oxirgi 7 kun', min: last7Days, max: yesterday },
+                  { id: 'last30', title: 'Oxirgi 30 kun', min: last30Days, max: last7Days },
+                  { id: 'older', title: 'Oldinroq', min: new Date(1900, 0, 1), max: last30Days }
+                ];
 
-                const bugun = [];
-                const kecha = [];
-                const shuHafta = [];
-                const shuOy = [];
-                const oldinroq = [];
-
-                filtered.forEach(c => {
-                  const dateStr = c.subscription_start || c.created_at;
-                  if (!dateStr) {
-                    oldinroq.push(c);
-                    return;
-                  }
-                  const d = new Date(dateStr);
-                  if (isNaN(d.getTime())) {
-                    oldinroq.push(c);
-                  } else if (d >= today) {
-                    bugun.push(c);
-                  } else if (d >= yesterday) {
-                    kecha.push(c);
-                  } else if (d >= thisWeek) {
-                    shuHafta.push(c);
-                  } else if (d >= thisMonth) {
-                    shuOy.push(c);
-                  } else {
-                    oldinroq.push(c);
+                groups = [];
+                ranges.forEach(r => {
+                  const itemsInTime = filtered.filter(c => {
+                    const dateStr = c.subscription_start || c.created_at;
+                    if (!dateStr) return r.id === 'older';
+                    const d = new Date(dateStr);
+                    return d >= r.min && d < r.max;
+                  });
+                  
+                  if (itemsInTime.length > 0) {
+                    const faol = itemsInTime.filter(c => c.is_active);
+                    const nofaol = itemsInTime.filter(c => !c.is_active);
+                    
+                    if (faol.length > 0) {
+                      groups.push({
+                        id: `${r.id}-faol`,
+                        title: `${r.title} (Faol)`,
+                        color: '#10b981',
+                        items: faol
+                      });
+                    }
+                    if (nofaol.length > 0) {
+                      groups.push({
+                        id: `${r.id}-nofaol`,
+                        title: `${r.title} (Nofaol)`,
+                        color: '#ef4444',
+                        items: nofaol
+                      });
+                    }
                   }
                 });
-
-                groups = [
-                  { id: 'bugun', title: 'Bugun qo\'shilganlar', color: '#10b981', items: bugun },
-                  { id: 'kecha', title: 'Kecha qo\'shilganlar', color: '#3b82f6', items: kecha },
-                  { id: 'shuHafta', title: 'Shu hafta qo\'shilganlar', color: '#6366f1', items: shuHafta },
-                  { id: 'shuOy', title: 'Shu oy qo\'shilganlar', color: '#8b5cf6', items: shuOy },
-                  { id: 'oldinroq', title: 'Oldinroq qo\'shilganlar', color: '#64748b', items: oldinroq }
-                ];
               }
 
               return (
@@ -901,49 +895,73 @@ function CompaniesManager({ token }) {
                           <span className="header-count">{st.items.length} ta korxona</span>
                         </div>
 
-                        {!collapsedGroups[st.id] && (
-                          <table className="clickup-table">
-                            <thead>
-                              <tr>
-                                <th className="clickup-column-header" style={{width:'35%'}}>Kompaniya nomi</th>
-                                <th className="clickup-column-header">Direktor / Mas'ul</th>
-                                <th className="clickup-column-header">Telefon</th>
-                                <th className="clickup-column-header" style={{textAlign:'center'}}>Status</th>
-                                <th className="clickup-column-header" style={{textAlign:'center'}}>Harakat</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {st.items.map(c => (
-                                <tr key={c.id} className="clickup-row" onClick={() => openEdit(c)}>
-                                  <td>
-                                    <div className="name-cell">
-                                      <div className="status-dot" style={{background: st.color}}></div>
-                                      <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                                        <div style={{width:32, height:32, borderRadius:8, overflow:'hidden', background:'rgba(255,255,255,0.05)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,0.05)'}}>
-                                          {c.logo_url ? <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <Icons.Company style={{width:16, opacity:0.3}}/>}
-                                        </div>
-                                        <div>
-                                          <div style={{fontWeight:700, fontSize:'0.93rem', color:'#fff'}}>{c.name}</div>
-                                          <div style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>#ID {c.id.toString().replace('ext-','')}</div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#e2e8f0'}}>{c.director || c.responsible_name || '—'}</div>
-                                    {c.brand_name && <div style={{fontSize:'0.7rem', color:'var(--primary)', fontWeight:'500'}}>{c.brand_name}</div>}
-                                  </td>
-                                  <td>
-                                    <div className="meta-icon-group">
-                                      <Icons.Phone style={{width:14}} />
-                                      <span style={{fontSize:'0.85rem', color:'var(--text-secondary)'}}>{c.phone || '—'}</span>
-                                    </div>
-                                  </td>
-                                  <td style={{textAlign:'center'}}>
-                                     <span className={`badge ${statusClassMap[c.status] || 'badge-kb'}`} style={{fontSize:'0.65rem', padding:'4px 10px'}}>
-                                        {(statusLabel[c.status]||statusLabel['Yangi']).label}
-                                     </span>
-                                  </td>
+                         {!collapsedGroups[st.id] && (
+                           <table className="clickup-table">
+                             <thead>
+                               <tr>
+                                 <th className="clickup-column-header" style={{width:'30%'}}>Kompaniya nomi</th>
+                                 <th className="clickup-column-header">Direktor / Mas'ul</th>
+                                 <th className="clickup-column-header">Telefon</th>
+                                 <th className="clickup-column-header">Obuna muddati</th>
+                                 <th className="clickup-column-header" style={{textAlign:'center'}}>Status</th>
+                                 <th className="clickup-column-header" style={{textAlign:'center'}}>Harakat</th>
+                               </tr>
+                             </thead>
+                             <tbody>
+                               {st.items.map(c => {
+                                 // Expiration Logic
+                                 const getExpInfo = (dateStr) => {
+                                   if (!dateStr) return null;
+                                   const end = new Date(dateStr);
+                                   const now = new Date();
+                                   const diff = end - now;
+                                   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                   if (days < 0) return { color: 'var(--danger)', icon: '⚠️', text: 'Tugagan' };
+                                   if (days <= 30) return { color: '#f59e0b', icon: '⏳', text: `${days} kun` };
+                                   return null;
+                                 };
+                                 const exp = getExpInfo(c.subscription_end);
+
+                                 return (
+                                   <tr key={c.id} className="clickup-row" onClick={() => openEdit(c)}>
+                                     <td>
+                                       <div className="name-cell">
+                                         <div className="status-dot" style={{background: st.color}}></div>
+                                         <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                                           <div style={{width:32, height:32, borderRadius:8, overflow:'hidden', background:'rgba(255,255,255,0.05)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,0.05)'}}>
+                                             {c.logo_url ? <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <Icons.Company style={{width:16, opacity:0.3}}/>}
+                                           </div>
+                                           <div>
+                                             <div style={{fontWeight:700, fontSize:'0.93rem', color:'#fff'}}>{c.name}</div>
+                                             <div style={{fontSize:'0.7rem', color:'var(--text-muted)'}}>#ID {c.id.toString().replace('ext-','')}</div>
+                                           </div>
+                                         </div>
+                                       </div>
+                                     </td>
+                                     <td>
+                                       <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#e2e8f0'}}>{c.director || c.responsible_name || '—'}</div>
+                                       {c.brand_name && <div style={{fontSize:'0.7rem', color:'var(--primary)', fontWeight:'500'}}>{c.brand_name}</div>}
+                                     </td>
+                                     <td>
+                                       <div className="meta-icon-group">
+                                         <Icons.Phone style={{width:14}} />
+                                         <span style={{fontSize:'0.85rem', color:'var(--text-secondary)'}}>{c.phone || '—'}</span>
+                                       </div>
+                                     </td>
+                                     <td>
+                                       <div style={{fontSize:'0.8rem', color:'var(--text-secondary)'}}>
+                                          <div>S: {c.subscription_start ? new Date(c.subscription_start).toLocaleDateString('uz-UZ') : '—'}</div>
+                                          <div style={{display:'flex', alignItems:'center', gap:'5px', color: exp ? exp.color : 'inherit'}}>
+                                             E: {c.subscription_end ? new Date(c.subscription_end).toLocaleDateString('uz-UZ') : '—'}
+                                             {exp && <span title={exp.text} style={{fontSize:'1rem'}}>{exp.icon}</span>}
+                                          </div>
+                                       </div>
+                                     </td>
+                                     <td style={{textAlign:'center'}}>
+                                        <span className={`badge ${statusClassMap[c.status] || 'badge-kb'}`} style={{fontSize:'0.65rem', padding:'4px 10px'}}>
+                                           {(statusLabel[c.status]||statusLabel['Yangi']).label}
+                                        </span>
+                                     </td>
                                   <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
                                     <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'15px'}}>
                                        <div onClick={() => handleToggle(c.id)} style={{cursor:'pointer', width:34, height:18, borderRadius:9, 
