@@ -976,8 +976,9 @@ function CompaniesManager({ token }) {
                                     </div>
                                   </td>
                                 </tr>
-                              ))}
-                            </tbody>
+                               );
+                               })}
+                             </tbody>
                           </table>
                         )}
                       </div>
