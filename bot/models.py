@@ -93,8 +93,8 @@ class Message(Base):
             chat_id_str = str(self.group.telegram_id)
             if chat_id_str.startswith("-100"):
                 chat_id_str = chat_id_str[4:]
-            # Standard supergroup deep link
-            return f"tg://resolve?domain=c/{chat_id_str}&post={self.telegram_message_id}"
+            # Using privatepost for better deep linking to private supergroups
+            return f"tg://privatepost?channel={chat_id_str}&post={self.telegram_message_id}"
         return None
 
 

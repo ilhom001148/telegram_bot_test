@@ -56,7 +56,7 @@ const formatDate = (dateStr) => {
   }
 };
 
-function ArchiveManager({ token }) {
+function ArchiveManager({ token, showFlash }) {
   const [summaries, setSummaries] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -101,9 +101,10 @@ function ArchiveManager({ token }) {
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');
+       showFlash("Javob saqlandi");
        fetchQuestions(selectedDate);
     })
-    .catch(() => { setSending(false); });
+    .catch(() => { setSending(false); showFlash("Xatolik yuz berdi", "error"); });
   };
 
   if (loading) return <div className="loader"></div>;
@@ -558,17 +559,17 @@ function App() {
       <div className="main-content">
         {flash && <div className={`flash-banner ${flash.type}`}>{flash.text}</div>}
         <ConfirmModal {...modal} onCancel={() => setModal({ ...modal, isOpen: false })} />
-        {activeTab === 'dashboard' && <Dashboard token={token} />}
+        {activeTab === 'dashboard' && <Dashboard token={token} showFlash={showFlash} />}
         {activeTab === 'companies' && <CompaniesManager token={token} />}
-        {activeTab === 'messages' && <Messages token={token} />}
+        {activeTab === 'messages' && <Messages token={token} showFlash={showFlash} />}
         {activeTab === 'groups' && <Groups token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'knowledge' && <KnowledgeBase token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'broadcast' && <BroadcastManager token={token} showFlash={showFlash} />}
         {activeTab === 'settings' && <BotSettings token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'profile' && <Profile token={token} setUsername={setUsername} showFlash={showFlash} />}
         {activeTab === 'database' && <DatabaseManager token={token} showFlash={showFlash} askConfirm={askConfirm} />}
-        {activeTab === 'archive' && <ArchiveManager token={token} />}
-        {activeTab === 'customers' && <CustomersManager token={token} />}
+        {activeTab === 'archive' && <ArchiveManager token={token} showFlash={showFlash} />}
+        {activeTab === 'customers' && <CustomersManager token={token} showFlash={showFlash} />}
       </div>
     </div>
   );
@@ -1293,7 +1294,7 @@ function CompaniesManager({ token }) {
   );
 }
 
-function CustomersManager({ token }) {
+function CustomersManager({ token, showFlash }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -1334,10 +1335,11 @@ function CustomersManager({ token }) {
     .then(() => {
       setSending({...sending, [qId]: false});
       setAnsText({...ansText, [qId]: ''});
+      showFlash("Javob muvaffaqiyatli yuborildi");
       openQuestions(selectedUser);
       fetchUsers();
     })
-    .catch(() => setSending({...sending, [qId]: false}));
+    .catch(() => { setSending({...sending, [qId]: false}); showFlash("Xatolik yuz berdi", "error"); });
   };
 
   return (
@@ -1483,7 +1485,7 @@ function CustomersManager({ token }) {
   );
 }
 
-function Dashboard({ token }) {
+function Dashboard({ token, showFlash }) {
   const [stats, setStats] = useState({ 
     total_groups: 0, total_questions: 0, answered_questions: 0, unanswered_questions: 0, bot_answers: 0, total_messages: 0,
     latest_unanswered: [], most_active_group: null, most_active_user: null, 
@@ -1518,9 +1520,10 @@ function Dashboard({ token }) {
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');
+       showFlash("Javob yuborildi");
        fetchStats();
     })
-    .catch(() => { setSending(false); });
+    .catch(() => { setSending(false); showFlash("Xatolik yuz berdi", "error"); });
   };
 
   if (loading) return <div className="loader"></div>;
@@ -1885,7 +1888,7 @@ function KnowledgeBase({ token, showFlash, askConfirm }) {
   );
 }
 
-function Messages({ token }) {
+function Messages({ token, showFlash }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -1920,9 +1923,10 @@ function Messages({ token }) {
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');
+       showFlash("Xabar/Javob yuborildi");
        fetchMessages();
     })
-    .catch(() => { setSending(false); });
+    .catch(() => { setSending(false); showFlash("Xatolik yuz berdi", "error"); });
   };
 
   if (loading) return <div className="loader"></div>;
@@ -2083,7 +2087,7 @@ function Groups({ token, showFlash, askConfirm }) {
   useEffect(() => { if(!selectedGroup) fetchGroups(); }, [token, selectedGroup]);
 
   if (loading) return <div className="loader"></div>;
-  if (selectedGroup) return <GroupHistory token={token} group={selectedGroup} onBack={() => setSelectedGroup(null)} />;
+  if (selectedGroup) return <GroupHistory token={token} group={selectedGroup} onBack={() => setSelectedGroup(null)} showFlash={showFlash} />;
 
   return (
     <>
@@ -2151,7 +2155,7 @@ function Groups({ token, showFlash, askConfirm }) {
   );
 }
 
-function GroupHistory({ token, group, onBack }) {
+function GroupHistory({ token, group, onBack, showFlash }) {
   const [msgs, setMsgs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [answeringId, setAnsweringId] = useState(null);
@@ -2187,9 +2191,10 @@ function GroupHistory({ token, group, onBack }) {
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');
+       showFlash("Xabar/Javob yuborildi");
        fetchMessages();
     })
-    .catch(() => { setSending(false); });
+    .catch(() => { setSending(false); showFlash("Xatolik yuz berdi", "error"); });
   };
 
   return (<>
