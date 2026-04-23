@@ -350,11 +350,12 @@ async def broadcast_scheduler_worker():
         await asyncio.sleep(10)
         async with SessionLocal() as db:
             try:
-                now_local = datetime.now()
+                # Use UTC for comparison to match storage
+                now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
                 pending_query = await db.execute(
                     select(ScheduledBroadcast).filter(
                         ScheduledBroadcast.status == 'pending', 
-                        ScheduledBroadcast.scheduled_at <= now_local
+                        ScheduledBroadcast.scheduled_at <= now_utc
                     )
                 )
                 pending = pending_query.scalars().all()

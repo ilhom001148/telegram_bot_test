@@ -166,7 +166,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
                          content = response.text
                     else: # OpenAI
                          from openai import AsyncOpenAI
-                         api_key = await get_setting(db, "openai_api_key", os.getenv("OPEN_AI_API_KEY", ""))
+                         api_key = await get_setting(db, "openai_api_key", os.getenv("OPENAI_API_KEY", ""))
                          client = AsyncOpenAI(api_key=api_key)
                          response = await client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"})
                          content = response.choices[0].message.content

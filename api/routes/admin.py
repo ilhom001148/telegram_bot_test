@@ -7,7 +7,7 @@ from bot.models import Group, Message, KnowledgeBase, User, ScheduledBroadcast
 from bot.bot_instance import get_bot, close_bot_session
 from pydantic import BaseModel
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/admin", tags=["Admin Tools"])
 
@@ -47,8 +47,9 @@ async def broadcast_message(
 ):
     if data.scheduled_at:
         try:
-            # Parse datetime
-            scheduled_dt = datetime.fromisoformat(data.scheduled_at.replace("Z", "+00:00")).replace(tzinfo=None)
+            # Parse ISO datetime and ensure it's handled as UTC
+            dt_obj = datetime.fromisoformat(data.scheduled_at.replace("Z", "+00:00"))
+            scheduled_dt = dt_obj.astimezone(timezone.utc).replace(tzinfo=None)
             new_schedule = ScheduledBroadcast(
                 text=data.text,
                 target_group_id=data.group_id if data.target == "specific_group" else None,
@@ -128,6 +129,42 @@ async def get_extended_stats(
         "total_users": total_users
     }
 
+@router.get("/broadcast/scheduled")
+async def get_scheduled_broadcasts(
+    db: AsyncSession = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
+    result = await db.execute(
+        select(ScheduledBroadcast).order_by(ScheduledBroadcast.scheduled_at.asc())
+    )
+    broadcasts = result.scalars().all()
+    return [
+        {
+            "id": b.id,
+            "text": b.text,
+            "scheduled_at": b.scheduled_at.isoformat() if b.scheduled_at else None,
+            "status": b.status,
+            "target_group_id": b.target_group_id
+        }
+        for b in broadcasts
+    ]
+
+@router.delete("/broadcast/scheduled/{broadcast_id}")
+async def delete_scheduled_broadcast(
+    broadcast_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
+    result = await db.execute(select(ScheduledBroadcast).filter(ScheduledBroadcast.id == broadcast_id))
+    broadcast = result.scalars().first()
+    
+    if not broadcast:
+        raise HTTPException(status_code=404, detail="Rejalashtirilgan xabar topilmadi")
+    
+    await db.delete(broadcast)
+    await db.commit()
+    return {"status": "success", "message": "Rejalashtirilgan xabar o'chirildi"}
+
 @router.post("/clear-data")
 async def clear_data(
     data: dict, # {"type": "messages" | "knowledge" | "all"}
@@ -152,6 +189,7 @@ async def clear_data(
         await db.execute(delete(Group))
         await db.execute(delete(User))
         await db.execute(delete(KnowledgeBase))
+        await db.execute(delete(ScheduledBroadcast))
         await db.commit()
         return {"status": "success", "message": "Barcha ma'lumotlar muvaffaqiyatli o'chirildi."}
     
