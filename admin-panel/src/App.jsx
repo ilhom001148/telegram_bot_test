@@ -1881,127 +1881,159 @@ function Messages({ token, showFlash }) {
   if (loading) return <div className="loader"></div>;
 
   return (
-    <>
-      <div className="flex-between" style={{marginBottom:'1rem'}}>
-         <h2 className="header-title" style={{margin:0}}>Muloqotlar jurnali</h2>
-         <a href={`${API_URL}/export/messages`} className="btn btn-sm btn-outline" style={{padding:'8px 20px', border:'1px solid rgba(255,255,255,0.1)'}}>
+    <div style={{animation:'fadeIn 0.5s ease-out'}}>
+      <div className="flex-between" style={{marginBottom:'2rem'}}>
+         <div>
+            <h2 className="header-title" style={{margin:0}}>Muloqotlar jurnali</h2>
+            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'5px'}}>Foydalanuvchilar bilan barcha muloqotlar tarixi</p>
+         </div>
+         <a href={`${API_URL}/export/messages`} className="btn btn-sm btn-outline" style={{padding:'10px 24px', borderRadius:'12px', borderColor:'rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.03)', color:'#fff'}}>
             📥 Excel yuklab olish
          </a>
       </div>
 
-      <div style={{marginBottom:'2rem'}}>
+      <div style={{display:'flex', flexDirection:'column', gap:'1.5rem'}}>
         {[
           { id: 'unanswered', title: 'Kutilmoqda', color: '#ef4444', items: messages.filter(m => !m.is_answered) },
           { id: 'answered', title: 'Javob berilgan', color: '#10b981', items: messages.filter(m => m.is_answered) }
         ].map(group => group.items.length > 0 && (
-          <div key={group.id} className="list-group-section">
-            <div className="list-group-header" style={{borderBottomColor: `${group.color}44`}}>
-              <Icons.ChevronDown />
-              <div className="status-pill" style={{background: group.color}}>
+          <div key={group.id} className="glass-card" style={{padding:0, overflow:'hidden', border:'1px solid var(--card-border)'}}>
+            <div 
+              className="list-group-header" 
+              style={{padding:'1rem 1.5rem', background:'rgba(255,255,255,0.02)', borderBottom:'1px solid var(--card-border)', display:'flex', alignItems:'center', gap:'1rem'}}
+            >
+              <Icons.ChevronDown style={{color:'var(--text-muted)'}} />
+              <div style={{fontWeight:700, fontSize:'1rem', color:'#fff', flex:1}}>
                 {group.title}
+                <span style={{marginLeft:'10px', fontSize:'0.8rem', color:'var(--text-muted)', fontWeight:400}}>({group.items.length} xabar)</span>
               </div>
-              <span className="header-count">{group.items.length} xabar</span>
+              <div style={{width:8, height:8, borderRadius:'50%', background:group.color, boxShadow:`0 0 10px ${group.color}`}}></div>
             </div>
 
-            <table className="clickup-table">
-              <thead>
-                <tr>
-                  <th className="clickup-column-header" style={{width:'40%'}}>Xabar va Mazmuni</th>
-                  <th className="clickup-column-header">Kimdan / Assignee</th>
-                  <th className="clickup-column-header">Vaqt / Due</th>
-                  <th className="clickup-column-header" style={{textAlign:'center'}}>Priority</th>
-                  <th className="clickup-column-header" style={{textAlign:'center'}}>Guruh</th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.items.map(msg => (
-                  <tr key={msg.id} className="clickup-row">
-                    <td>
-                      <div className="name-cell">
-                        <div className="status-dot" style={{background: group.color}}></div>
-                        <div style={{flex:1, minWidth:0}}>
+            <div className="table-wrapper">
+              <table className="clickup-table">
+                <thead>
+                  <tr>
+                    <th className="clickup-column-header" style={{width:'45%', paddingLeft:'1.5rem'}}>Xabar va Mazmuni</th>
+                    <th className="clickup-column-header">Kimdan / Assignee</th>
+                    <th className="clickup-column-header">Vaqt / Guruh</th>
+                    <th className="clickup-column-header" style={{textAlign:'center'}}>Priority</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.items.map(msg => (
+                    <tr key={msg.id} className="clickup-row">
+                      <td style={{paddingLeft:'1.5rem'}}>
+                        <div style={{padding:'4px 0'}}>
                           <div 
-                            className="task-text" 
-                            style={{cursor: msg.is_answered ? 'default' : 'pointer'}} 
+                            style={{
+                              background: 'rgba(255,255,255,0.03)',
+                              padding: '12px 16px',
+                              borderRadius: '12px 12px 12px 4px',
+                              fontSize: '0.9rem',
+                              lineHeight: '1.5',
+                              color: '#e2e8f0',
+                              border: '1px solid rgba(255,255,255,0.05)',
+                              cursor: msg.is_answered ? 'default' : 'pointer'
+                            }}
                             onClick={() => { if(!msg.is_answered) { setAnsweringId(msg.id); setAnswerText(''); } }}
-                            title={msg.is_answered ? "Javob berilgan" : msg.text}
                           >
                             {msg.text}
                           </div>
+                          
                           {answeringId === msg.id && (
-                            <form onSubmit={(e) => handleSendAnswer(e, msg.id)} style={{marginTop:'12px', background:'rgba(0,0,0,0.2)', padding:'12px', borderRadius:'8px', border:'1px solid var(--primary)'}}>
+                            <div style={{marginTop:'12px', animation:'fadeIn 0.3s ease'}}>
                               <textarea 
-                                rows="2" 
+                                rows="3" 
                                 value={answerText} 
                                 onChange={e => setAnswerText(e.target.value)}
-                                placeholder="Javob yozing..."
-                                style={{width:'100%', background:'transparent', border:'none', color:'#fff', outline:'none', fontSize:'0.85rem'}}
+                                placeholder="Javobingizni yozing..."
+                                style={{
+                                  width:'100%', 
+                                  background:'rgba(99, 102, 241, 0.05)', 
+                                  border:'1px solid var(--primary)', 
+                                  color:'#fff', 
+                                  borderRadius:'12px',
+                                  padding:'12px',
+                                  fontSize:'0.9rem',
+                                  outline:'none'
+                                }}
                                 autoFocus
                               />
-                              <div style={{display:'flex', gap:'8px', marginTop:'8px'}}>
-                                <button type="submit" className="btn btn-sm" disabled={sending} style={{fontSize:'0.7rem'}}>{sending ? '...' : 'Yuborish'}</button>
-                                <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.7rem'}}>Bekor qilish</button>
+                              <div style={{display:'flex', gap:'8px', marginTop:'8px', justifyContent:'flex-end'}}>
+                                <button className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.75rem', padding:'6px 16px'}}>Bekor qilish</button>
+                                <button className="btn btn-sm" onClick={(e) => handleSendAnswer(e, msg.id)} disabled={sending} style={{fontSize:'0.75rem', padding:'6px 20px'}}>{sending ? '⏳...' : 'Yuborish'}</button>
                               </div>
-                            </form>
+                            </div>
                           )}
+
                           {msg.is_answered && (
-                            <div style={{marginTop:'8px', padding:'8px', background:'rgba(16, 185, 129, 0.05)', borderRadius:'8px', borderLeft:'2px solid var(--success)', fontSize:'0.85rem'}}>
-                               <span style={{color:'var(--success)', fontWeight:'700', fontSize:'0.65rem', display:'block', marginBottom:'2px'}}>JAVOB:</span>
-                               {msg.answer_text}
+                            <div style={{
+                              marginTop:'8px', 
+                              marginLeft: '2rem',
+                              padding:'10px 14px', 
+                              background:'rgba(16, 185, 129, 0.08)', 
+                              borderRadius:'12px 12px 4px 12px', 
+                              border:'1px solid rgba(16, 185, 129, 0.2)',
+                              fontSize:'0.85rem'
+                            }}>
+                               <span style={{color:'#10b981', fontWeight:'800', fontSize:'0.65rem', display:'block', marginBottom:'4px', textTransform:'uppercase'}}>Javobingiz:</span>
+                               <span style={{color:'rgba(255,255,255,0.9)'}}>{msg.answer_text}</span>
                             </div>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-                        <div className="user-avatar" style={{background: getAvatarColor(msg.full_name || 'U'), width:24, height:24, fontSize:'0.7rem'}}>
-                          {getInitials(msg.full_name || 'U')}
+                      </td>
+                      <td>
+                        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                          <div className="user-avatar" style={{background: getAvatarColor(msg.full_name || 'U'), width:32, height:32, fontSize:'0.85rem'}}>
+                            {getInitials(msg.full_name || 'U')}
+                          </div>
+                          <div>
+                            <div style={{fontSize:'0.9rem', fontWeight:'700', color:'#fff'}}>{msg.full_name || 'Foydalanuvchi'}</div>
+                            {msg.is_staff && <span style={{color:'var(--primary)', fontSize:'0.65rem', fontWeight:600}}>ADMIISTRATOR 🛡️</span>}
+                          </div>
                         </div>
-                        <div style={{fontSize:'0.85rem', fontWeight:'600', color:'#fff'}}>
-                          {msg.full_name?.split(' ')[0]}
-                          {msg.is_staff && <span style={{marginLeft:'5px', color:'var(--primary)', fontSize:'0.65rem'}}>🛡️</span>}
+                      </td>
+                      <td>
+                        <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
+                           <div style={{display:'flex', alignItems:'center', gap:'6px', color:'var(--text-muted)', fontSize:'0.75rem'}}>
+                              <Icons.Calendar style={{width:13}} />
+                              <span>{formatDate(msg.created_at)}</span>
+                           </div>
+                           <div style={{display:'inline-flex', padding:'2px 8px', background:'rgba(99,102,241,0.1)', borderRadius:'6px', color:'var(--primary)', fontSize:'0.7rem', width:'fit-content', fontWeight:600}}>
+                              {msg.group_title || 'Shaxsiy'}
+                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="meta-icon-group" title={formatDate(msg.created_at)}>
-                        <Icons.Calendar />
-                        <span style={{fontSize:'0.75rem'}}>{msg.created_at?.split('T')[0]?.split('-').slice(1).join('/')}</span>
-                      </div>
-                    </td>
-                    <td style={{textAlign:'center'}}>
-                      <div title={msg.is_staff ? 'Staff Message' : 'Normal Priority'}>
-                        <Icons.Flag className={`priority-flag priority-${msg.is_staff ? 'urgent' : (msg.text.length > 100 ? 'high' : 'normal')}`} />
-                      </div>
-                    </td>
-                    <td style={{textAlign:'center'}}>
-                      <div className="messenger-group-tag" style={{display:'inline-block', fontSize:'0.7rem', padding:'2px 8px'}}>
-                        {msg.group_title?.substring(0, 15)}{msg.group_title?.length > 15 ? '...' : ''}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="clickup-footer-action">
-              <Icons.Add />
-              <span>Yangi topshiriq qo'shish (Mock)</span>
+                      </td>
+                      <td style={{textAlign:'center'}}>
+                        <div title={msg.is_staff ? 'Staff Message' : 'Normal Priority'}>
+                          <Icons.Flag className={`priority-flag priority-${msg.is_staff ? 'urgent' : (msg.text.length > 100 ? 'high' : 'normal')}`} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex-between" style={{marginTop:'2rem', padding:'1rem', background:'rgba(255,255,255,0.02)', borderRadius:'12px'}}>
+      <div className="flex-between" style={{marginTop:'2rem', padding:'1rem 1.5rem', background:'rgba(255,255,255,0.02)', borderRadius:'16px', border:'1px solid var(--card-border)'}}>
         <div style={{display:'flex', gap:'12px'}}>
-          <button className="btn btn-sm btn-outline" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{padding:'8px 20px'}}>Orqaga</button>
-          <button className="btn btn-sm btn-outline" disabled={(page + 1) * 15 >= total} onClick={() => setPage(p => p + 1)} style={{padding:'8px 20px'}}>Oldinga</button>
+          <button className="btn btn-sm btn-outline" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{padding:'8px 24px', borderRadius:'10px'}}>
+            <Icons.ChevronDown style={{transform:'rotate(90deg)', width:16}} /> Orqaga
+          </button>
+          <button className="btn btn-sm btn-outline" disabled={(page + 1) * 15 >= total} onClick={() => setPage(p => p + 1)} style={{padding:'8px 24px', borderRadius:'10px'}}>
+            Oldinga <Icons.ChevronDown style={{transform:'rotate(-90deg)', width:16}} />
+          </button>
         </div>
-        <div style={{fontSize:'0.9rem', fontWeight:'600', color:'var(--text-muted)'}}>
-           Varaq <span style={{color: 'var(--primary)'}}>{page + 1}</span> / {Math.ceil(total / 15) || 1}
+        <div style={{fontSize:'0.85rem', fontWeight:'600', color:'var(--text-muted)'}}>
+           Sahifa: <span style={{color:'#fff'}}>{page + 1}</span> / {Math.ceil(total / 15) || 1} 
+           <span style={{marginLeft:'15px', paddingLeft:'15px', borderLeft:'1px solid rgba(255,255,255,0.1)'}}>Jami: {total} ta xabar</span>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
