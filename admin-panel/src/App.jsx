@@ -1973,9 +1973,9 @@ function Messages({ token, showFlash }) {
                         <div style={{flex:1, minWidth:0}}>
                           <div 
                             className="task-text" 
-                            style={{cursor:'pointer'}} 
-                            onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}
-                            title={msg.text}
+                            style={{cursor: msg.is_answered ? 'default' : 'pointer'}} 
+                            onClick={() => { if(!msg.is_answered) { setAnsweringId(msg.id); setAnswerText(''); } }}
+                            title={msg.is_answered ? "Javob berilgan" : msg.text}
                           >
                             {msg.text}
                           </div>
@@ -1994,6 +1994,12 @@ function Messages({ token, showFlash }) {
                                 <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.7rem'}}>Bekor qilish</button>
                               </div>
                             </form>
+                          )}
+                          {msg.is_answered && (
+                            <div style={{marginTop:'8px', padding:'8px', background:'rgba(16, 185, 129, 0.05)', borderRadius:'8px', borderLeft:'2px solid var(--success)', fontSize:'0.85rem'}}>
+                               <span style={{color:'var(--success)', fontWeight:'700', fontSize:'0.65rem', display:'block', marginBottom:'2px'}}>JAVOB:</span>
+                               {msg.answer_text}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -2296,8 +2302,15 @@ function GroupHistory({ token, group, onBack, showFlash }) {
                             <span style={{color:'var(--text-muted)', fontSize:'0.85rem', fontStyle:'italic', display:'block', marginBottom:'8px'}}>
                               {m.is_staff ? 'Xodim xabari' : (m.is_question ? 'Savol' : 'Xabar')}
                             </span>
-                            {!m.is_staff && (
-                              <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}} style={{padding:'6px 16px', fontSize:'0.8rem'}}>Javob berish</button>
+                            {m.is_answered ? (
+                               <div style={{textAlign:'left', padding:'10px', background:'rgba(255,255,255,0.03)', borderRadius:'10px', fontSize:'0.85rem'}}>
+                                  <div style={{color:'var(--primary)', fontWeight:'700', fontSize:'0.65rem', marginBottom:'4px'}}>JAVOB:</div>
+                                  <div style={{color:'#e2e8f0'}}>{m.answer_text}</div>
+                               </div>
+                            ) : (
+                               !m.is_staff && (
+                                 <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}} style={{padding:'6px 16px', fontSize:'0.8rem'}}>Javob berish</button>
+                               )
                             )}
                           </div>
                         )
