@@ -2209,111 +2209,107 @@ function GroupHistory({ token, group, onBack, showFlash }) {
               </tr>
             </thead>
             <tbody>
-              {msgs.length > 0 ? msgs.map(m => (
-                 <tr key={m.id} style={{height: '110px', verticalAlign:'top'}}>
-                   <td style={{padding:'25px 20px', fontSize:'0.85rem', color:'var(--text-muted)', fontWeight:'600'}}>
-                       {m.telegram_app_link ? (
-                         <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{formatDate(m.created_at)}</a>
-                       ) : formatDate(m.created_at)}
-                   </td>
-                   <td style={{padding:'25px 10px'}}>
-                      {m.telegram_app_link ? (
-                         <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} style={{textDecoration:'none', color:'inherit'}} title="Telegramda ko'rish">
-                            <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                               <div className="user-avatar" style={{
-                                 background: getAvatarColor(m.full_name || 'U'), 
-                                 width:'36px', height:'36px', fontSize:'0.85rem'
-                               }}>
-                                 {getInitials(m.full_name || 'U')}
-                               </div>
-                               <div>
-                                 <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
-                                 {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
-                                 {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
-                               </div>
-                            </div>
-                         </a>
-                      ) : (
-                        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                          <div className="user-avatar" style={{
-                            background: getAvatarColor(m.full_name || 'U'), 
-                            width:'36px', height:'36px', fontSize:'0.85rem'
-                          }}>
-                            {getInitials(m.full_name || 'U')}
-                          </div>
-                          <div>
-                            <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{m.full_name}</div>
-                            {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
-                            {m.is_staff && <span className="badge badge-kb" style={{fontSize:'0.6rem', padding:'2px 6px', marginTop:'4px', display:'inline-block'}}>Xodim</span>}
-                          </div>
+              {msgs.length > 0 ? msgs.map(m => {
+                const isStaffMsg = m.is_staff || (m.full_name && m.full_name.includes('Admin'));
+                return (
+                  <tr key={m.id} style={{height: '110px', verticalAlign:'top'}}>
+                    <td style={{padding:'25px 20px', fontSize:'0.8rem', color:'var(--text-muted)', fontWeight:'500'}}>
+                        <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
+                           <Icons.Calendar style={{width:13, opacity:0.5}}/>
+                           {formatDate(m.created_at)}
                         </div>
-                      )}
-                   </td>
-                   <td style={{padding:'30px 10px'}}>
-                     <div 
-                         className="clickable-text"
-                         style={{fontSize:'1rem', lineHeight:'1.7', color:'#e2e8f0', cursor: m.is_staff ? 'default' : 'pointer'}}
-                         onClick={() => { if(!m.is_staff) { setAnsweringId(m.id); setAnswerText(''); } }}
-                     >
-                        {m.telegram_app_link ? (
-                            <a href={m.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{m.text}</a>
-                        ) : m.text}
-                     </div>
-                   </td>
-                   <td style={{padding:'25px 10px'}}>
-                      {(
-                        answeringId === m.id ? (
-                          <form onSubmit={(e) => handleSendAnswer(e, m.id)}>
-                            <textarea 
-                              rows="3" 
-                              value={answerText} 
-                              onChange={e => setAnswerText(e.target.value)}
-                              placeholder="Javob yozing..."
-                              style={{width:'100%', padding:'12px', fontSize:'0.9rem', marginBottom:'10px', borderRadius:'10px', background:'rgba(0,0,0,0.2)', color:'#fff', border:'1px solid var(--primary)'}}
-                              required
-                              autoFocus
-                            />
-                            <div style={{display:'flex', gap:'10px'}}>
-                               <button type="submit" className="btn btn-sm" disabled={sending} style={{flex:1}}>{sending ? '...' : 'Yuborish'}</button>
-                               <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)}>✖</button>
-                            </div>
-                          </form>
-                        ) : (
-                          <div style={{textAlign:'center'}}>
-                            <span style={{color:'var(--text-muted)', fontSize:'0.85rem', fontStyle:'italic', display:'block', marginBottom:'8px'}}>
-                              {m.is_staff ? 'Xodim xabari' : (m.is_question ? 'Savol' : 'Xabar')}
-                            </span>
-                            {m.is_answered ? (
-                               <div style={{textAlign:'left', padding:'10px', background:'rgba(255,255,255,0.03)', borderRadius:'10px', fontSize:'0.85rem'}}>
-                                  <div style={{color:'var(--primary)', fontWeight:'700', fontSize:'0.65rem', marginBottom:'4px'}}>JAVOB:</div>
-                                  <div style={{color:'#e2e8f0'}}>{m.answer_text}</div>
-                               </div>
-                            ) : (
-                               !m.is_staff && (
-                                 <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}} style={{padding:'6px 16px', fontSize:'0.8rem'}}>Javob berish</button>
-                               )
-                            )}
-                          </div>
-                        )
-                      )}
-                   </td>
-                   <td style={{padding:'30px 10px', textAlign:'center'}}>
-                       <div style={{display:'flex', flexDirection:'column', gap:'5px', alignItems:'center'}}>
-                          <span className={`badge ${m.is_answered ? 'badge-kb' : 'badge-unanswered'}`} style={{fontSize:'0.7rem', padding:'6px 14px', width:'100%', textAlign:'center'}}>
-                             {m.is_answered ? 'Javob berilgan' : (m.is_staff ? 'Xodim' : 'Kutilmoqda')}
-                          </span>
-                          <div style={{fontSize:'0.65rem', color:'var(--text-muted)'}}>
-                             Yozildi: {formatDate(m.created_at)}
-                          </div>
-                          {m.answered_at && (
-                             <div style={{fontSize:'0.65rem', color:'var(--primary)', fontWeight:'600'}}>
-                                Javob: {formatDate(m.answered_at)}
-                             </div>
-                          )}
-                       </div>
                     </td>
-                 </tr>
-              )) : <tr><td colSpan="5" style={{textAlign:'center', padding:'3rem', color:'var(--text-muted)'}}>Tarixda ma'lumotlar topilmadi.</td></tr>}
+                    <td style={{padding:'25px 10px'}}>
+                        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                           <div className="user-avatar" style={{
+                             background: isStaffMsg ? 'var(--primary)' : getAvatarColor(m.full_name || 'U'), 
+                             width:'36px', height:'36px', fontSize:'0.85rem',
+                             boxShadow: isStaffMsg ? '0 0 10px var(--primary-glow)' : 'none'
+                           }}>
+                             {isStaffMsg ? '🛡️' : getInitials(m.full_name || 'U')}
+                           </div>
+                           <div>
+                             <div style={{fontWeight:'700', fontSize:'0.95rem', color: isStaffMsg ? 'var(--primary)' : '#fff'}}>
+                               {m.full_name}
+                             </div>
+                             {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
+                             {isStaffMsg && <span style={{fontSize:'0.6rem', color:'var(--primary)', fontWeight:800, textTransform:'uppercase', letterSpacing:'0.5px'}}>Xodim</span>}
+                           </div>
+                        </div>
+                    </td>
+                    <td style={{padding:'30px 10px'}}>
+                      <div 
+                          style={{
+                            fontSize:'0.95rem', 
+                            lineHeight:'1.6', 
+                            color:'#e2e8f0', 
+                            padding:'12px 16px',
+                            background: isStaffMsg ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.02)',
+                            borderRadius: '12px 12px 12px 4px',
+                            border: isStaffMsg ? '1px solid rgba(99, 102, 241, 0.1)' : '1px solid rgba(255,255,255,0.05)',
+                            cursor: (isStaffMsg || m.is_answered) ? 'default' : 'pointer'
+                          }}
+                          onClick={() => { if(!isStaffMsg && !m.is_answered) { setAnsweringId(m.id); setAnswerText(''); } }}
+                      >
+                         {m.text}
+                      </div>
+                    </td>
+                    <td style={{padding:'25px 10px'}}>
+                       {answeringId === m.id ? (
+                         <form onSubmit={(e) => handleSendAnswer(e, m.id)} style={{animation:'fadeIn 0.3s ease'}}>
+                           <textarea 
+                             rows="3" 
+                             value={answerText} 
+                             onChange={e => setAnswerText(e.target.value)}
+                             placeholder="Javob yozing..."
+                             style={{width:'100%', padding:'12px', fontSize:'0.9rem', marginBottom:'10px', borderRadius:'10px', background:'rgba(99,102,241,0.05)', color:'#fff', border:'1px solid var(--primary)', outline:'none'}}
+                             required
+                             autoFocus
+                           />
+                           <div style={{display:'flex', gap:'8px'}}>
+                              <button type="submit" className="btn btn-sm" disabled={sending} style={{flex:1}}>{sending ? '...' : 'Yuborish'}</button>
+                              <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)}>✖</button>
+                           </div>
+                         </form>
+                       ) : (
+                         <div style={{textAlign:'center'}}>
+                           {m.is_answered ? (
+                              <div style={{textAlign:'left', padding:'12px', background:'rgba(16, 185, 129, 0.08)', borderRadius:'12px', fontSize:'0.85rem', border:'1px solid rgba(16, 185, 129, 0.15)'}}>
+                                 <div style={{color:'#10b981', fontWeight:'800', fontSize:'0.65rem', marginBottom:'4px', textTransform:'uppercase'}}>Javob berildi:</div>
+                                 <div style={{color:'rgba(255,255,255,0.9)'}}>{m.answer_text}</div>
+                              </div>
+                           ) : (
+                              !isStaffMsg && (
+                                <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}} style={{padding:'8px 20px', fontSize:'0.8rem', borderRadius:'10px'}}>Javob berish</button>
+                              )
+                           )}
+                           {isStaffMsg && <div style={{color:'var(--text-muted)', fontSize:'0.8rem', fontStyle:'italic'}}>Admin javobi</div>}
+                         </div>
+                       )}
+                    </td>
+                    <td style={{padding:'30px 10px', textAlign:'center'}}>
+                        <div style={{display:'flex', flexDirection:'column', gap:'8px', alignItems:'center'}}>
+                           <span 
+                             className={`badge ${m.is_answered ? 'badge-kb' : (isStaffMsg ? 'badge-kb' : 'badge-unanswered')}`} 
+                             style={{
+                               fontSize:'0.7rem', 
+                               padding:'6px 14px', 
+                               width:'100%', 
+                               textAlign:'center',
+                               background: isStaffMsg && !m.is_answered ? 'rgba(99, 102, 241, 0.1)' : '',
+                               color: isStaffMsg && !m.is_answered ? 'var(--primary)' : ''
+                             }}
+                           >
+                              {m.is_answered ? 'JAVOB BERILGAN' : (isStaffMsg ? 'XODIM XABARI' : 'KUTILMOQDA')}
+                           </span>
+                           <div style={{fontSize:'0.65rem', color:'var(--text-muted)', fontWeight:500}}>
+                              {formatDate(m.created_at)}
+                           </div>
+                        </div>
+                     </td>
+                  </tr>
+                );
+              }) : <tr><td colSpan="5" style={{textAlign:'center', padding:'4rem', color:'var(--text-muted)'}}><Icons.History style={{display:'block', margin:'0 auto 1rem', opacity:0.2}}/> Hali xabarlar mavjud emas.</td></tr>}
             </tbody>
           </table>
         </div>
