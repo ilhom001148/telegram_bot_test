@@ -2211,12 +2211,22 @@ function GroupHistory({ token, group, onBack, showFlash }) {
             <tbody>
               {msgs.length > 0 ? msgs.map(m => {
                 const isStaffMsg = m.is_staff || (m.full_name && m.full_name.includes('Admin'));
+                
+                // Agar bu xabar kimningdir savoliga javob bo'lsa (yoki o'zi savol bo'lib javob berilgan bo'lsa)
                 return (
-                  <tr key={m.id} style={{height: '110px', verticalAlign:'top'}}>
+                  <tr key={m.id} style={{height: '130px', verticalAlign:'top'}}>
                     <td style={{padding:'25px 20px', fontSize:'0.8rem', color:'var(--text-muted)', fontWeight:'500'}}>
-                        <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
-                           <Icons.Calendar style={{width:13, opacity:0.5}}/>
-                           {formatDate(m.created_at)}
+                        <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                           <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
+                              <Icons.Calendar style={{width:13, opacity:0.5}}/>
+                              <span>{formatDate(m.created_at)}</span>
+                           </div>
+                           {m.is_answered && m.answered_at && (
+                             <div style={{display:'flex', alignItems:'center', gap:'6px', color:'var(--primary)', opacity:0.8}}>
+                                <Icons.Training style={{width:13}}/>
+                                <span>{formatDate(m.answered_at)}</span>
+                             </div>
+                           )}
                         </div>
                     </td>
                     <td style={{padding:'25px 10px'}}>
@@ -2237,56 +2247,74 @@ function GroupHistory({ token, group, onBack, showFlash }) {
                            </div>
                         </div>
                     </td>
-                    <td style={{padding:'30px 10px'}}>
-                      <div 
-                          style={{
-                            fontSize:'0.95rem', 
-                            lineHeight:'1.6', 
-                            color:'#e2e8f0', 
-                            padding:'12px 16px',
-                            background: isStaffMsg ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.02)',
-                            borderRadius: '12px 12px 12px 4px',
-                            border: isStaffMsg ? '1px solid rgba(99, 102, 241, 0.1)' : '1px solid rgba(255,255,255,0.05)',
-                            cursor: (isStaffMsg || m.is_answered) ? 'default' : 'pointer'
-                          }}
-                          onClick={() => { if(!isStaffMsg && !m.is_answered) { setAnsweringId(m.id); setAnswerText(''); } }}
-                      >
-                         {m.text}
+                    <td style={{padding:'25px 10px'}} colSpan={m.is_answered ? 2 : 1}>
+                      <div style={{display:'flex', flexDirection:'column', gap:'10px', maxWidth:'100%'}}>
+                         {/* Asosiy xabar / Savol */}
+                         <div 
+                            style={{
+                              fontSize:'0.95rem', 
+                              lineHeight:'1.6', 
+                              color: m.is_answered ? 'var(--text-muted)' : '#e2e8f0', 
+                              padding:'12px 16px',
+                              background: m.is_answered ? 'rgba(255,255,255,0.02)' : (isStaffMsg ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.03)'),
+                              borderRadius: '12px 12px 12px 4px',
+                              borderLeft: m.is_answered ? '3px solid var(--primary)' : (isStaffMsg ? '1px solid rgba(99, 102, 241, 0.1)' : '1px solid rgba(255,255,255,0.05)'),
+                              cursor: (isStaffMsg || m.is_answered) ? 'default' : 'pointer',
+                              position: 'relative'
+                            }}
+                            onClick={() => { if(!isStaffMsg && !m.is_answered) { setAnsweringId(m.id); setAnswerText(''); } }}
+                         >
+                            {m.is_answered && <div style={{fontSize:'0.7rem', color:'var(--primary)', fontWeight:'800', marginBottom:'4px', opacity:0.7}}>SAVOL:</div>}
+                            {m.text}
+                         </div>
+
+                         {/* Javob qismi (Telegram style) */}
+                         {m.is_answered && (
+                            <div style={{
+                              marginLeft: '20px',
+                              padding:'12px 16px', 
+                              background:'rgba(16, 185, 129, 0.08)', 
+                              borderRadius:'4px 12px 12px 12px', 
+                              fontSize:'0.95rem', 
+                              border:'1px solid rgba(16, 185, 129, 0.2)',
+                              position: 'relative',
+                              animation: 'fadeInUp 0.3s ease'
+                            }}>
+                               <div style={{color:'#10b981', fontWeight:'800', fontSize:'0.7rem', marginBottom:'4px', textTransform:'uppercase'}}>SIZNING JAVOBINGIZ:</div>
+                               <div style={{color:'#fff', lineHeight:'1.5'}}>{m.answer_text}</div>
+                            </div>
+                         )}
+
+                         {/* Javob yozish formasi */}
+                         {answeringId === m.id && (
+                           <form onSubmit={(e) => handleSendAnswer(e, m.id)} style={{marginTop:'5px', animation:'fadeIn 0.3s ease'}}>
+                             <textarea 
+                               rows="3" 
+                               value={answerText} 
+                               onChange={e => setAnswerText(e.target.value)}
+                               placeholder="Javob yozing..."
+                               style={{width:'100%', padding:'12px', fontSize:'0.9rem', marginBottom:'10px', borderRadius:'10px', background:'rgba(99,102,241,0.05)', color:'#fff', border:'1px solid var(--primary)', outline:'none'}}
+                               required
+                               autoFocus
+                             />
+                             <div style={{display:'flex', gap:'8px', justifyContent:'flex-end'}}>
+                                <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{padding:'6px 15px'}}>Bekor qilish</button>
+                                <button type="submit" className="btn btn-sm" disabled={sending} style={{padding:'6px 25px'}}>{sending ? '...' : 'Yuborish'}</button>
+                             </div>
+                           </form>
+                         )}
                       </div>
                     </td>
-                    <td style={{padding:'25px 10px'}}>
-                       {answeringId === m.id ? (
-                         <form onSubmit={(e) => handleSendAnswer(e, m.id)} style={{animation:'fadeIn 0.3s ease'}}>
-                           <textarea 
-                             rows="3" 
-                             value={answerText} 
-                             onChange={e => setAnswerText(e.target.value)}
-                             placeholder="Javob yozing..."
-                             style={{width:'100%', padding:'12px', fontSize:'0.9rem', marginBottom:'10px', borderRadius:'10px', background:'rgba(99,102,241,0.05)', color:'#fff', border:'1px solid var(--primary)', outline:'none'}}
-                             required
-                             autoFocus
-                           />
-                           <div style={{display:'flex', gap:'8px'}}>
-                              <button type="submit" className="btn btn-sm" disabled={sending} style={{flex:1}}>{sending ? '...' : 'Yuborish'}</button>
-                              <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)}>✖</button>
-                           </div>
-                         </form>
-                       ) : (
+                    {!m.is_answered && (
+                      <td style={{padding:'25px 10px'}}>
                          <div style={{textAlign:'center'}}>
-                           {m.is_answered ? (
-                              <div style={{textAlign:'left', padding:'12px', background:'rgba(16, 185, 129, 0.08)', borderRadius:'12px', fontSize:'0.85rem', border:'1px solid rgba(16, 185, 129, 0.15)'}}>
-                                 <div style={{color:'#10b981', fontWeight:'800', fontSize:'0.65rem', marginBottom:'4px', textTransform:'uppercase'}}>Javob berildi:</div>
-                                 <div style={{color:'rgba(255,255,255,0.9)'}}>{m.answer_text}</div>
-                              </div>
-                           ) : (
-                              !isStaffMsg && (
-                                <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}} style={{padding:'8px 20px', fontSize:'0.8rem', borderRadius:'10px'}}>Javob berish</button>
-                              )
-                           )}
-                           {isStaffMsg && <div style={{color:'var(--text-muted)', fontSize:'0.8rem', fontStyle:'italic'}}>Admin javobi</div>}
+                            {!isStaffMsg && !m.is_answered && answeringId !== m.id && (
+                               <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}} style={{padding:'8px 20px', fontSize:'0.8rem', borderRadius:'10px'}}>Javob berish</button>
+                            )}
+                            {isStaffMsg && <div style={{color:'var(--text-muted)', fontSize:'0.8rem', fontStyle:'italic'}}>Chiqish xabari</div>}
                          </div>
-                       )}
-                    </td>
+                      </td>
+                    )}
                     <td style={{padding:'30px 10px', textAlign:'center'}}>
                         <div style={{display:'flex', flexDirection:'column', gap:'8px', alignItems:'center'}}>
                            <span 
@@ -2296,15 +2324,21 @@ function GroupHistory({ token, group, onBack, showFlash }) {
                                padding:'6px 14px', 
                                width:'100%', 
                                textAlign:'center',
-                               background: isStaffMsg && !m.is_answered ? 'rgba(99, 102, 241, 0.1)' : '',
-                               color: isStaffMsg && !m.is_answered ? 'var(--primary)' : ''
+                               background: m.is_answered ? 'rgba(16, 185, 129, 0.15)' : (isStaffMsg ? 'rgba(99, 102, 241, 0.1)' : ''),
+                               color: m.is_answered ? '#10b981' : (isStaffMsg ? 'var(--primary)' : ''),
+                               fontWeight: '800'
                              }}
                            >
                               {m.is_answered ? 'JAVOB BERILGAN' : (isStaffMsg ? 'XODIM XABARI' : 'KUTILMOQDA')}
                            </span>
-                           <div style={{fontSize:'0.65rem', color:'var(--text-muted)', fontWeight:500}}>
-                              {formatDate(m.created_at)}
+                           <div style={{fontSize:'0.6rem', color:'var(--text-muted)', fontWeight:500, whiteSpace:'nowrap'}}>
+                              S: {formatDate(m.created_at)}
                            </div>
+                           {m.is_answered && m.answered_at && (
+                             <div style={{fontSize:'0.6rem', color:'#10b981', fontWeight:700, whiteSpace:'nowrap'}}>
+                                J: {formatDate(m.answered_at)}
+                             </div>
+                           )}
                         </div>
                      </td>
                   </tr>
