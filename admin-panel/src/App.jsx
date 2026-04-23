@@ -2200,106 +2200,185 @@ function GroupHistory({ token, group, onBack, showFlash }) {
         <div className="table-wrapper">
           <table className="premium-table">
             <thead>
-              <tr>
-                <th style={{padding:'20px', width:'100px'}}>Vaqti</th>
-                <th>Kimdan</th>
-                <th style={{width:'35%'}}>Xabar (Savol)</th>
-                <th>Javob</th>
-                <th style={{textAlign:'center'}}>Holati</th>
+              <tr style={{background:'rgba(255,255,255,0.02)'}}>
+                <th style={{padding:'20px', width:'120px', color:'var(--text-muted)', fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'1px'}}>
+                   <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                      <Icons.Calendar style={{width:14, opacity:0.6}}/> Vaqti
+                   </div>
+                </th>
+                <th style={{padding:'20px', color:'var(--text-muted)', fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'1px'}}>
+                   <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                      <Icons.Users style={{width:14, opacity:0.6}}/> Kimdan
+                   </div>
+                </th>
+                <th style={{padding:'20px', width:'35%', color:'var(--text-muted)', fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'1px'}}>
+                   <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                      <Icons.MessageCircle style={{width:14, opacity:0.6}}/> Xabar (Savol)
+                   </div>
+                </th>
+                <th style={{padding:'20px', color:'var(--text-muted)', fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'1px'}}>
+                   <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                      <Icons.Training style={{width:14, opacity:0.6}}/> Javob
+                   </div>
+                </th>
+                <th style={{padding:'20px', textAlign:'center', color:'var(--text-muted)', fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'1px'}}>
+                   <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'8px'}}>
+                      <Icons.History style={{width:14, opacity:0.6}}/> Holati
+                   </div>
+                </th>
               </tr>
             </thead>
             <tbody>
               {msgs.length > 0 ? msgs.map(m => {
                 const isStaffMsg = m.is_staff || (m.full_name && m.full_name.includes('Admin'));
                 
-                // Agar bu xabar kimningdir savoliga javob bo'lsa (yoki o'zi savol bo'lib javob berilgan bo'lsa)
                 return (
-                  <tr key={m.id} style={{height: '130px', verticalAlign:'top'}}>
+                  <tr key={m.id} style={{height: '140px', verticalAlign:'top', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
                     <td style={{padding:'25px 20px', fontSize:'0.8rem', color:'var(--text-muted)', fontWeight:'500'}}>
-                        <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
-                           <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
-                              <Icons.Calendar style={{width:13, opacity:0.5}}/>
+                        <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+                           <div style={{display:'flex', alignItems:'center', gap:'8px', background:'rgba(255,255,255,0.03)', padding:'4px 8px', borderRadius:'6px', width:'fit-content'}}>
+                              <Icons.Calendar style={{width:12, color:'var(--primary)', opacity:0.7}}/>
                               <span>{formatDate(m.created_at)}</span>
                            </div>
                            {m.is_answered && m.answered_at && (
-                             <div style={{display:'flex', alignItems:'center', gap:'6px', color:'var(--primary)', opacity:0.8}}>
-                                <Icons.Training style={{width:13}}/>
+                             <div style={{display:'flex', alignItems:'center', gap:'8px', background:'rgba(16, 185, 129, 0.05)', padding:'4px 8px', borderRadius:'6px', width:'fit-content', color:'#10b981'}}>
+                                <Icons.Training style={{width:12}}/>
                                 <span>{formatDate(m.answered_at)}</span>
                              </div>
                            )}
                         </div>
                     </td>
                     <td style={{padding:'25px 10px'}}>
-                        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                           <div className="user-avatar" style={{
-                             background: isStaffMsg ? 'var(--primary)' : getAvatarColor(m.full_name || 'U'), 
-                             width:'36px', height:'36px', fontSize:'0.85rem',
-                             boxShadow: isStaffMsg ? '0 0 10px var(--primary-glow)' : 'none'
-                           }}>
-                             {isStaffMsg ? '🛡️' : getInitials(m.full_name || 'U')}
+                        <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                           <div style={{position:'relative'}}>
+                              <div className="user-avatar" style={{
+                                background: isStaffMsg ? 'linear-gradient(135deg, var(--primary), #4f46e5)' : getAvatarColor(m.full_name || 'U'), 
+                                width:'45px', height:'45px', fontSize:'1rem', borderRadius:'14px',
+                                boxShadow: isStaffMsg ? '0 0 20px rgba(99, 102, 241, 0.3)' : '0 4px 10px rgba(0,0,0,0.2)',
+                                border: isStaffMsg ? '2px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.1)',
+                                transition: 'transform 0.3s ease'
+                              }}>
+                                {isStaffMsg ? <Icons.Bot style={{width:22, color:'#fff'}}/> : getInitials(m.full_name || 'U')}
+                              </div>
+                              {isStaffMsg && (
+                                <div style={{
+                                  position:'absolute', bottom:'-5px', right:'-5px', 
+                                  background:'#10b981', borderRadius:'50%', width:'18px', height:'18px',
+                                  display:'flex', alignItems:'center', justifyContent:'center',
+                                  border:'2px solid #1a1c2e', boxShadow:'0 2px 5px rgba(0,0,0,0.3)'
+                                }}>
+                                   <Icons.CheckCircle style={{width:10, color:'#fff'}}/>
+                                </div>
+                              )}
                            </div>
                            <div>
-                             <div style={{fontWeight:'700', fontSize:'0.95rem', color: isStaffMsg ? 'var(--primary)' : '#fff'}}>
-                               {m.full_name}
+                             <div style={{display:'flex', alignItems:'center', gap:'6px'}}>
+                               <div style={{fontWeight:'700', fontSize:'1rem', color: isStaffMsg ? 'var(--primary)' : '#fff'}}>
+                                 {m.full_name}
+                               </div>
+                               {isStaffMsg && <Icons.Training style={{width:14, color:'var(--primary)'}} title="Tasdiqlangan xodim"/>}
                              </div>
-                             {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{m.username}</div>}
-                             {isStaffMsg && <span style={{fontSize:'0.6rem', color:'var(--primary)', fontWeight:800, textTransform:'uppercase', letterSpacing:'0.5px'}}>Xodim</span>}
+                             {m.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)', display:'flex', alignItems:'center', gap:'4px'}}>
+                                <span style={{opacity:0.5}}>@</span>{m.username}
+                             </div>}
+                             {isStaffMsg && (
+                               <div style={{
+                                 marginTop:'4px',
+                                 display:'inline-flex',
+                                 alignItems:'center',
+                                 gap:'4px',
+                                 fontSize:'0.6rem',
+                                 color:'var(--primary)',
+                                 fontWeight:800,
+                                 textTransform:'uppercase',
+                                 letterSpacing:'1px',
+                                 background: 'rgba(99, 102, 241, 0.1)',
+                                 padding: '2px 8px',
+                                 borderRadius: '4px'
+                               }}>
+                                  <Icons.Training style={{width:10}}/> Xodim
+                               </div>
+                             )}
                            </div>
                         </div>
                     </td>
                     <td style={{padding:'25px 10px'}} colSpan={m.is_answered ? 2 : 1}>
-                      <div style={{display:'flex', flexDirection:'column', gap:'10px', maxWidth:'100%'}}>
+                      <div style={{display:'flex', flexDirection:'column', gap:'12px', maxWidth:'100%'}}>
                          {/* Asosiy xabar / Savol */}
                          <div 
+                            className="message-bubble"
                             style={{
                               fontSize:'0.95rem', 
                               lineHeight:'1.6', 
-                              color: m.is_answered ? 'var(--text-muted)' : '#e2e8f0', 
-                              padding:'12px 16px',
-                              background: m.is_answered ? 'rgba(255,255,255,0.02)' : (isStaffMsg ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.03)'),
-                              borderRadius: '12px 12px 12px 4px',
-                              borderLeft: m.is_answered ? '3px solid var(--primary)' : (isStaffMsg ? '1px solid rgba(99, 102, 241, 0.1)' : '1px solid rgba(255,255,255,0.05)'),
+                              color: m.is_answered ? 'rgba(255,255,255,0.6)' : '#e2e8f0', 
+                              padding:'14px 18px',
+                              background: m.is_answered ? 'rgba(255,255,255,0.01)' : (isStaffMsg ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.03)'),
+                              borderRadius: '16px 16px 16px 4px',
+                              borderLeft: m.is_answered ? '4px solid var(--primary)' : (isStaffMsg ? '1px solid rgba(99, 102, 241, 0.1)' : '1px solid rgba(255,255,255,0.05)'),
                               cursor: (isStaffMsg || m.is_answered) ? 'default' : 'pointer',
-                              position: 'relative'
+                              position: 'relative',
+                              boxShadow: m.is_answered ? 'none' : '0 4px 15px rgba(0,0,0,0.1)'
                             }}
                             onClick={() => { if(!isStaffMsg && !m.is_answered) { setAnsweringId(m.id); setAnswerText(''); } }}
                          >
-                            {m.is_answered && <div style={{fontSize:'0.7rem', color:'var(--primary)', fontWeight:'800', marginBottom:'4px', opacity:0.7}}>SAVOL:</div>}
+                            {m.is_answered && (
+                               <div style={{display:'flex', alignItems:'center', gap:'6px', marginBottom:'6px'}}>
+                                  <Icons.MessageCircle style={{width:12, color:'var(--primary)'}}/>
+                                  <span style={{fontSize:'0.65rem', color:'var(--primary)', fontWeight:'800', textTransform:'uppercase'}}>Foydalanuvchi savoli:</span>
+                               </div>
+                            )}
                             {m.text}
                          </div>
 
-                         {/* Javob qismi (Telegram style) */}
+                         {/* Javob qismi (Telegram style Premium) */}
                          {m.is_answered && (
                             <div style={{
-                              marginLeft: '20px',
-                              padding:'12px 16px', 
-                              background:'rgba(16, 185, 129, 0.08)', 
-                              borderRadius:'4px 12px 12px 12px', 
+                              marginLeft: '25px',
+                              padding:'16px 20px', 
+                              background:'rgba(16, 185, 129, 0.06)', 
+                              borderRadius:'4px 18px 18px 18px', 
                               fontSize:'0.95rem', 
-                              border:'1px solid rgba(16, 185, 129, 0.2)',
+                              border:'1px solid rgba(16, 185, 129, 0.15)',
                               position: 'relative',
-                              animation: 'fadeInUp 0.3s ease'
+                              animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                              boxShadow: '0 8px 20px rgba(0,0,0,0.1)'
                             }}>
-                               <div style={{color:'#10b981', fontWeight:'800', fontSize:'0.7rem', marginBottom:'4px', textTransform:'uppercase'}}>SIZNING JAVOBINGIZ:</div>
-                               <div style={{color:'#fff', lineHeight:'1.5'}}>{m.answer_text}</div>
+                               <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px'}}>
+                                  <div style={{background:'#10b981', borderRadius:'50%', width:'18px', height:'18px', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                     <Icons.CheckCircle style={{width:10, color:'#fff'}}/>
+                                  </div>
+                                  <span style={{color:'#10b981', fontWeight:'800', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'0.5px'}}>Admin Javobi</span>
+                               </div>
+                               <div style={{color:'rgba(255,255,255,0.95)', lineHeight:'1.6'}}>{m.answer_text}</div>
                             </div>
                          )}
 
                          {/* Javob yozish formasi */}
                          {answeringId === m.id && (
-                           <form onSubmit={(e) => handleSendAnswer(e, m.id)} style={{marginTop:'5px', animation:'fadeIn 0.3s ease'}}>
-                             <textarea 
-                               rows="3" 
-                               value={answerText} 
-                               onChange={e => setAnswerText(e.target.value)}
-                               placeholder="Javob yozing..."
-                               style={{width:'100%', padding:'12px', fontSize:'0.9rem', marginBottom:'10px', borderRadius:'10px', background:'rgba(99,102,241,0.05)', color:'#fff', border:'1px solid var(--primary)', outline:'none'}}
-                               required
-                               autoFocus
-                             />
-                             <div style={{display:'flex', gap:'8px', justifyContent:'flex-end'}}>
-                                <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{padding:'6px 15px'}}>Bekor qilish</button>
-                                <button type="submit" className="btn btn-sm" disabled={sending} style={{padding:'6px 25px'}}>{sending ? '...' : 'Yuborish'}</button>
+                           <form onSubmit={(e) => handleSendAnswer(e, m.id)} style={{marginTop:'10px', animation:'fadeIn 0.3s ease'}}>
+                             <div style={{position:'relative'}}>
+                                <textarea 
+                                  rows="4" 
+                                  value={answerText} 
+                                  onChange={e => setAnswerText(e.target.value)}
+                                  placeholder="Foydalanuvchiga javob yozing..."
+                                  style={{
+                                    width:'100%', padding:'15px', fontSize:'0.95rem', marginBottom:'12px', 
+                                    borderRadius:'16px', background:'rgba(99,102,241,0.08)', color:'#fff', 
+                                    border:'2px solid var(--primary)', outline:'none',
+                                    boxShadow: '0 0 20px rgba(99,102,241,0.1)'
+                                  }}
+                                  required
+                                  autoFocus
+                                />
+                                <div style={{display:'flex', gap:'10px', justifyContent:'flex-end'}}>
+                                   <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{padding:'10px 20px', borderRadius:'12px'}}>
+                                      <Icons.History style={{width:14, marginRight:6}}/> Bekor qilish
+                                   </button>
+                                   <button type="submit" className="btn btn-sm" disabled={sending} style={{padding:'10px 30px', borderRadius:'12px', background:'var(--primary)', boxShadow:'0 4px 15px rgba(99,102,241,0.3)'}}>
+                                      {sending ? <div className="loader-sm"></div> : <><Icons.Training style={{width:14, marginRight:6, transform:'rotate(90deg)'}}/> Yuborish</>}
+                                   </button>
+                                </div>
                              </div>
                            </form>
                          )}
@@ -2309,36 +2388,59 @@ function GroupHistory({ token, group, onBack, showFlash }) {
                       <td style={{padding:'25px 10px'}}>
                          <div style={{textAlign:'center'}}>
                             {!isStaffMsg && !m.is_answered && answeringId !== m.id && (
-                               <button className="btn btn-sm" onClick={() => {setAnsweringId(m.id); setAnswerText('');}} style={{padding:'8px 20px', fontSize:'0.8rem', borderRadius:'10px'}}>Javob berish</button>
+                               <button 
+                                 className="btn btn-sm" 
+                                 onClick={() => {setAnsweringId(m.id); setAnswerText('');}} 
+                                 style={{
+                                   padding:'10px 25px', fontSize:'0.85rem', borderRadius:'12px',
+                                   background: 'linear-gradient(135deg, var(--primary), #4f46e5)',
+                                   boxShadow: '0 4px 15px rgba(99,102,241,0.2)',
+                                   display:'inline-flex', alignItems:'center', gap:'8px'
+                                 }}
+                               >
+                                  <Icons.MessageCircle style={{width:14}}/> Javob berish
+                               </button>
                             )}
-                            {isStaffMsg && <div style={{color:'var(--text-muted)', fontSize:'0.8rem', fontStyle:'italic'}}>Chiqish xabari</div>}
+                            {isStaffMsg && (
+                               <div style={{color:'var(--text-muted)', fontSize:'0.8rem', fontStyle:'italic', opacity:0.6, display:'flex', alignItems:'center', justifyContent:'center', gap:'6px'}}>
+                                  <Icons.Training style={{width:14, opacity:0.5}}/> Chiqish xabari
+                               </div>
+                            )}
                          </div>
                       </td>
                     )}
                     <td style={{padding:'30px 10px', textAlign:'center'}}>
-                        <div style={{display:'flex', flexDirection:'column', gap:'8px', alignItems:'center'}}>
-                           <span 
-                             className={`badge ${m.is_answered ? 'badge-kb' : (isStaffMsg ? 'badge-kb' : 'badge-unanswered')}`} 
+                        <div style={{display:'flex', flexDirection:'column', gap:'10px', alignItems:'center'}}>
+                           <div 
                              style={{
                                fontSize:'0.7rem', 
-                               padding:'6px 14px', 
+                               padding:'8px 16px', 
+                               borderRadius:'10px',
                                width:'100%', 
                                textAlign:'center',
-                               background: m.is_answered ? 'rgba(16, 185, 129, 0.15)' : (isStaffMsg ? 'rgba(99, 102, 241, 0.1)' : ''),
-                               color: m.is_answered ? '#10b981' : (isStaffMsg ? 'var(--primary)' : ''),
-                               fontWeight: '800'
+                               background: m.is_answered ? 'rgba(16, 185, 129, 0.12)' : (isStaffMsg ? 'rgba(99, 102, 241, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
+                               color: m.is_answered ? '#10b981' : (isStaffMsg ? 'var(--primary)' : '#ef4444'),
+                               fontWeight: '800',
+                               display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
+                               border: m.is_answered ? '1px solid rgba(16, 185, 129, 0.2)' : (isStaffMsg ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)')
                              }}
                            >
-                              {m.is_answered ? 'JAVOB BERILGAN' : (isStaffMsg ? 'XODIM XABARI' : 'KUTILMOQDA')}
-                           </span>
-                           <div style={{fontSize:'0.6rem', color:'var(--text-muted)', fontWeight:500, whiteSpace:'nowrap'}}>
-                              S: {formatDate(m.created_at)}
+                              {m.is_answered ? <Icons.CheckCircle style={{width:12}}/> : (isStaffMsg ? <Icons.Bot style={{width:12}}/> : <Icons.History style={{width:12, animation: 'pulse 2s infinite'}}/>)}
+                              <span style={{letterSpacing:'0.5px'}}>{m.is_answered ? 'JAVOB BERILGAN' : (isStaffMsg ? 'XODIM XABARI' : 'KUTILMOQDA')}</span>
                            </div>
-                           {m.is_answered && m.answered_at && (
-                             <div style={{fontSize:'0.6rem', color:'#10b981', fontWeight:700, whiteSpace:'nowrap'}}>
-                                J: {formatDate(m.answered_at)}
-                             </div>
-                           )}
+                           
+                           <div style={{background:'rgba(255,255,255,0.03)', padding:'6px 10px', borderRadius:'6px', display:'flex', flexDirection:'column', gap:'4px', width:'100%'}}>
+                              <div style={{fontSize:'0.65rem', color:'var(--text-muted)', fontWeight:600, display:'flex', justifyContent:'space-between'}}>
+                                 <span>S:</span>
+                                 <span>{formatDate(m.created_at)}</span>
+                              </div>
+                              {m.is_answered && m.answered_at && (
+                                <div style={{fontSize:'0.65rem', color:'#10b981', fontWeight:800, display:'flex', justifyContent:'space-between', borderTop:'1px solid rgba(16, 185, 129, 0.1)', paddingTop:'4px'}}>
+                                   <span>J:</span>
+                                   <span>{formatDate(m.answered_at)}</span>
+                                </div>
+                              )}
+                           </div>
                         </div>
                      </td>
                   </tr>
