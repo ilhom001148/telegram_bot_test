@@ -1,5 +1,5 @@
 # Stage 1: Build the React Admin Panel
-FROM node:18-alpine AS build-stage
+FROM node:20-alpine AS build-stage
 WORKDIR /app/admin-panel
 COPY admin-panel/package*.json ./
 RUN npm install
