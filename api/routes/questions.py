@@ -148,9 +148,9 @@ async def answer_question(
             reply_to_message_id=question.telegram_message_id
         )
 
-        # 4. Savolni 'answered' deb belgilash (agar u savol bo'lsa)
-        if question.is_question:
-            await mark_question_answered(db, question, answered_by_bot=True)
+        # 4. Savolni 'answered' deb belgilash (Hamma turdagi xabarlar uchun)
+        question.is_question = True
+        await mark_question_answered(db, question, answered_by_bot=True)
 
         return {"status": "success", "message": "Javob muvaffaqiyatli yuborildi"}
     except Exception as e:
