@@ -829,17 +829,23 @@ function CompaniesManager({ token }) {
                 groups = responsibles.map((name, idx) => ({
                   id: `resp-${idx}`,
                   title: name,
-                  color: '#6366f1', // Harmonious Indigo
+                  color: '#6366f1', // Uniform Indigo
                   items: filtered.filter(c => (c.responsible_name || 'Mas\'ul biriktirilmagan') === name)
                 }));
               } else {
-                // 'none' mode - General List
+                // 'none' mode - Sorted by subscription_end (ascending: closest expiry first)
+                const sortedItems = [...filtered].sort((a, b) => {
+                  const dateA = a.subscription_end ? new Date(a.subscription_end) : new Date(2099, 11, 31);
+                  const dateB = b.subscription_end ? new Date(b.subscription_end) : new Date(2099, 11, 31);
+                  return dateA - dateB;
+                });
+
                 groups = [
                   { 
                     id: 'all', 
-                    title: 'Barcha korxonalar', 
+                    title: 'Barcha korxonalar (Muddati bo\'yicha saralangan)', 
                     color: '#6366f1', 
-                    items: filtered.sort((a,b) => b.is_active - a.is_active) 
+                    items: sortedItems
                   }
                 ];
               }
