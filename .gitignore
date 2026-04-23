@@ -21,8 +21,6 @@ ENV/
 
 # Node / React
 node_modules/
-dist/
-dist-ssr/
 *.local
 
 # Editor
