@@ -954,10 +954,6 @@ function CompaniesManager({ token }) {
                       </div>
                   ))}
                 </div>
-                        )}
-                      </div>
-                  ))}
-                </div>
               );
             }
 
