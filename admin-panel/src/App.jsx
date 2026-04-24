@@ -598,7 +598,7 @@ function CompaniesManager({ token }) {
   const [flash, setFlash] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
-  const [groupBy, setGroupBy] = useState('none'); // none, responsible
+  const [groupBy, setGroupBy] = useState('none'); // none, responsible, status
   const [collapsedGroups, setCollapsedGroups] = useState({});
 
   const toggleGroup = (id) => {
@@ -780,7 +780,7 @@ function CompaniesManager({ token }) {
              <Icons.List /> <span className="hide-mobile">Ro'yxat</span>
            </button>
         </div>
-
+ 
         {viewMode === 'list' && (
           <div style={{display:'flex', alignItems:'center', background:'rgba(255,255,255,0.03)', padding:'4px', borderRadius:'14px', border:'1px solid var(--card-border)', gap:'4px'}}>
             <button 
@@ -800,6 +800,15 @@ function CompaniesManager({ token }) {
                 transition:'all 0.2s'}}
             >
               Mas'ul bo'yicha
+            </button>
+            <button 
+              onClick={() => setGroupBy('status')}
+              style={{padding:'6px 16px', borderRadius:'10px', border:'none', cursor:'pointer', fontSize:'0.8rem', fontWeight:'600',
+                background: groupBy === 'status' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: groupBy === 'status' ? '#fff' : 'var(--text-muted)',
+                transition:'all 0.2s'}}
+            >
+              Nofaollik bo'yicha
             </button>
           </div>
         )}
@@ -827,15 +836,31 @@ function CompaniesManager({ token }) {
             if (viewMode === 'list') {
               // Grouping Logic - Simplified & Modern
               let groups = [];
-              if (groupBy === 'responsible') {
-                const responsibles = [...new Set(filtered.map(c => c.responsible_name || 'Mas\'ul biriktirilmagan'))];
-                groups = responsibles.map((name, idx) => ({
-                  id: `resp-${idx}`,
-                  title: name,
-                  color: '#6366f1', // Uniform Indigo
-                  items: filtered.filter(c => (c.responsible_name || 'Mas\'ul biriktirilmagan') === name)
-                }));
-              } else {
+                  if (groupBy === 'responsible') {
+                    const responsibles = [...new Set(filtered.map(c => c.responsible_name || 'Mas\'ul biriktirilmagan'))];
+                    groups = responsibles.map((name, idx) => ({
+                      id: `resp-${idx}`,
+                      title: name,
+                      color: '#6366f1', // Uniform Indigo
+                      items: filtered.filter(c => (c.responsible_name || 'Mas\'ul biriktirilmagan') === name)
+                    }));
+                  } else if (groupBy === 'status') {
+                    const now = new Date();
+                    groups = [
+                      { 
+                        id: 'active', 
+                        title: 'Faol korxonalar', 
+                        color: '#10b981', 
+                        items: filtered.filter(c => c.is_active && (!c.subscription_end || new Date(c.subscription_end) > now)) 
+                      },
+                      { 
+                        id: 'inactive', 
+                        title: 'Nofaol / Muddati tugaganlar', 
+                        color: '#ef4444', 
+                        items: filtered.filter(c => !c.is_active || (c.subscription_end && new Date(c.subscription_end) <= now)) 
+                      }
+                    ];
+                  } else {
                 // 'none' mode - Sorted by subscription_end (ascending: closest expiry first)
                 const sortedItems = [...filtered].sort((a, b) => {
                   const dateA = a.subscription_end ? new Date(a.subscription_end) : new Date(2099, 11, 31);
@@ -964,7 +989,7 @@ function CompaniesManager({ token }) {
               <div className="grid-cards" style={{marginTop:'1.5rem'}}>
                 {filtered.map(c => (
               <div key={c.id} className="premium-card company-card fadeInUp" 
-                   style={{ animationDelay: `${companies.indexOf(c) * 0.05}s` }}
+                   style={{ animationDelay: `${companies.indexOf(c) * 0.05}s`, opacity: c.is_active ? 1 : 0.7, filter: c.is_active ? 'none' : 'grayscale(0.3)' }}
                    onClick={() => openEdit(c)}>
                 
                 <div className="card-header">
