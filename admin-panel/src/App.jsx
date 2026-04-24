@@ -848,12 +848,6 @@ function CompaniesManager({ token }) {
                     const now = new Date();
                     groups = [
                       { 
-                        id: 'active', 
-                        title: 'Faol korxonalar', 
-                        color: '#10b981', 
-                        items: filtered.filter(c => c.is_active && (!c.subscription_end || new Date(c.subscription_end) > now)) 
-                      },
-                      { 
                         id: 'inactive', 
                         title: 'Nofaol / Muddati tugaganlar', 
                         color: '#ef4444', 
@@ -954,11 +948,17 @@ function CompaniesManager({ token }) {
                                          </div>
                                        </td>
                                        <td style={{textAlign:'center'}}>
-                                          <div style={{display:'inline-flex', alignItems:'center', gap:'6px', padding:'4px 10px', borderRadius:'20px', background: c.is_active ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border:`1px solid ${c.is_active ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`}}>
-                                             <div style={{width:6, height:6, borderRadius:'50%', background: c.is_active ? '#10b981' : '#ef4444'}}></div>
-                                             <span style={{fontSize:'0.7rem', fontWeight:700, color: c.is_active ? '#10b981' : '#ef4444', textTransform:'uppercase'}}>{c.is_active ? 'Faol' : 'Nofaol'}</span>
-                                          </div>
-                                       </td>
+                                           {(() => {
+                                             const isExpired = c.subscription_end && new Date(c.subscription_end) <= new Date();
+                                             const isActive = c.is_active && !isExpired;
+                                             return (
+                                               <div style={{display:'inline-flex', alignItems:'center', gap:'6px', padding:'4px 10px', borderRadius:'20px', background: isActive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border:`1px solid ${isActive ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`}}>
+                                                  <div style={{width:6, height:6, borderRadius:'50%', background: isActive ? '#10b981' : '#ef4444'}}></div>
+                                                  <span style={{fontSize:'0.7rem', fontWeight:700, color: isActive ? '#10b981' : '#ef4444', textTransform:'uppercase'}}>{isActive ? 'Faol' : 'Nofaol'}</span>
+                                               </div>
+                                             );
+                                           })()}
+                                        </td>
                                     <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
                                       <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'12px'}}>
                                          <div onClick={() => handleToggle(c.id)} style={{cursor:'pointer', width:32, height:16, borderRadius:8, 
