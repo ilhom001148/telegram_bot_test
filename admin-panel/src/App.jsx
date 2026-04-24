@@ -629,7 +629,7 @@ function CompaniesManager({ token }) {
 
   const fetchCompanies = () => {
     setLoading(true);
-    fetch(`${API_URL}/companies/external`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/companies/`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => { setCompanies(d || []); setLoading(false); })
       .catch(() => setLoading(false));
   };
@@ -1546,7 +1546,11 @@ function Dashboard({ token, showFlash }) {
        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
        body: JSON.stringify({ text: answerText })
     })
-    .then(res => res.json())
+    .then(async res => {
+       const data = await res.json();
+       if (!res.ok) throw new Error(data.detail || 'Xatolik yuz berdi');
+       return data;
+    })
     .then(() => {
        setSending(false);
        setAnsweringId(null);
@@ -1554,7 +1558,10 @@ function Dashboard({ token, showFlash }) {
        showFlash("Javob yuborildi");
        fetchStats();
     })
-    .catch(() => { setSending(false); showFlash("Xatolik yuz berdi", "error"); });
+    .catch((err) => { 
+       setSending(false); 
+       showFlash(err.message, "error"); 
+    });
   };
 
   if (loading) return <div className="loader"></div>;

@@ -134,8 +134,14 @@ async def answer_question(
         raise HTTPException(status_code=403, detail="Support xabarlariga bu yerdan javob berib bo'lmaydi")
     
     # Guruh yoki shaxsiy chat ekanini aniqlash
-    chat_id = question.group.telegram_id if question.group else question.user_id
+    chat_id = None
+    if question.group and question.group.telegram_id:
+        chat_id = int(question.group.telegram_id)
+    elif question.user_id:
+        chat_id = int(question.user_id)
+
     if not chat_id:
+        print(f"❌ ERROR: Chat ID topilmadi! Question ID: {question_id}")
         raise HTTPException(status_code=400, detail="Xabar yuborilgan chat/foydalanuvchi topilmadi")
 
     try:
@@ -143,14 +149,42 @@ async def answer_question(
         from bot.bot_instance import get_bot
         bot = get_bot()
         
-        print(f"DEBUG: Sending reply to chat_id={chat_id}, reply_to={question.telegram_message_id}")
-        
-        sent_msg = await bot.send_message(
-            chat_id=chat_id,
-            text=data.text,
-            reply_to_message_id=question.telegram_message_id
-        )
-        print(f"DEBUG: Message sent successfully, id={sent_msg.message_id}")
+        # Bot tokenini tekshirish (faqat log uchun)
+        token_preview = f"{bot.token[:10]}...{bot.token[-5:]}"
+        print(f"🚀 [API] Bot orqali yuborilmoqda. Token: {token_preview}, ChatID: {chat_id}")
+
+        # Chatga kirish imkoniyatini tekshirish
+        try:
+            print(f"🔍 [API] Chat holatini tekshirish: {chat_id}...")
+            chat_info = await bot.get_chat(chat_id)
+            print(f"✅ [API] Chat topildi: {chat_info.title} ({chat_info.type})")
+        except Exception as chat_err:
+            print(f"❌ [API] Chatni topishda xato: {chat_err}")
+            # Agar chat topilmasa, ID noto'g'ri yoki bot u yerda emas
+            raise HTTPException(status_code=400, detail=f"Bot bu guruhni ko'rmayapti (ID: {chat_id}). Guruhda bot borligini tekshiring. Xato: {chat_err}")
+
+        sent_msg = None
+        try:
+            # Avval reply qilib urinib ko'ramiz
+            sent_msg = await bot.send_message(
+                chat_id=chat_id,
+                text=data.text,
+                reply_to_message_id=question.telegram_message_id
+            )
+            print(f"✅ [API] Xabar yuborildi. ID: {sent_msg.message_id}")
+        except Exception as e:
+            # Agar reply message topilmasa (o'chib ketgan bo'lsa), oddiy xabar yuboramiz
+            if "reply message not found" in str(e).lower() or "message to reply not found" in str(e).lower():
+                print("⚠️ [API] Original xabar topilmadi, oddiy xabar sifatida yuborilmoqda...")
+                sent_msg = await bot.send_message(
+                    chat_id=chat_id,
+                    text=f"Javob (savol o'chirilgan): \n\n{data.text}"
+                )
+                print(f"✅ [API] Oddiy xabar sifatida yuborildi. ID: {sent_msg.message_id}")
+            else:
+                # Boshqa turdagi xatolar (masalan: Bot blocked, Forbidden va h.k.)
+                print(f"❌ [API] Telegram API xatosi: {e}")
+                raise HTTPException(status_code=500, detail=f"Telegram API xatosi: {str(e)}")
 
         # 3. Bazada javobni saqlash
         await create_message(
@@ -162,17 +196,18 @@ async def answer_question(
             username="admin",
             text=data.text,
             is_question=False,
-            reply_to_message_id=question.telegram_message_id
+            reply_to_message_id=question.telegram_message_id if sent_msg.reply_to_message else None
         )
 
-        # 4. Savolni 'answered' deb belgilash (Hamma turdagi xabarlar uchun)
-        question.is_question = True
+        # 4. Savolni 'answered' deb belgilash
         await mark_question_answered(db, question, answered_by_bot=True)
 
         return {"status": "success", "message": "Javob muvaffaqiyatli yuborildi"}
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Telegram Answer Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Telegramga javob yuborishda xatolik: {str(e)}")
+        print(f"❌ SYSTEM ERROR: {e}")
+        raise HTTPException(status_code=500, detail=f"Tizim xatosi: {str(e)}")
 
 @router.get("/{question_id}")
 async def get_question_detail(question_id: int, db: AsyncSession = Depends(get_db)):
