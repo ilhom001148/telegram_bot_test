@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column,
     Integer,
@@ -63,7 +64,7 @@ class Message(Base):
 
     reply_to_message_id = Column(Integer, nullable=True)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     answered_at = Column(DateTime(timezone=True), nullable=True)
 
     group = relationship("Group", back_populates="messages")
@@ -105,7 +106,6 @@ class KnowledgeBase(Base):
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
 
 
 class Admin(Base):

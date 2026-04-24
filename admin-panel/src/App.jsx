@@ -50,10 +50,23 @@ const getInitials = (name) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return '—';
   try {
-    // Robust parsing for different formats
-    const d = new Date(dateStr.toString().replace(' ', 'T'));
+    // Agar vaqtda timezone bo'lmasa, uni UTC deb hisoblaymiz (Z qo'shamiz)
+    let normalized = dateStr.toString().replace(' ', 'T');
+    if (!normalized.includes('Z') && !normalized.includes('+') && !normalized.includes('-')) {
+      normalized += 'Z';
+    }
+    
+    const d = new Date(normalized);
     if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'});
+    
+    // Foydalanuvchi mintaqasida (Toshkent) ko'rsatish
+    return d.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).replace(',', '');
   } catch (e) {
     return dateStr;
   }
@@ -599,10 +612,14 @@ function CompaniesManager({ token }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [groupBy, setGroupBy] = useState('none'); // none, responsible, status
-  const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [collapsedGroups, setCollapsedGroups] = useState({}); // Default empty, we'll handle default state in render
 
   const toggleGroup = (id) => {
-    setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+    setCollapsedGroups(prev => {
+      // If it was undefined, we need to know what the default was
+      const isCurrentlyCollapsed = prev[id] === undefined ? (groupBy !== 'none') : prev[id];
+      return { ...prev, [id]: !isCurrentlyCollapsed };
+    });
   };
 
   const showMsg = (text, type = 'success') => {
@@ -881,7 +898,7 @@ function CompaniesManager({ token }) {
                           onClick={() => toggleGroup(st.id)}
                           style={{padding:'1rem 1.5rem', background:'rgba(255,255,255,0.02)', borderBottom:'1px solid var(--card-border)', cursor:'pointer', display:'flex', alignItems:'center', gap:'1rem'}}
                         >
-                          <div style={{transform: collapsedGroups[st.id] ? 'rotate(-90deg)' : 'rotate(0deg)', transition:'transform 0.2s', display:'flex', color:'var(--text-muted)'}}>
+                          <div style={{transform: (collapsedGroups[st.id] === undefined ? (groupBy !== 'none') : collapsedGroups[st.id]) ? 'rotate(-90deg)' : 'rotate(0deg)', transition:'transform 0.2s', display:'flex', color:'var(--text-muted)'}}>
                             <Icons.ChevronDown />
                           </div>
                           <div style={{fontWeight:700, fontSize:'1rem', color:'#fff', flex:1}}>
@@ -891,7 +908,7 @@ function CompaniesManager({ token }) {
                           {st.id !== 'all' && <div style={{width:8, height:8, borderRadius:'50%', background:st.color, boxShadow:`0 0 10px ${st.color}`}}></div>}
                         </div>
  
-                         {!collapsedGroups[st.id] && (
+                         {!(collapsedGroups[st.id] === undefined ? (groupBy !== 'none' && st.id !== 'inactive') : collapsedGroups[st.id]) && (
                            <div className="table-wrapper">
                              <table className="clickup-table">
                                <thead>
@@ -962,10 +979,10 @@ function CompaniesManager({ token }) {
                                     <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
                                       <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'12px'}}>
                                          <div onClick={() => handleToggle(c.id)} style={{cursor:'pointer', width:32, height:16, borderRadius:8, 
-                                            background: c.is_active ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
+                                            background: (c.is_active && !(c.subscription_end && new Date(c.subscription_end) <= new Date())) ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
                                             display:'flex', alignItems:'center', padding:'2px', transition:'all 0.3s'}}>
                                             <div style={{width:12, height:12, borderRadius:'50%', background:'#fff',
-                                              transform: c.is_active ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
+                                              transform: (c.is_active && !(c.subscription_end && new Date(c.subscription_end) <= new Date())) ? 'translateX(16px)' : 'translateX(0)', transition:'transform 0.3s'}}/>
                                          </div>
                                          {!isExternal(c.id) && (
                                             <button onClick={()=>setDeleteId(c.id)} style={{background:'none', border:'none', color:'rgba(239,68,68,0.6)', cursor:'pointer', padding:4, fontSize:'0.9rem', transition:'color 0.2s'}} onMouseEnter={e=>e.target.style.color='#ef4444'} onMouseLeave={e=>e.target.style.color='rgba(239,68,68,0.6)'} title="O'chirish">🗑</button>
@@ -992,19 +1009,25 @@ function CompaniesManager({ token }) {
                    style={{ animationDelay: `${companies.indexOf(c) * 0.05}s`, opacity: c.is_active ? 1 : 0.7, filter: c.is_active ? 'none' : 'grayscale(0.3)' }}
                    onClick={() => openEdit(c)}>
                 
-                <div className="card-header">
-                  <div className="card-avatar">
+                <div className="card-header" style={{position:'relative', padding:'1.5rem', display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'1rem'}}>
+                  <div className="card-avatar" style={{
+                    width:'60px', height:'60px', borderRadius:'15px', overflow:'hidden', 
+                    background:'rgba(255,255,255,0.05)', border:'1px solid var(--card-border)',
+                    boxShadow:'0 8px 16px rgba(0,0,0,0.2)', position:'absolute', left:'1.5rem', top:'1.5rem'
+                  }}>
                     {c.logo_url ? (
                       <img src={c.logo_url.startsWith('http') ? c.logo_url : `${API_URL}${c.logo_url}`} 
-                        alt="logo" className="avatar-img" />
-                    ) : <Icons.Company className="avatar-icon" />}
+                        alt="logo" style={{width:'100%', height:'100%', objectFit:'contain'}} />
+                    ) : <Icons.Company style={{width:'60%', height:'60%', margin:'20%', opacity:0.5}} />}
                   </div>
-                  <div className="card-titles">
-                    <h3 className="card-main-title">{c.name}</h3>
-                    {c.brand_name && <p className="card-subtitle">{c.brand_name}</p>}
+                  
+                  <div className="card-titles" style={{marginLeft:'75px', minHeight:'60px', display:'flex', flexDirection:'column', justifyContent:'center'}}>
+                    <h3 className="card-main-title" style={{fontSize:'1.1rem', margin:0, color:'#fff', fontWeight:700}}>{c.name}</h3>
+                    {c.brand_name && <p className="card-subtitle" style={{fontSize:'0.8rem', margin:'4px 0 0', color:'var(--primary)', fontWeight:600}}>{c.brand_name}</p>}
                   </div>
+
                   {!isExternal(c.id) && (
-                    <div className="card-actions-top" onClick={e => e.stopPropagation()}>
+                    <div className="card-actions-top" style={{position:'absolute', right:'1rem', top:'1rem'}} onClick={e => e.stopPropagation()}>
                       <button className="icon-btn-danger" onClick={()=>setDeleteId(c.id)} title="O'chirish">🗑</button>
                     </div>
                   )}
@@ -1245,7 +1268,6 @@ function CompaniesManager({ token }) {
                   <input type="datetime-local" style={inp} value={form.subscription_start}
                     onChange={e => setForm({...form, subscription_start: e.target.value})}/>
                 </div>
-
                 <div className="form-group">
                   <label>Obuna tugashi</label>
                   <input type="datetime-local" style={inp} value={form.subscription_end}
@@ -1279,6 +1301,7 @@ function CustomersManager({ token, showFlash }) {
   const [qLoading, setQLoading] = useState(false);
   const [ansText, setAnsText] = useState({});
   const [sending, setSending] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchUsers = () => {
     fetch(`${API_URL}/users/`, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -1319,75 +1342,106 @@ function CustomersManager({ token, showFlash }) {
     .catch(() => { setSending({...sending, [qId]: false}); showFlash("Xatolik yuz berdi", "error"); });
   };
 
+  const filteredUsers = users.filter(u => 
+    (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (u.username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (u.telegram_id || '').toString().includes(searchQuery)
+  );
+
   return (
-    <>
-      <div className="flex-between" style={{marginBottom:'2.5rem'}}>
+    <div style={{animation: 'fadeIn 0.5s ease-out'}}>
+      <div className="flex-between" style={{marginBottom:'2.5rem', alignItems:'flex-end'}}>
          <div>
             <h2 className="header-title" style={{margin:0}}>Mijozlar ro'yxati (CRM)</h2>
-            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'5px'}}>Botdan foydalanuvchi barcha mijozlar bazasi</p>
+            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'5px'}}>Bot foydalanuvchilari bilan muloqot va tahlil</p>
          </div>
-         <div className="badge badge-kb" style={{padding:'10px 20px', borderRadius:'12px'}}>
-            Jami: {users.length} ta foydalanuvchi
+         <div style={{display:'flex', gap:'1rem', alignItems:'center'}}>
+            <div className="glass-card" style={{padding:'10px 20px', display:'flex', alignItems:'center', gap:'12px', border:'1px solid var(--primary)'}}>
+               <div style={{fontSize:'1.5rem'}}>👥</div>
+               <div>
+                  <div style={{fontSize:'0.65rem', color:'var(--text-muted)', textTransform:'uppercase', fontWeight:700}}>Jami mijozlar</div>
+                  <div style={{fontSize:'1.1rem', fontWeight:800, color:'#fff'}}>{users.length} ta</div>
+               </div>
+            </div>
          </div>
+      </div>
+
+      <div className="glass-card" style={{padding:'1.5rem', marginBottom:'1.5rem', display:'flex', alignItems:'center', gap:'1.5rem'}}>
+         <div style={{position:'relative', flex:1}}>
+            <div style={{position:'absolute', left:'15px', top:'50%', transform:'translateY(-50%)', color:'var(--text-muted)', display:'flex'}}>
+               <Icons.Search />
+            </div>
+            <input 
+               type="text" 
+               placeholder="Mijoz ismi yoki username bo'yicha qidirish..." 
+               style={{width:'100%', padding:'12px 12px 12px 45px', background:'rgba(255,255,255,0.03)', border:'1px solid var(--card-border)', borderRadius:'12px', color:'#fff', outline:'none'}}
+               value={searchQuery}
+               onChange={e => setSearchQuery(e.target.value)}
+            />
+         </div>
+         <button className="btn btn-outline" onClick={fetchUsers} style={{borderColor:'var(--card-border)'}}>🔄 Yangilash</button>
       </div>
       
       {loading ? <div className="loader"></div> : (
-        <div className="glass-card" style={{padding:'1.5rem'}}>
+        <div className="glass-card" style={{padding:0, overflow:'hidden'}}>
           <div className="table-wrapper">
-            <table className="premium-table">
+            <table className="clickup-table">
               <thead>
                 <tr>
-                  <th style={{padding:'20px', width:'60px'}}>№</th>
-                  <th>Mijoz (Ismi va Username)</th>
-                  <th style={{textAlign:'center'}}>Tili</th>
-                  <th style={{textAlign:'center'}}>Jami Muloqot</th>
-                  <th style={{textAlign:'center'}}>Savollar</th>
-                  <th style={{textAlign:'center'}}>Ro'yxatdan o'tgan</th>
+                  <th style={{paddingLeft:'1.5rem', width:'60px'}}>№</th>
+                  <th style={{width:'30%'}}><div style={{display:'flex', alignItems:'center', gap:8}}><Icons.User style={{width:16}}/> Mijoz</div></th>
+                  <th style={{textAlign:'center'}}><div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8}}><Icons.Flag style={{width:14}}/> Til</div></th>
+                  <th style={{textAlign:'center'}}><div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8}}><Icons.History style={{width:14}}/> Faollik</div></th>
+                  <th style={{textAlign:'center'}}><div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8}}><Icons.MessageCircle style={{width:14}}/> Savollar</div></th>
+                  <th style={{textAlign:'center'}}><div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8}}><Icons.Calendar style={{width:14}}/> Ro'yxatdan o'tgan</div></th>
                 </tr>
               </thead>
               <tbody>
-                {users.length > 0 ? users.map((u, i) => (
-                  <tr key={u.id} style={{height:'90px'}}>
-                    <td style={{padding:'20px', color:'var(--text-muted)', fontWeight:'600'}}>{i + 1}</td>
-                    <td style={{padding:'20px 10px'}}>
+                {filteredUsers.length > 0 ? filteredUsers.map((u, i) => (
+                  <tr key={u.id} className="clickup-row" onClick={() => openQuestions(u)}>
+                    <td style={{paddingLeft:'1.5rem', color:'var(--text-muted)', fontSize:'0.8rem'}}>{i + 1}</td>
+                    <td>
                       <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
                         <div className="user-avatar" style={{
                           background: getAvatarColor(u.full_name || 'U'),
-                          width:'42px', height:'42px', fontSize:'1rem'
+                          width:'38px', height:'38px', fontSize:'0.9rem', borderRadius:'10px'
                         }}>
                           {getInitials(u.full_name || 'U')}
                         </div>
                         <div>
-                          <div style={{fontWeight:'700', fontSize:'1rem', color:'#fff'}}>{u.full_name || 'Nomalum'}</div>
-                          {u.username && <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{u.username}</div>}
+                          <div style={{fontWeight:'700', fontSize:'0.95rem', color:'#fff'}}>{u.full_name || 'Nomalum'}</div>
+                          <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>{u.username ? `@${u.username}` : `ID: ${u.telegram_id}`}</div>
                         </div>
                       </div>
                     </td>
                     <td style={{textAlign:'center'}}>
-                       <span style={{textTransform:'uppercase', fontSize:'0.75rem', fontWeight:'800', padding:'4px 10px', background:'rgba(255,255,255,0.05)', borderRadius:'6px'}}>
+                       <span style={{textTransform:'uppercase', fontSize:'0.7rem', fontWeight:'800', padding:'4px 10px', background:'rgba(255,255,255,0.05)', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.1)'}}>
                           {u.language_code || 'uz'}
                        </span>
                     </td>
                     <td style={{textAlign:'center'}}>
-                      <div style={{fontWeight:'600', color:'var(--primary)'}}>{u.total_messages} ta</div>
+                      <div style={{fontSize:'0.85rem', fontWeight:'600', color:'var(--primary)'}}>{u.total_messages} ta xabar</div>
                     </td>
                     <td style={{textAlign:'center'}}>
-                      <span className={`badge ${u.total_questions > 0 ? 'badge-unanswered pointer' : 'badge-kb pointer'}`} 
-                            style={{fontSize:'0.75rem', minWidth:'80px', cursor:'pointer', transition:'transform 0.2s'}}
-                            onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
-                            onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-                            onClick={() => openQuestions(u)}>
+                      <div className={`status-badge ${u.total_questions > 0 ? 'status-new' : 'status-stopped'}`} 
+                            style={{fontSize:'0.7rem', cursor:'pointer', padding:'6px 12px', minWidth:'90px'}}
+                            onClick={(e) => { e.stopPropagation(); openQuestions(u); }}>
                         {u.total_questions} ta savol
-                      </span>
+                      </div>
                     </td>
-                    <td style={{textAlign:'center', fontSize:'0.85rem', color:'var(--text-muted)'}}>
-                       {new Date(u.created_at).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'})}
-                       <div style={{fontSize:'0.7rem', opacity:0.6, marginTop:'4px'}}>
-                          {new Date(u.created_at).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}
+                    <td style={{textAlign:'center'}}>
+                       <div style={{fontSize:'0.85rem', color:'#fff', fontWeight:600}}>
+                          {new Date(u.created_at).toLocaleDateString('uz-UZ')}
+                       </div>
+                       <div style={{fontSize:'0.7rem', color:'var(--text-muted)', marginTop:'2px'}}>
+                          {new Date(u.created_at).toLocaleTimeString('uz-UZ', {hour:'2-digit', minute:'2-digit'})}
                        </div>
                     </td>
                   </tr>
-                )) : <tr><td colSpan="6" style={{textAlign:'center', padding:'4rem', color:'var(--text-muted)'}}>Hozircha mijozlar topilmadi.</td></tr>}
+                )) : <tr><td colSpan="6" style={{textAlign:'center', padding:'5rem', color:'var(--text-muted)'}}>
+                    <div style={{fontSize:'3rem', opacity:0.1, marginBottom:'1rem'}}><Icons.Users /></div>
+                    Hech qanday mijoz topilmadi.
+                  </td></tr>}
               </tbody>
             </table>
           </div>
@@ -1458,7 +1512,7 @@ function CustomersManager({ token, showFlash }) {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -1950,27 +2004,36 @@ function Messages({ token, showFlash }) {
                 </thead>
                 <tbody>
                   {group.items.map(msg => (
-                    <tr key={msg.id} className="clickup-row">
-                      <td style={{paddingLeft:'1.5rem'}}>
-                        <div style={{padding:'4px 0'}}>
-                          <div 
-                            style={{
-                              background: 'rgba(255,255,255,0.03)',
-                              padding: '12px 16px',
-                              borderRadius: '12px 12px 12px 4px',
-                              fontSize: '0.9rem',
-                              lineHeight: '1.5',
-                              color: '#e2e8f0',
-                              border: '1px solid rgba(255,255,255,0.05)',
-                              cursor: msg.is_answered ? 'default' : 'pointer'
-                            }}
-                            onClick={() => { if(!msg.is_answered) { setAnsweringId(msg.id); setAnswerText(''); } }}
-                          >
-                            {msg.text}
+                    <tr key={msg.id} className="clickup-row" style={{verticalAlign:'top'}}>
+                      <td style={{paddingLeft:'1.5rem', paddingBottom:'1.5rem'}}>
+                        <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+                          {/* SAVOL BLOKI */}
+                          <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
+                            <div 
+                              style={{
+                                background: 'rgba(255,255,255,0.04)',
+                                padding: '12px 16px',
+                                borderRadius: '14px 14px 14px 4px',
+                                fontSize: '0.92rem',
+                                lineHeight: '1.6',
+                                color: '#f8fafc',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                cursor: msg.is_answered ? 'default' : 'pointer',
+                                position: 'relative',
+                                transition: 'all 0.3s ease'
+                              }}
+                              onClick={() => { if(!msg.is_answered) { setAnsweringId(msg.id); setAnswerText(''); } }}
+                            >
+                              {msg.text}
+                              <div style={{textAlign:'right', marginTop:'6px', fontSize:'0.65rem', color:'rgba(255,255,255,0.4)', fontWeight:600}}>
+                                SAVOL • {formatDate(msg.created_at)}
+                              </div>
+                            </div>
                           </div>
                           
+                          {/* JAVOB BERISH FORMASI */}
                           {answeringId === msg.id && (
-                            <div style={{marginTop:'12px', animation:'fadeIn 0.3s ease'}}>
+                            <div style={{marginTop:'4px', animation:'fadeIn 0.3s ease', paddingLeft:'1.5rem'}}>
                               <textarea 
                                 rows="3" 
                                 value={answerText} 
@@ -1978,64 +2041,132 @@ function Messages({ token, showFlash }) {
                                 placeholder="Javobingizni yozing..."
                                 style={{
                                   width:'100%', 
-                                  background:'rgba(99, 102, 241, 0.05)', 
-                                  border:'1px solid var(--primary)', 
+                                  background:'rgba(99, 102, 241, 0.08)', 
+                                  border:'2px solid var(--primary)', 
                                   color:'#fff', 
-                                  borderRadius:'12px',
+                                  borderRadius:'14px',
                                   padding:'12px',
                                   fontSize:'0.9rem',
-                                  outline:'none'
+                                  outline:'none',
+                                  boxShadow: '0 0 15px rgba(99, 102, 241, 0.2)'
                                 }}
                                 autoFocus
                               />
-                              <div style={{display:'flex', gap:'8px', marginTop:'8px', justifyContent:'flex-end'}}>
-                                <button className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.75rem', padding:'6px 16px'}}>Bekor qilish</button>
-                                <button className="btn btn-sm" onClick={(e) => handleSendAnswer(e, msg.id)} disabled={sending} style={{fontSize:'0.75rem', padding:'6px 20px'}}>{sending ? '⏳...' : 'Yuborish'}</button>
+                              <div style={{display:'flex', gap:'8px', marginTop:'10px', justifyContent:'flex-end'}}>
+                                <button className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.75rem', padding:'8px 18px', borderRadius:'10px'}}>Bekor qilish</button>
+                                <button className="btn btn-sm" onClick={(e) => handleSendAnswer(e, msg.id)} disabled={sending} style={{fontSize:'0.75rem', padding:'8px 24px', borderRadius:'10px', background:'var(--primary)'}}>
+                                  {sending ? '⏳...' : 'Yuborish'}
+                                </button>
                               </div>
                             </div>
                           )}
 
+                          {/* JAVOB BLOKI */}
                           {msg.is_answered && (
                             <div style={{
-                              marginTop:'8px', 
                               marginLeft: '2rem',
-                              padding:'10px 14px', 
-                              background:'rgba(16, 185, 129, 0.08)', 
-                              borderRadius:'12px 12px 4px 12px', 
-                              border:'1px solid rgba(16, 185, 129, 0.2)',
-                              fontSize:'0.85rem'
+                              padding:'12px 16px', 
+                              background:'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.05))', 
+                              borderRadius:'14px 14px 4px 14px', 
+                              border:'1px solid rgba(16, 185, 129, 0.25)',
+                              fontSize:'0.9rem',
+                              position: 'relative'
                             }}>
-                               <span style={{color:'#10b981', fontWeight:'800', fontSize:'0.65rem', display:'block', marginBottom:'4px', textTransform:'uppercase'}}>Javobingiz:</span>
-                               <span style={{color:'rgba(255,255,255,0.9)'}}>{msg.answer_text}</span>
+                               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px'}}>
+                                  <span style={{
+                                    color:'#10b981', 
+                                    fontWeight:'900', 
+                                    fontSize:'0.6rem', 
+                                    textTransform:'uppercase',
+                                    letterSpacing: '1px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                  }}>
+                                    {msg.answered_by === 'Bot' ? '🤖 AI BOT' : `👤 ${msg.answered_by || 'ADMIN'}`} JAVOBI
+                                  </span>
+                                  <span style={{fontSize:'0.65rem', color:'rgba(16, 185, 129, 0.7)', fontWeight:600}}>
+                                    {formatDate(msg.answered_at)}
+                                  </span>
+                               </div>
+                               <div style={{color:'rgba(255,255,255,0.95)', lineHeight: '1.5'}}>{msg.answer_text || "Javob xabari saqlanmagan"}</div>
                             </div>
                           )}
                         </div>
                       </td>
-                      <td>
-                        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-                          <div className="user-avatar" style={{background: getAvatarColor(msg.full_name || 'U'), width:32, height:32, fontSize:'0.85rem'}}>
-                            {getInitials(msg.full_name || 'U')}
+                      <td style={{paddingTop:'1.5rem'}}>
+                        <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                          {/* Standart User Ikonkasi */}
+                          <div style={{
+                            width: 36, 
+                            height: 36, 
+                            borderRadius: '12px', 
+                            background: 'rgba(255,255,255,0.05)', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            color: 'var(--primary)',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                          }}>
+                            <Icons.User />
                           </div>
                           <div>
-                            <div style={{fontSize:'0.9rem', fontWeight:'700', color:'#fff'}}>{msg.full_name || 'Foydalanuvchi'}</div>
-                            {msg.is_staff && <span style={{color:'var(--primary)', fontSize:'0.65rem', fontWeight:600}}>ADMIISTRATOR 🛡️</span>}
+                            <div style={{fontSize:'0.95rem', fontWeight:'800', color:'#fff'}}>{msg.full_name || 'Foydalanuvchi'}</div>
+                            <div style={{fontSize:'0.75rem', color:'var(--text-muted)'}}>@{msg.username || 'id' + msg.user_id}</div>
                           </div>
                         </div>
                       </td>
-                      <td>
-                        <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
-                           <div style={{display:'flex', alignItems:'center', gap:'6px', color:'var(--text-muted)', fontSize:'0.75rem'}}>
-                              <Icons.Calendar style={{width:13}} />
+                      <td style={{paddingTop:'1.5rem'}}>
+                        <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                           {/* Guruh nomi */}
+                           <div style={{
+                             display:'inline-flex', 
+                             padding:'4px 10px', 
+                             background:'rgba(99,102,241,0.15)', 
+                             borderRadius:'8px', 
+                             color:'var(--primary)', 
+                             fontSize:'0.75rem', 
+                             width:'fit-content', 
+                             fontWeight:800,
+                             border: '1px solid rgba(99,102,241,0.3)'
+                           }}>
+                              {msg.group_title || 'Shaxsiy'}
+                           </div>
+
+                           {/* Savol vaqti */}
+                           <div style={{fontSize:'0.75rem', color:'var(--text-muted)', display:'flex', alignItems:'center', gap:'6px', paddingLeft:'2px', marginTop:'4px'}}>
+                              <span style={{color:'rgba(255,255,255,0.3)', fontWeight:700, fontSize:'0.65rem'}}>SAVOL:</span>
                               <span>{formatDate(msg.created_at)}</span>
                            </div>
-                           <div style={{display:'inline-flex', padding:'2px 8px', background:'rgba(99,102,241,0.1)', borderRadius:'6px', color:'var(--primary)', fontSize:'0.7rem', width:'fit-content', fontWeight:600}}>
-                              {msg.group_title || 'Shaxsiy'}
+
+                           {/* Javob vaqti (agar bo'lsa) */}
+                           {msg.is_answered && (
+                             <div style={{fontSize:'0.75rem', color:'#10b981', display:'flex', alignItems:'center', gap:'6px', paddingLeft:'2px'}}>
+                                <span style={{color:'rgba(16, 185, 129, 0.4)', fontWeight:700, fontSize:'0.65rem'}}>JAVOB:</span>
+                                <span>{formatDate(msg.answered_at)}</span>
+                             </div>
+                           )}
+                           
+                           <div style={{fontSize:'0.65rem', color:'rgba(255,255,255,0.2)', marginTop:'2px', paddingLeft:'2px'}}>
+                              ID: {msg.telegram_message_id}
                            </div>
                         </div>
                       </td>
-                      <td style={{textAlign:'center'}}>
-                        <div title={msg.is_staff ? 'Staff Message' : 'Normal Priority'}>
-                          <Icons.Flag className={`priority-flag priority-${msg.is_staff ? 'urgent' : (msg.text.length > 100 ? 'high' : 'normal')}`} />
+                      <td style={{textAlign:'center', paddingTop:'1.5rem'}}>
+                        <div title={msg.is_answered ? 'Javob berilgan' : 'Kutilmoqda'}>
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '10px',
+                            background: msg.is_answered ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto',
+                            border: `1px solid ${msg.is_answered ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                          }}>
+                            <Icons.Flag className={`priority-flag priority-${msg.is_answered ? 'normal' : 'urgent'}`} style={{width:16}} />
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -2596,6 +2727,15 @@ function BotSettings({ token, showFlash, askConfirm }) {
               Kalitni saqlash
             </button>
           </div>
+
+          <label className="switch">
+            <input 
+              type="checkbox" 
+              checked={c.is_active && (c.status === 'Faol' || c.status === 'Yangi')} 
+              onChange={() => handleToggleActive(c.id)}
+            />
+            <span className="slider round"></span>
+          </label>
 
        </div>
 

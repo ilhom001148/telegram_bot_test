@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import or_, select, func
 from bot.models import Group, Message, KnowledgeBase, Setting, User
@@ -155,7 +156,7 @@ async def mark_question_answered(
 ) -> Message:
     question.is_answered = True
     question.answered_by_bot = answered_by_bot
-    question.answered_at = func.now()
+    question.answered_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(question)
     return question

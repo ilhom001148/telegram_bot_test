@@ -229,12 +229,11 @@ async def get_external_companies():
         raise HTTPException(status_code=500, detail=f"Ulanishda xatolik: {str(e)}")
 
 
-# ─── GET all (Local) ──────────────────────────────────────────────────────────
+# ─── GET all (External & Cached) ─────────────────────────────────────────────
 @router.get("/")
-async def get_companies(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Company).order_by(Company.id.desc()))
-    companies = result.scalars().all()
-    return [serialize_company(c) for c in companies]
+async def get_companies():
+    """Tashqi API'dan oladi va 24 soat davomida keshlaydi (Bazaga yozilmaydi)"""
+    return await get_external_companies()
 
 # ─── GET one ──────────────────────────────────────────────────────────────────
 @router.get("/{company_id}")

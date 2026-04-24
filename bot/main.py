@@ -26,6 +26,7 @@ from bot.strings import get_string
 from bot.stats import router as stats_router
 # Sinxronizatsiya endi kerak emas, live ko'rinishga o'tildi
 # from bot.sync import fetch_and_sync_companies
+from bot.sync_service import run_scheduler
 
 
 # Bot va Dispatcher obyektlarini yaratish (session keyinroq qo'shiladi)
@@ -396,6 +397,7 @@ async def start_bot():
     
     # Rejalashtirilgan ishlar orqa fonda parallel ishlaydi
     asyncio.create_task(broadcast_scheduler_worker())
+    asyncio.create_task(run_scheduler())
 
     
     while True:
@@ -410,8 +412,10 @@ async def start_bot():
             print(f"✅ Bot connected: @{me.username}")
             
             if WEBHOOK_PASSIVE:
-                print("⚠️ Passive Webhook Mode enabled. Skipping webhook/polling management.")
-                print("📡 Bot is waiting for updates via middleman webhook.")
+                print("⚠️ Passive Webhook Mode yoqilgan.")
+                print("📡 Bot Telegram'ga hech qanday webhook buyrug'ini yubormaydi.")
+                print("📡 Tashqi tizim (middleman) orqali keladigan xabarlarni kutmoqda...")
+                # Passive rejimda bot shunchaki kutishda turadi, FastAPI esa xabarlarni qabul qiladi
                 while True:
                     await asyncio.sleep(3600)
             elif WEBHOOK_URL:
@@ -425,14 +429,12 @@ async def start_bot():
                 )
                 print(f"✅ Webhook muvaffaqiyatli o'rnatildi: {webhook_endpoint}")
                 print("📡 Telegram xabarlarni to'g'ridan-to'g'ri shu manzilga yuboradi.")
-                # FastAPI server aktiv bo'lgani uchun bu yerda kutish kerak
                 while True:
                     await asyncio.sleep(3600)
             else:
                 print("⚠️ WEBHOOK_URL topilmadi. Polling rejimida boshlanmoqda...")
-                # Lokal ishga tushirishda Webhook bilan konflikt bo'lmasligi uchun uni o'chiramiz
+                # Polling rejimida webhookni o'chirish kerak
                 await bot.delete_webhook(drop_pending_updates=True)
-                await bot.session.close() # Close any lingering sessions before starting polling
                 await dp.start_polling(bot, skip_updates=True)
                 break
         except Exception as e:

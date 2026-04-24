@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -12,10 +13,10 @@ router = APIRouter(prefix="/questions", tags=["Questions"])
 class AnswerRequest(BaseModel):
     text: str
 
-def serialize_question(q):
+def serialize_question(q, answer_msg=None):
     return {
         "id": q.id,
-                "telegram_link": q.telegram_link,
+        "telegram_link": q.telegram_link,
         "telegram_app_link": q.telegram_app_link,
         "telegram_message_id": q.telegram_message_id,
         "group_id": q.group_id,
@@ -33,7 +34,10 @@ def serialize_question(q):
         "completion_tokens": q.completion_tokens,
         "total_tokens": q.total_tokens,
         "is_staff": q.is_staff,
-        "answered_at": q.answered_at.isoformat() if q.answered_at else None,
+        "created_at": q.created_at.replace(tzinfo=timezone.utc).isoformat() if q.created_at else None,
+        "answered_at": q.answered_at.replace(tzinfo=timezone.utc).isoformat() if q.answered_at else None,
+        "answer_text": answer_msg.text if answer_msg else None,
+        "answered_by": answer_msg.full_name if answer_msg else ("Bot" if q.answered_by_bot else None)
     }
 
 @router.get("/")
@@ -58,11 +62,24 @@ async def get_all_questions(
     )
     questions = questions_res.scalars().all()
     
+    # Har bir savol uchun javobni olish
+    items = []
+    for q in questions:
+        answer_res = await db.execute(
+            select(Message).filter(
+                Message.reply_to_message_id == q.telegram_message_id,
+                Message.group_id == q.group_id,
+                Message.is_question == False
+            ).order_by(Message.id.desc()).limit(1)
+        )
+        answer_msg = answer_res.scalars().first()
+        items.append(serialize_question(q, answer_msg))
+    
     return {
         "total": total,
         "limit": limit,
         "offset": offset,
-        "items": [serialize_question(q) for q in questions]
+        "items": items
     }
 
 @router.get("/unanswered")
