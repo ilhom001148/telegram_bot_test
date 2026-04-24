@@ -140,17 +140,17 @@ async def answer_question(
 
     try:
         # 2. Telegram orqali javob yuborish
-        from bot.bot_instance import get_bot, close_bot_session
+        from bot.bot_instance import get_bot
         bot = get_bot()
         
-        try:
-            sent_msg = await bot.send_message(
-                chat_id=chat_id,
-                text=data.text,
-                reply_to_message_id=question.telegram_message_id
-            )
-        finally:
-            await close_bot_session(bot)
+        print(f"DEBUG: Sending reply to chat_id={chat_id}, reply_to={question.telegram_message_id}")
+        
+        sent_msg = await bot.send_message(
+            chat_id=chat_id,
+            text=data.text,
+            reply_to_message_id=question.telegram_message_id
+        )
+        print(f"DEBUG: Message sent successfully, id={sent_msg.message_id}")
 
         # 3. Bazada javobni saqlash
         await create_message(

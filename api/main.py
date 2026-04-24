@@ -98,6 +98,7 @@ async def telegram_webhook(update: dict):
     """
     Telegram webhook endpoint + External Company Webhook Fallback.
     """
+    print(f"DEBUG: WEBHOOK INCOMING: {update}")
     # 1. Agar Telegramdan kelayotgan xabar bo'lsa
     if "update_id" in update:
         try:

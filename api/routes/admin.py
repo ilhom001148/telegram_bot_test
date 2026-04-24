@@ -4,7 +4,7 @@ from sqlalchemy import select, delete, func
 from api.dependencies import get_db, get_current_admin
 from bot.crud import get_broadcast_targets
 from bot.models import Group, Message, KnowledgeBase, User, ScheduledBroadcast
-from bot.bot_instance import get_bot, close_bot_session
+from bot.bot_instance import get_bot
 from pydantic import BaseModel
 import asyncio
 from datetime import datetime, timezone
@@ -23,20 +23,17 @@ async def send_broadcast_task(target_ids: list, text: str):
     fail_count = 0
     print(f"\n🚀 Xabar yuborish boshlandi. Jami nishonlar: {len(target_ids)}")
     
-    try:
-        for tid in target_ids:
-            try:
-                await bot.send_message(chat_id=tid, text=text)
-                success_count += 1
-                print(f"✅ MUVAFFAQIYATLI: {tid} ga xabar ketdi.")
-                await asyncio.sleep(0.05) # Bot bloklanmasligi uchun
-            except Exception as e:
-                fail_count += 1
-                print(f"❌ XATO: {tid} ga yuborishda muammo: {str(e)}")
-        
-        print(f"\n📊 Broadcast tugadi. \n✅ Muvaffaqiyatli: {success_count} \n❌ Xatolik: {fail_count}\n")
-    finally:
-        await close_bot_session(bot)
+    for tid in target_ids:
+        try:
+            await bot.send_message(chat_id=tid, text=text)
+            success_count += 1
+            print(f"✅ MUVAFFAQIYATLI: {tid} ga xabar ketdi.")
+            await asyncio.sleep(0.05) # Bot bloklanmasligi uchun
+        except Exception as e:
+            fail_count += 1
+            print(f"❌ XATO: {tid} ga yuborishda muammo: {str(e)}")
+    
+    print(f"\n📊 Broadcast tugadi. \n✅ Muvaffaqiyatli: {success_count} \n❌ Xatolik: {fail_count}\n")
 
 @router.post("/broadcast")
 async def broadcast_message(

@@ -86,17 +86,23 @@ async def get_external_companies():
         return _ext_cache["data"]
 
     # ─── Kesh eskirgan — Tashqi API dan yangi ma'lumot olish ─────────────────
-    print("🔄 [Cache] 24 soat o'tdi yoki birinchi yuklash — Tashqi API dan tortilmoqda...")
-    url = "https://developer.uyqur.uz/dev/company/info-for-bot"
+    url = os.getenv("EXTERNAL_COMPANIES_API", "https://backend.app.uyqur.uz/dev/company/info-for-bot")
+    token = os.getenv("EXTERNAL_API_TOKEN", "puxQ3v1PnPunnbwTVW5NYXl$eWlPSIs0djhItL2oKszIG9ffSh61tdgdH7XaZA8UQ2Xnz4")
+    
+    print(f"🔄 [Cache] Tashqi API dan ma'lumot tortilmoqda: {url}")
+    
     headers = {
-        "X-Auth": "KmuWyVtwBA2rPunnbwTVW5NYXl$eWlPSIsInZhbHVlI",
+        "X-Auth": token,
         "Content-Type": "application/json",
         "User-Agent": "curl/7.68.0"
     }
     try:
         async with httpx.AsyncClient(follow_redirects=True) as client:
             response = await client.get(url, headers=headers, timeout=20.0)
+            print(f"DEBUG: API Status: {response.status_code}")
+            
             if response.status_code != 200:
+                print(f"DEBUG: API Error Body: {response.text[:200]}")
                 # Kesh mavjud bo'lsa eski ma'lumotni qaytaramiz
                 if _ext_cache["data"]:
                     print(f"⚠️ [Cache] Tashqi API javobi {response.status_code} — eski kesh qaytarilmoqda")
@@ -229,11 +235,20 @@ async def get_external_companies():
         raise HTTPException(status_code=500, detail=f"Ulanishda xatolik: {str(e)}")
 
 
-# ─── GET all (External & Cached) ─────────────────────────────────────────────
+# ─── GET all (External Cache + Local Webhook Data) ───────────────────────────
 @router.get("/")
-async def get_companies():
-    """Tashqi API'dan oladi va 24 soat davomida keshlaydi (Bazaga yozilmaydi)"""
-    return await get_external_companies()
+async def get_companies(db: AsyncSession = Depends(get_db)):
+    """Tashqi API (Kesh) va Webhook orqali kelgan (Baza) ma'lumotlarni birlashtirib qaytaradi"""
+    # 1. Tashqi API keshini olamiz
+    external_list = await get_external_companies()
+    
+    # 2. Bazadagi lokal ma'lumotlarni olamiz (Webhook orqali tushganlar)
+    result = await db.execute(select(Company).order_by(Company.id.desc()))
+    local_companies = result.scalars().all()
+    local_list = [serialize_company(c) for c in local_companies]
+    
+    # 3. Ikkalasini birlashtiramiz
+    return local_list + external_list
 
 # ─── GET one ──────────────────────────────────────────────────────────────────
 @router.get("/{company_id}")

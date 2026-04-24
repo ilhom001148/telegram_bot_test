@@ -13,12 +13,14 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV TZ=Asia/Tashkent
 ENV PORT=10000
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -35,4 +37,4 @@ COPY --from=build-stage /app/admin-panel/dist /app/admin-panel/dist
 EXPOSE 10000
 
 # Start command
-CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-10000} --no-access-log"]

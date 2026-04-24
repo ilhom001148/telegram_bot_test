@@ -2728,15 +2728,6 @@ function BotSettings({ token, showFlash, askConfirm }) {
             </button>
           </div>
 
-          <label className="switch">
-            <input 
-              type="checkbox" 
-              checked={c.is_active && (c.status === 'Faol' || c.status === 'Yangi')} 
-              onChange={() => handleToggleActive(c.id)}
-            />
-            <span className="slider round"></span>
-          </label>
-
        </div>
 
        {/* Maintenance Mode Section */}
