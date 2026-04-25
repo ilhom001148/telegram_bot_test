@@ -30,39 +30,56 @@ def detect_question(text: str) -> bool:
         return False
     
     # 1. Belgilar orqali (Signs)
-    # Undov belgisini avtomatik savol deb ko'rmaymiz, faqat so'roq belgisi
     if "?" in text:
         return True
     
-    # 2. O'zbekcha savol qo'shimchalari (-mi, -chi, -a)
-    # Masalan: "keldimi", "qalay-chi", "shunaqami?"
+    # 2. O'zbekcha savol qo'shimchalari (-mi, -chi, -a, -mikan, -mikin)
     text_lower = text.lower().strip()
     import re
-    if re.search(r'(\w+mi|\w+-mi|\w+chi|\w+-chi|\w+-a)\b', text_lower):
+    if re.search(r'(\w+mi|\w+-mi|\w+chi|\w+-chi|\w+-a|\w+mikan|\w+mikin)\b', text_lower):
         return True
 
     # 3. Savol va yordam so'zlari (Uzbek & Russian)
-    # Soha so'zlari qo'shildi: narxi, manzil, kvadrat, bormi
+    # Ko'chmas mulk va qurilish sohasiga oid kengaytirilgan ro'yxat
     question_keywords = [
-        # Uzbek
+        # Uzbek Question Words
         "nima", "qanday", "nega", "qachon", "kim", "qancha", "qaysi", "qanaqa", 
-        "nechta", "qayerda", "nimaga", "qilib", "ber", "yordam", "maslahat",
-        "ishlamayapti", "xato", "chiqmayapti", "muammo", "tushunmadim",
-        "tushuntir", "ayt", "gapir", "qilsam", "bo'ladi", "qilsa", "mumkin", "kerak",
-        "bilmoqchi", "aytsangiz", "yordamingiz", "narxi", "manzil", "qayer",
-        "tashrif", "qurilish", "kvadrat", "dokument", "shartnoma", "qachon", "bormi",
-        # Russian
-        "что", "как", "почему", "когда", "кто", "сколько", "какой", "где",
-        "помоги", "совет", "ошибка", "проблема", "баг", "не работает",
-        "скажи", "объясни", "подскажи", "цена", "адрес", "где находится"
+        "nechta", "qayerda", "nimaga", "qilib", "qilsam",
+        # Real Estate specific (Uzbek)
+        "narxi", "puli", "nechpul", "necha pul", "qancha turadi", "to'lov", "rassrochka", 
+        "bo'lib to'lash", "kredit", "ipoteka", "manzil", "joylashuvi", "lokatsiya", 
+        "qayer", "kvadrat", "maydoni", "xona", "etaj", "qavat", "lift", "dokument", 
+        "shartnoma", "kadastr", "propiska", "qachon bitsa", "qachon tugaydi", "srok",
+        "bormi", "qolganmi", "sotildimi", "tashrif", "ko'rsat", "ko'rsa", "ko'ray",
+        # Help/Problem (Uzbek)
+        "yordam", "maslahat", "tushuntir", "ayt", "gapir", "muammo", "xato", "ishlamayapti",
+        # Russian Question Words
+        "что", "как", "почему", "когда", "кто", "сколько", "какой", "где", "зачем",
+        # Real Estate specific (Russian)
+        "цена", "стоимость", "стоит", "оплата", "рассрочка", "кредит", "ипотека",
+        "адрес", "локация", "квадрат", "метраж", "этаж", "комнат", "документ", 
+        "договор", "кадастр", "когда сдача", "готов", "есть ли", "можно ли",
+        # Help/Problem (Russian)
+        "помоги", "совет", "объясни", "подскажи", "ошибка", "проблема", "не работает"
     ]
     
+    # Matnni so'zlarga ajratib tekshirish
     words = text_lower.split()
-    # Faqat bitta so'z bo'lsa va u savol bo'lmasa (masalan: "Salom")
+    
+    # Faqat bitta so'z bo'lsa va u savol bo'lmasa (masalan: "Salom", "Rahmat")
     if len(words) <= 1 and "?" not in text_lower:
+        # Lekin "bormi?", "qancha?" kabi so'zlar bo'lsa True
+        if any(kw == text_lower for kw in ["bormi", "qancha", "narxi", "necha", "qayerda"]):
+            return True
         return False
 
-    return any(word in text_lower for word in question_keywords)
+    # Ambiguous words that need to be part of a question
+    ambiguous_keywords = ["bo'ladi", "mumkin", "kerak", "qilsa"]
+    if any(kw in text_lower for kw in ambiguous_keywords):
+        if "?" in text_lower or any(suffix in text_lower for suffix in ["-mi", "mi "]):
+            return True
+
+    return any(kw in text_lower for kw in question_keywords)
 
 async def is_question_ai(text: str) -> bool:
     """AI-based verification to see if the message is worth responding (Smart)."""
@@ -73,13 +90,20 @@ async def is_question_ai(text: str) -> bool:
     # 2. Agar noaniq bo'lsa, AI dan juda qisqa so'raymiz
     provider = await get_db_setting("ai_provider", "openai")
     prompt = (
-        "USER CONTEXT: You are a question detection validator for 'UyQur', a real estate development and construction company. "
-        "Users in Telegram groups ask about apartment prices, construction materials (cement, bricks), square meters, locations, and visits. "
-        "TASK: Analyze the user message and determine if it requires a helpful response from an AI assistant or a sales agent. "
-        "Return 'TRUE' if the message is: a question, a help request, a technical problem report, or an inquiry about property/services. "
-        "Return 'FALSE' if the message is: a greeting (Salom/Hi), a thank you (Rahmat/Thanks), a plain statement without intent, "
-        "or social small talk. Be strict: if it doesn't need an answer, return FALSE. "
-        "Only respond with 'TRUE' or 'FALSE'."
+        "Siz 'UyQur' ko'chmas mulk kompaniyasi uchun savollarni aniqlash tizimisiz.\n"
+        "VAZIFA: Foydalanuvchi xabarini tahlil qiling va u AI yordamchi yoki sotuvchi menejer javobiga muhtojmi yoki yo'qligini aniqlang.\n\n"
+        "QUYIDAGI HOLLARDA 'TRUE' QAYTARING:\n"
+        "- Agar xabar savol bo'lsa (narxi, manzili, shartlar haqida).\n"
+        "- Agar yordam yoki ma'lumot so'ralgan bo'lsa.\n"
+        "- Agar muammo yoki shikoyat haqida yozilgan bo'lsa.\n"
+        "- Agar mulkni ko'rish yoki sotib olish istagi bildirilgan bo'lsa.\n\n"
+        "QUYIDAGI HOLLARDA 'FALSE' QAYTARING:\n"
+        "- Salomlashish (Salom, Assalomu alaykum).\n"
+        "- Minnatdorchilik (Rahmat, Thanks).\n"
+        "- Shunchaki gap yoki fikr (Masalan: 'Yaxshi ekan', 'Zo'r qurishibdi').\n"
+        "- Ijtimoiy suhbatlar (Qalay, Nima gap).\n\n"
+        "JUDA QAT'IY BO'LING: Faqat javob talab qiladigan xabarlarga 'TRUE' deb javob bering.\n"
+        "FAQAT 'TRUE' YOKI 'FALSE' SO'ZINI QAYTARING."
     )
     
     try:

@@ -277,6 +277,11 @@ async def handle_group_message(message: TgMessage):
                 reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             )
 
+            if q_msg.is_question:
+                print(f"❓ Savol aniqlandi va bazaga yozildi: {text[:50]}... (ID: {q_msg.id})")
+            else:
+                print(f"💬 Oddiy xabar saqlandi: {text[:50]}...")
+
             # Savolga javob berilganligini tekshirish (Agar foydalanuvchi boshqa savolga reply qilib javob yozsa)
             if message.reply_to_message:
                 replied_question = await find_question_by_telegram_message_id(
