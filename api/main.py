@@ -108,10 +108,12 @@ async def telegram_webhook(update: dict):
             
             bot = get_bot()
             telegram_update = Update(**update)
-            await dp.feed_update(bot, telegram_update)
+            # [FIX] Fondagi vazifa sifatida ishga tushiramiz, 
+            # shunda Telegramga darhol javob qaytadi va u dublikat yubormaydi.
+            asyncio.create_task(dp.feed_update(bot, telegram_update))
             return {"ok": True}
         except Exception as e:
-            print(f"❌ Webhook Processing Error: {e}")
+            print(f"❌ Webhook Queuing Error: {e}")
             return {"ok": False, "error": str(e)}
 
     # 2. Agar BOSHQA TIZIMDAN (Tashqi bot) kelayotgan JSON Data bo'lsa
