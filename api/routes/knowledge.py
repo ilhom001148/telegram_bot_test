@@ -36,7 +36,9 @@ def extract_text_from_file(file_path: str, filename: str) -> str:
         reader = PdfReader(file_path)
         text = ""
         for page in reader.pages:
-            text += page.extract_text() or ""
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + "\n\n"
         return text
     elif ext == 'docx':
         return docx2txt.process(file_path)
@@ -46,13 +48,16 @@ def extract_text_from_file(file_path: str, filename: str) -> str:
     else:
         raise ValueError(f"Qo'llab-quvvatlanmaydigan fayl formati: {ext}")
 
-def split_text_into_chunks(text: str, chunk_size: int = 30000) -> List[str]:
-    """Matnni bo'laklarga bo'lib beradi."""
+def split_text_into_chunks(text: str, chunk_size: int = 4000, overlap: int = 400) -> List[str]:
+    """Matnni bo'laklarga bo'lib beradi (Overlap bilan)."""
     if not text:
         return []
     chunks = []
-    for i in range(0, len(text), chunk_size):
-        chunks.append(text[i:i + chunk_size])
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start += (chunk_size - overlap)
     return chunks
 
 async def extract_knowledge_api(text: str, db: AsyncSession):
@@ -74,7 +79,8 @@ async def extract_knowledge_api(text: str, db: AsyncSession):
         "- Manzillar, lokatsiyalar va mo'ljallar.\n"
         "- Shartnoma tuzish tartibi, kerakli hujjatlar va kadastr ma'lumotlari.\n"
         "- Kompaniya qoidalari, ish vaqti va kontaktlar.\n\n"
-        "JUDA DETALLASHGAN BO'LSIN: Matndagi kichik detallarni ham (masalan, lift bormi, qachon bitadi va h.k.) savol-javobga aylantiring.\n"
+        "JUDA DETALLASHGAN VA TO'LIQ BO'LSIN: Matndagi kichik detallarni ham savol-javobga aylantiring.\n"
+        "MUHIM: JAVOBLARNI QISQARTIRMANG. Agar javob uzun bo'lsa ham, uni to'liq, boricha oling. Chala javoblar mutlaqo mumkin emas.\n"
         "FAQAT matnda bor ma'lumotlardan foydalaning. O'zingizdan ma'lumot qo'shmang.\n"
         "Natijani FAQAT JSON formatida qaytaring: {\"knowledge\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
     )
@@ -91,7 +97,8 @@ async def extract_knowledge_api(text: str, db: AsyncSession):
                         {"role": "system", "content": "You are a professional knowledge extractor. Return only a JSON object with a 'knowledge' key containing a list of Q&A pairs."},
                         {"role": "user", "content": f"{prompt}\n\nTEXT CHUNK:\n{chunk}"}
                     ],
-                    response_format={ "type": "json_object" }
+                    response_format={ "type": "json_object" },
+                    max_tokens=4000
                 )
                 content = response.choices[0].message.content
 
@@ -102,7 +109,10 @@ async def extract_knowledge_api(text: str, db: AsyncSession):
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 response = await model.generate_content_async(
                     f"{prompt}\n\nTEXT CHUNK:\n{chunk}",
-                    generation_config={"response_mime_type": "application/json"},
+                    generation_config={
+                        "response_mime_type": "application/json",
+                        "max_output_tokens": 4000
+                    },
                     request_options={"timeout": 120}
                 )
                 content = response.text
@@ -116,7 +126,8 @@ async def extract_knowledge_api(text: str, db: AsyncSession):
                         {"role": "system", "content": "You are a professional knowledge extractor. Return only a JSON object with a 'knowledge' key containing a list of Q&A pairs."},
                         {"role": "user", "content": f"{prompt}\n\nTEXT CHUNK:\n{chunk}"}
                     ],
-                    response_format={ "type": "json_object" }
+                    response_format={ "type": "json_object" },
+                    max_tokens=4000
                 )
                 content = response.choices[0].message.content
 
