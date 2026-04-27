@@ -161,7 +161,10 @@ async def answer_question(
         except Exception as chat_err:
             print(f"❌ [API] Chatni topishda xato: {chat_err}")
             # Agar chat topilmasa, ID noto'g'ri yoki bot u yerda emas
-            raise HTTPException(status_code=400, detail=f"Bot bu guruhni ko'rmayapti (ID: {chat_id}). Guruhda bot borligini tekshiring. Xato: {chat_err}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Bot bu guruhni ko'rmayapti (ChatID: {chat_id}). Bot guruhdan chiqarib yuborilgan yoki ID noto'g'ri. Iltimos, bot guruhda borligini tekshiring."
+            )
 
         sent_msg = None
         try:
@@ -184,7 +187,10 @@ async def answer_question(
             else:
                 # Boshqa turdagi xatolar (masalan: Bot blocked, Forbidden va h.k.)
                 print(f"❌ [API] Telegram API xatosi: {e}")
-                raise HTTPException(status_code=500, detail=f"Telegram API xatosi: {str(e)}")
+                err_msg = str(e)
+                if "forbidden" in err_msg.lower():
+                    err_msg = "Bot guruhda xabar yuborish huquqiga ega emas yoki bot bloklangan."
+                raise HTTPException(status_code=500, detail=f"Telegram API xatosi: {err_msg}")
 
         # 3. Bazada javobni saqlash
         await create_message(

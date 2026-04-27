@@ -120,7 +120,7 @@ function ArchiveManager({ token, showFlash }) {
        showFlash("Javob saqlandi");
        fetchQuestions(selectedDate);
     })
-    .catch(() => { setSending(false); showFlash("Xatolik yuz berdi", "error"); });
+    .catch((err) => { setSending(false); showFlash(err.message || "Xatolik yuz berdi", "error"); });
   };
 
   if (loading) return <div className="loader"></div>;
@@ -1956,7 +1956,11 @@ function Messages({ token, showFlash }) {
        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
        body: JSON.stringify({ text: answerText })
     })
-    .then(res => res.json())
+    .then(async res => {
+       const data = await res.json();
+       if (!res.ok) throw new Error(data.detail || 'Xatolik yuz berdi');
+       return data;
+    })
     .then(() => {
        setSending(false);
        setAnsweringId(null);
@@ -1964,7 +1968,7 @@ function Messages({ token, showFlash }) {
        showFlash("Xabar/Javob yuborildi");
        fetchMessages();
     })
-    .catch(() => { setSending(false); showFlash("Xatolik yuz berdi", "error"); });
+    .catch((err) => { setSending(false); showFlash(err.message || "Xatolik yuz berdi", "error"); });
   };
 
   if (loading) return <div className="loader"></div>;
@@ -2339,7 +2343,11 @@ function GroupHistory({ token, group, onBack, showFlash }) {
        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
        body: JSON.stringify({ text: answerText })
     })
-    .then(res => res.json())
+    .then(async res => {
+       const data = await res.json();
+       if (!res.ok) throw new Error(data.detail || 'Xatolik yuz berdi');
+       return data;
+    })
     .then(() => {
        setSending(false);
        setAnsweringId(null);
@@ -2347,7 +2355,7 @@ function GroupHistory({ token, group, onBack, showFlash }) {
        showFlash("Xabar/Javob yuborildi");
        fetchMessages();
     })
-    .catch(() => { setSending(false); showFlash("Xatolik yuz berdi", "error"); });
+    .catch((err) => { setSending(false); showFlash(err.message || "Xatolik yuz berdi", "error"); });
   };
 
   return (<>
