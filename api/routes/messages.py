@@ -152,15 +152,19 @@ async def get_archive_summary(db: AsyncSession = Depends(get_db)):
     try:
         # Sanalar bo'yicha guruhlash va statistikani hisoblash
         # cast(Message.created_at, Date) sanani olish uchun ishlatiladi
+        # [FIX] UTC dan Toshkent vaqtiga (+5 soat) o'girib, keyin guruhlaymiz
+        from sqlalchemy import text
+        tashkent_time = Message.created_at + text("INTERVAL '5 hours'")
+        
         stats_query = (
             select(
-                cast(Message.created_at, Date).label("date"),
+                cast(tashkent_time, Date).label("date"),
                 func.count(Message.id).label("total"),
                 func.sum(cast(Message.is_answered, Integer)).label("answered")
             )
             .filter(Message.is_question == True)
-            .group_by(cast(Message.created_at, Date))
-            .order_by(cast(Message.created_at, Date).desc())
+            .group_by(cast(tashkent_time, Date))
+            .order_by(cast(tashkent_time, Date).desc())
         )
         stats_res = await db.execute(stats_query)
         stats = stats_res.all()
@@ -183,19 +187,22 @@ async def get_archive_summary(db: AsyncSession = Depends(get_db)):
 @router.get("/archive/questions-by-date/{date}")
 async def get_questions_by_date(date: str, db: AsyncSession = Depends(get_db)):
     try:
-        from datetime import datetime
+        from datetime import datetime, timedelta
         # String sanani date obyektiga o'tkazamiz (xato bo'lmasligi uchun)
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
         except:
             target_date = date
 
+        from sqlalchemy import text
+        tashkent_time = Message.created_at + text("INTERVAL '5 hours'")
+
         # Savollarni olish
         qs_query = (
             select(Message)
             .options(joinedload(Message.group))
             .filter(Message.is_question == True)
-            .filter(cast(Message.created_at, Date) == target_date)
+            .filter(cast(tashkent_time, Date) == target_date)
             .order_by(Message.id.asc())
         )
         qs_res = await db.execute(qs_query)
@@ -231,8 +238,8 @@ async def get_questions_by_date(date: str, db: AsyncSession = Depends(get_db)):
                 "text": q.text,
                 "full_name": q.full_name,
                 "is_answered": q.is_answered,
-                "created_at": q.created_at.strftime("%H:%M"),
-                "answered_at": q.answered_at.strftime("%H:%M") if q.answered_at else None,
+                "created_at": (q.created_at + timedelta(hours=5)).strftime("%H:%M"),
+                "answered_at": (q.answered_at + timedelta(hours=5)).strftime("%H:%M") if q.answered_at else None,
                 "username": q.username,
                 "answer_text": answer.text if answer else (q.text if q.is_answered and not q.answered_by_bot else None),
                 "answered_by": answer.full_name if answer else ("Admin" if q.is_answered and not q.answered_by_bot else None)
