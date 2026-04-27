@@ -1539,9 +1539,10 @@ function Dashboard({ token, showFlash }) {
 
   const handleSendAnswer = (e) => {
     e.preventDefault();
+    const qId = answeringId; // Cache the ID
     if (!answerText.trim()) return;
     setSending(true);
-    fetch(`${API_URL}/questions/${answeringId}/answer`, {
+    fetch(`${API_URL}/questions/${qId}/answer`, {
        method: 'POST',
        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
        body: JSON.stringify({ text: answerText })
@@ -1552,6 +1553,12 @@ function Dashboard({ token, showFlash }) {
        return data;
     })
     .then(() => {
+       // Lahzalik yo'qolish effekti uchun state'ni yangilaymiz
+       setStats(prev => ({
+         ...prev,
+         latest_unanswered: prev.latest_unanswered.filter(item => item.id !== qId),
+         unanswered_questions: Math.max(0, prev.unanswered_questions - 1)
+       }));
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');
@@ -1962,6 +1969,7 @@ function Messages({ token, showFlash }) {
        return data;
     })
     .then(() => {
+       setMessages(prev => prev.map(m => m.id === qId ? { ...m, is_answered: true, answer_text: answerText, answered_at: new Date().toISOString() } : m));
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');
@@ -2349,6 +2357,7 @@ function GroupHistory({ token, group, onBack, showFlash }) {
        return data;
     })
     .then(() => {
+       setMessages(prev => prev.map(m => m.id === qId ? { ...m, is_answered: true, answer_text: answerText, answered_at: new Date().toISOString() } : m));
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');

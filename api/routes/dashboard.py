@@ -68,7 +68,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
             .join(Group, Message.group_id == Group.id)
             .filter(Message.is_question == True, Message.is_answered == False, Message.is_staff == False)
             .order_by(Message.id.desc())
-            .limit(5)
+            .limit(15)
         )
         latest_unanswered_raw = latest_unanswered_query.all()
 

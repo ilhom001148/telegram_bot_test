@@ -46,9 +46,25 @@ async def export_messages(db: AsyncSession = Depends(get_db)):
         
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "Foydalanuvchi", "Guruh ID", "Xabar matni", "Savolmi?", "Javob berilganmi?", "Sana"])
+        writer.writerow(["ID", "Foydalanuvchi", "Guruh ID", "Xabar matni", "Savolmi?", "Javob berilganmi?", "Javob matni", "Sana"])
         
         for item in data:
+            ans_text = ""
+            if item.is_answered:
+                # Savolga tegishli javob xabarini qidiramiz
+                ans_query = await db.execute(
+                    select(Message).filter(
+                        Message.group_id == item.group_id, 
+                        Message.reply_to_message_id == item.telegram_message_id
+                    ).limit(1)
+                )
+                answer = ans_query.scalars().first()
+                if answer:
+                    ans_text = answer.text
+                elif not item.answered_by_bot:
+                    # Agar admin panel orqali bo'lsa (history'da saqlangan bo'lishi mumkin)
+                    ans_text = "Admin Panel orqali javob berilgan"
+
             writer.writerow([
                 item.id, 
                 item.full_name or item.username or "Noma'lum",
@@ -56,6 +72,7 @@ async def export_messages(db: AsyncSession = Depends(get_db)):
                 item.text,
                 "Ha" if item.is_question else "Yo'q",
                 "Ha" if item.is_answered else "Yo'q",
+                ans_text,
                 item.created_at.strftime("%Y-%m-%d %H:%M") if item.created_at else ""
             ])
             
