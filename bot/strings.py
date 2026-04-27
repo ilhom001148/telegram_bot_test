@@ -2,19 +2,21 @@
 
 STRINGS = {
     "uz": {
-        "welcome": "Assalomu alaykum! Men faqat dasturlash va IT sohasiga oid savollarga javob beruvchi botman. Menga savolingizni yozishingiz, yoki guruhlarga qo'shib ishlatishingiz mumkin.",
+        "welcome": "Assalomu alaykum! Men 'UyQur' kompaniyasining rasmiy yordamchi botiman. Menga ko'chmas mulk, uylar va qurilish jarayonlari haqida savol berishingiz mumkin.",
+        "help": "Menga savolingizni yozib yuboring, men 'UyQur' bilimlar bazasidan foydalanib javob berishga harakat qilaman.",
         "lang_select": "Iltimos, muloqot tilini tanlang:",
         "lang_updated": "Til o'zgartirildi: O'zbek tili ✅",
-        "only_it": "Kechirasiz, men faqat dasturlash va IT sohasiga oid savollarga javob bera olaman. 💻",
+        "only_it": "Kechirasiz, men faqat 'UyQur' loyihalari va ko'chmas mulk sohasiga oid savollarga javob bera olaman. 🏠",
         "processing": "Savolingiz tahlil qilinmoqda... 🤔",
         "maintenance": "Hozirda texnik ishlar ketyapti. 🛠",
         "question_count_prefix": "#{count}-savolga javob:\n\n",
     },
     "ru": {
-        "welcome": "Здравствуйте! Я бот, который отвечает только на вопросы, связанные с программированием и ИТ. Вы можете написать мне свой вопрос или добавить меня в группы.",
+        "welcome": "Здравствуйте! Я официальный помощник компании 'UyQur'. Вы можете задать мне любые вопросы о недвижимости, домах и строительных процессах.",
+        "help": "Напишите мне свой вопрос, и я постараюсь ответить, используя базу знаний 'UyQur'.",
         "lang_select": "Пожалуйста, выберите язык общения:",
         "lang_updated": "Язык изменен: Русский ✅",
-        "only_it": "Извините, я могу отвечать только на вопросы, связанные с программированием и ИТ. 💻",
+        "only_it": "Извините, я могу отвечать только на вопросы, связанные с проектами 'UyQur' и недвижимостью. 🏠",
         "processing": "Ваш вопрос анализируется... 🤔",
         "maintenance": "В настоящее время ведутся технические работы. 🛠",
         "question_count_prefix": "Ответ на вопрос #{count}:\n\n",
