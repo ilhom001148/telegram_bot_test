@@ -98,8 +98,9 @@ async def handle_start(message: TgMessage):
             if not user.language_code:
                 await update_user_language(db, user.telegram_id, "uz")
                 
-            welcome_text = get_string("welcome", "uz")
-            await message.answer(welcome_text)
+            # welcome_text = get_string("welcome", "uz")
+            # await message.answer(welcome_text)
+            pass
         finally:
             await db.close()
 
@@ -212,7 +213,7 @@ async def respond_with_ai(message: TgMessage, text: str, user_lang: str, q_msg_d
             # 4. Bot javobini bazaga saqlaymiz
             await create_message(
                 db=db,
-                telegram_message_id=sent_msg.message_id,
+                telegram_message_id=None,
                 group_id=q_msg.group_id,
                 user_id=None,
                 full_name="AI Bot",
