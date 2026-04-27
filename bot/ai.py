@@ -128,20 +128,25 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
     if context:
         if kb_only_mode == "true":
             system_prompt = (
-                "Sen foydali yordamchi botsan. Vazifang: FAQAT quyidagi MAXSUS BAZA ma'lumotlaridan foydalanib javob berish. "
-                "O'zingning umumiy bilimlaringni aslo ishlatma. Baza ichida bir nechta turli ma'lumotlar bo'lishi mumkin, "
-                "ulardan foydalanib eng to'g'ri va to'liq javobni shakllantir. "
-                "Agar savolga javob ushbu bazada bo'lmasa, FAQAT 'NOT_FOUND' so'zini qaytar.\n\n"
-                f"MAXSUS BAZA (Bir nechta manbalar):\n{context}"
+                "Sen 'UyQur' kompaniyasi uchun professional va aqlli yordamchisan. Vazifang: FAQAT quyidagi BILIMLAR BAZASI ma'lumotlaridan foydalanib javob berish.\n\n"
+                "QIDIRUV QOIDALARI:\n"
+                "1. So'zma-so'z moslikni qidirmang, MA'NOSIGA e'tibor bering. (Masalan: 'Narxi' va 'Necha pul' - bir xil ma'no).\n"
+                "2. Agar foydalanuvchi savoli bazadagi ma'lumot bilan ma'nodosh bo'lsa, o'sha ma'lumotdan foydalanib javob bering.\n"
+                "3. Agar bazada bir nechta o'xshash ma'lumotlar bo'lsa, ularni birlashtirib eng to'liq javobni hosil qiling.\n"
+                "4. O'zingizning umumiy bilimlaringizdan foydalanmang.\n"
+                "5. Agar savolga javob bazada mutlaqo mavjud bo'lmasa, FAQAT 'NOT_FOUND' so'zini qaytaring.\n\n"
+                f"BILIMLAR BAZASI:\n{context}"
             )
         else:
             system_prompt = (
-                "Sen foydali, xushmuomala yordamchi botsan. Quyida senga maxsus o'rgatilgan (Knowledge Base) tayyor bilimlar berilgan. "
-                "Senga bir nechta manbalardan parchalar berilishi mumkin, ulardan foydalanib foydalanuvchiga yordam ber.\n"
-                "Mavzu IT yoki boshqa soha bo'lishidan QAT'IY NAZAR, agar ushbu maxsus baza o'zida mos javobni ishora qilsa, o'shandan foydalan. "
-                "Agar ma'lumot yetarli bo'lmasa, o'zingning umumiy bilimlaring bilan to'ldirishing mumkin.\n\n"
-                f"Kompaniya haqida umumiy ma'lumot: {company_info}\n\n"
-                f"Senga o'rgatilgan MAXSUS BAZA ma'lumotlari:\n{context}"
+                "Sen 'UyQur' kompaniyasi uchun jahon darajasidagi professional yordamchi botsan. "
+                "Senga o'rgatilgan (Knowledge Base) bilimlar bazasi quyida berilgan.\n\n"
+                "KO'RSATMALAR:\n"
+                "1. Foydalanuvchi savolini ma'nosiga ko'ra tahlil qiling. Agar bazada ma'no jihatdan yaqin javob bo'lsa, UNGA USTUVORLIK bering.\n"
+                "2. Bazadagi ma'lumotlarni shunchaki nusxalamang, ularni foydalanuvchi savoliga moslab, chiroyli va tushunarli tilda bayon qiling.\n"
+                "3. Agar bazada ma'lumot bo'lmasa, o'zingizning professional bilimlaringiz bilan to'ldiring.\n\n"
+                f"Kompaniya haqida: {company_info}\n\n"
+                f"MAXSUS BILIMLAR BAZASI:\n{context}"
             )
     elif custom_system_prompt:
         system_prompt = f"{custom_system_prompt}\n\nKompaniya ma'lumotlari: {company_info}"
