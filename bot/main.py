@@ -170,25 +170,31 @@ async def respond_with_ai(message: TgMessage, text: str, user_lang: str, q_msg_d
     """AI javobini fonda tayyorlaydi va yuboradi (Webhook timeout oldini olish uchun)."""
     async with SessionLocal() as db:
         try:
-            # Re-fetch q_msg to ensure it's attached to the current session
+            # [CRITICAL FIX] ATOMIC LOCK: Savolni blokirovka bilan o'qiymiz
             from bot.models import Message as DbMessage
-            from bot.models import Group as DbGroup
-            result = await db.execute(select(DbMessage).filter(DbMessage.id == q_msg_db_id))
-            q_msg = result.scalars().first()
-            if not q_msg:
+            from sqlalchemy import select, update
+            
+            # 1. Savol allaqachon javob berilganmi yoki yo'qligini tekshiramiz
+            stmt = select(DbMessage).filter(DbMessage.id == q_msg_db_id).with_for_update()
+            res = await db.execute(stmt)
+            q_msg = res.scalars().first()
+            
+            if not q_msg or q_msg.is_answered:
+                # Agar allaqachon javob berilgan bo'lsa, chiqib ketamiz
                 return
 
-            # Group objectni ham olish
-            result = await db.execute(select(DbGroup).filter(DbGroup.id == q_msg.group_id))
-            group = result.scalars().first()
+            # 2. DARHOL 'Javob berildi' deb belgilaymiz (AI hali o'ylashdan oldin!)
+            q_msg.is_answered = True
+            q_msg.answered_at = datetime.utcnow()
+            q_msg.answered_by = "Bot"
+            await db.commit()
 
-            # Knowledge base qidirish
+            # 3. Endi AI javobini tayyorlaymiz
             kb_matches = await search_knowledge(db, text)
             context = None
             if kb_matches:
                 context = "\n---\n".join([f"Ma'lumot {i+1}:\nSavol: {m.question}\nJavob: {m.answer}" for i, m in enumerate(kb_matches)])
             
-            # [NEW] KB Only Mode check
             kb_only_mode = await get_setting(db, "kb_only_mode", "false")
             if kb_only_mode == "true" and not context:
                 return 
@@ -198,16 +204,12 @@ async def respond_with_ai(message: TgMessage, text: str, user_lang: str, q_msg_d
             usage = ai_res.get("usage")
             
             if ai_text.strip() == "NOT_FOUND" or not ai_text:
-                return
-
-            if ai_text.strip() == "IGNORE":
-                if user_lang:
-                    await message.reply(get_string("only_it", user_lang))
+                # Agar javob topilmasa, bazada holatni qaytarib qo'yishimiz mumkin (ixtiyoriy)
                 return
 
             sent_msg = await message.reply(ai_text)
 
-            # Bot javobini saqlash
+            # 4. Bot javobini bazaga saqlaymiz
             await create_message(
                 db=db,
                 telegram_message_id=sent_msg.message_id,
@@ -224,10 +226,7 @@ async def respond_with_ai(message: TgMessage, text: str, user_lang: str, q_msg_d
                 completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
                 total_tokens=usage.get("total_tokens", 0) if usage else 0,
             )
-            
-            # Savolni bazada 'Javob berildi' deb belgilash
-            await mark_question_answered(db=db, question=q_msg, answered_by_bot=True)
-            print(f"✅ AI responded to message {message.message_id} in group {group.title if group else 'N/A'}")
+            print(f"✅ AI successfully responded to {q_msg_db_id}")
         except Exception as e:
             print(f"❌ Background AI Error: {e}")
         finally:
@@ -313,6 +312,7 @@ async def handle_channel_post(message: TgMessage):
     """Kanal postlarini qabul qilish va admin panelga saqlash."""
     async with SessionLocal() as db:
         try:
+
             text = message.text or message.caption or ""
             if not text.strip():
                 return

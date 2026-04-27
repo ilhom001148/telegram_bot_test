@@ -50,7 +50,6 @@ const getInitials = (name) => {
 const formatDate = (dateStr) => {
   if (!dateStr) return '—';
   try {
-    // Agar vaqtda timezone bo'lmasa, uni UTC deb hisoblaymiz (Z qo'shamiz)
     let normalized = dateStr.toString().replace(' ', 'T');
     if (!normalized.includes('Z') && !normalized.includes('+') && !normalized.includes('-')) {
       normalized += 'Z';
@@ -59,16 +58,37 @@ const formatDate = (dateStr) => {
     const d = new Date(normalized);
     if (isNaN(d.getTime())) return dateStr;
     
-    // Foydalanuvchi mintaqasida (Toshkent) ko'rsatish
-    return d.toLocaleString('ru-RU', {
+    // Toshkent vaqtiga majburiy o'tkazish
+    return d.toLocaleString('uz-UZ', {
+      timeZone: 'Asia/Tashkent',
       day: '2-digit',
       month: '2-digit',
+      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
-    }).replace(',', '');
+    });
   } catch (e) {
     return dateStr;
+  }
+};
+
+const formatTimeOnly = (dateStr) => {
+  if (!dateStr) return '--:--';
+  try {
+    let normalized = dateStr.toString().replace(' ', 'T');
+    if (!normalized.includes('Z') && !normalized.includes('+') && !normalized.includes('-')) {
+      normalized += 'Z';
+    }
+    const d = new Date(normalized);
+    return d.toLocaleTimeString('uz-UZ', {
+      timeZone: 'Asia/Tashkent',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  } catch (e) {
+    return '--:--';
   }
 };
 
@@ -2068,7 +2088,7 @@ function Messages({ token, showFlash }) {
                   {group.items.map(msg => (
                     <tr key={msg.id} className="premium-row">
                       <td style={{textAlign:'center'}}>
-                        <div className="msg-time-badge">{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div className="msg-time-badge">{formatTimeOnly(msg.created_at)}</div>
                       </td>
                       <td>
                         <div className="user-profile-cell">
@@ -2091,7 +2111,7 @@ function Messages({ token, showFlash }) {
                                <div className="reply-meta">
                                   <span>{msg.answered_by_bot ? 'AI Bot' : 'Admin'}</span>
                                   <span>•</span>
-                                  <span>{new Date(msg.answered_at).toLocaleTimeString()}</span>
+                                  <span>{formatTimeOnly(msg.answered_at)}</span>
                                </div>
                             </div>
                           )}

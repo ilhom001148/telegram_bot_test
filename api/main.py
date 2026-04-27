@@ -112,19 +112,15 @@ async def telegram_webhook(update: dict):
         
         from bot.db import SessionLocal
         from bot.models import ProcessedUpdate
-        from sqlalchemy.dialects.postgresql import insert as pg_insert
         from sqlalchemy import insert
 
         async with SessionLocal() as db:
             try:
-                # Bazaga yozishga harakat qilamiz (Agar bo'lsa, xato beradi yoki o'tib ketadi)
-                # Primary key constraint dublikatni to'xtatadi
                 stmt = insert(ProcessedUpdate).values(update_id=update_id)
                 await db.execute(stmt)
                 await db.commit()
             except Exception:
-                # Agar xato bo'lsa, demak bu Update ID allaqachon bazada bor
-                print(f"✅ DB DUPLICATE BLOCKED: {update_id}")
+                # Dublikat bo'lsa, chiqib ketamiz
                 return {"ok": True}
 
         try:
@@ -134,35 +130,35 @@ async def telegram_webhook(update: dict):
             
             bot = get_bot()
             telegram_update = Update(**update)
+            # Fondagi vazifa sifatida ishga tushiramiz
             asyncio.create_task(dp.feed_update(bot, telegram_update))
             return {"ok": True}
         except Exception as e:
             print(f"❌ Webhook Queuing Error: {e}")
             return {"ok": False, "error": str(e)}
 
-    # 2. Agar BOSHQA TIZIMDAN (Tashqi bot) kelayotgan JSON Data bo'lsa
-    from bot.db import SessionLocal
-    from bot.models import Company
-    
-    async with SessionLocal() as db:
-        try:
-            name = update.get("name") or update.get("company_name") or update.get("title") or "Tashqi Tizim Kompaniyasi"
-            phone = update.get("phone") or update.get("phone_number") or update.get("contact")
-            director = update.get("director") or update.get("owner") or update.get("fullname")
-            
-            new_company = Company(
-                name=str(name),
-                phone=str(phone) if phone else None,
-                director=str(director) if director else None,
-                status="Yangi",
-                is_active=True
-            )
-            
-            db.add(new_company)
-            await db.commit()
-            return {"status": "success", "message": "Ma'lumotlar 'Kompaniyalar' paneliga saqlandi"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+    # 2. Agar BOSHQA TIZIMDAN kelayotgan JSON Data bo'lsa (Fallback)
+    elif "message" in update or "company_name" in update:
+        from bot.db import SessionLocal
+        from bot.models import Company
+        async with SessionLocal() as db:
+            try:
+                name = update.get("name") or update.get("company_name") or update.get("title") or "Tashqi Tizim"
+                phone = update.get("phone") or update.get("phone_number")
+                director = update.get("director") or update.get("owner")
+                
+                new_company = Company(
+                    name=str(name),
+                    phone=str(phone) if phone else None,
+                    director=str(director) if director else None,
+                    status="Yangi",
+                    is_active=True
+                )
+                db.add(new_company)
+                await db.commit()
+                return {"status": "success", "message": "Saqlandi"}
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
 
 import asyncio
 from bot.main import start_bot
