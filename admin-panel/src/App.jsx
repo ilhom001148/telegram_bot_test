@@ -228,8 +228,8 @@ function ArchiveManager({ token, showFlash }) {
                       <tr key={q.id} style={{height: '100px', verticalAlign: 'top'}}>
                         <td style={{whiteSpace:'nowrap', fontSize:'0.85rem', padding:'25px 15px', color:'var(--text-muted)'}}>
                            {q.telegram_app_link ? (
-                             <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{formatDate(q.created_at)}</a>
-                           ) : formatDate(q.created_at)}
+                             <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{formatTimeOnly(q.created_at)}</a>
+                           ) : formatTimeOnly(q.created_at)}
                         </td>
                         <td style={{padding:'25px 10px'}}>
                            {q.telegram_app_link ? (
@@ -277,7 +277,7 @@ function ArchiveManager({ token, showFlash }) {
                                            </div>
                                            {q.answered_at && (
                                               <div style={{fontSize:'0.65rem', color:'var(--text-muted)'}}>
-                                                 Javob vaqti: {q.answered_at}
+                                                 Javob vaqti: {formatTimeOnly(q.answered_at)}
                                               </div>
                                            )}
                                         </div>

@@ -238,8 +238,8 @@ async def get_questions_by_date(date: str, db: AsyncSession = Depends(get_db)):
                 "text": q.text,
                 "full_name": q.full_name,
                 "is_answered": q.is_answered,
-                "created_at": (q.created_at + timedelta(hours=5)).strftime("%H:%M"),
-                "answered_at": (q.answered_at + timedelta(hours=5)).strftime("%H:%M") if q.answered_at else None,
+                "created_at": q.created_at.isoformat() if q.created_at else None,
+                "answered_at": q.answered_at.isoformat() if q.answered_at else None,
                 "username": q.username,
                 "answer_text": answer.text if answer else (q.text if q.is_answered and not q.answered_by_bot else None),
                 "answered_by": answer.full_name if answer else ("Admin" if q.is_answered and not q.answered_by_bot else None)
