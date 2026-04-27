@@ -258,9 +258,14 @@ async def handle_group_message(message: TgMessage):
             if text.strip().startswith("/"):
                 return
 
-            # [NEW] Staff/Admin check (Automatically catch "uyqur" usernames)
-            username_lower = (message.from_user.username or "").lower() if message.from_user else ""
-            is_staff = ("uyqur" in username_lower) or (await is_user_staff(message.chat.id, message.from_user.id) if message.from_user else False)
+            # [NEW] Staff/Admin check (Automatically catch "uyqur" or "softex" in username/nickname)
+            u_lower = (message.from_user.username or "").lower() if message.from_user else ""
+            n_lower = (message.from_user.full_name or "").lower() if message.from_user else ""
+            staff_keywords = ["uyqur", "softex"]
+            
+            is_staff = any(kw in u_lower for kw in staff_keywords) or \
+                       any(kw in n_lower for kw in staff_keywords) or \
+                       (await is_user_staff(message.chat.id, message.from_user.id) if message.from_user else False)
 
             is_question = await is_question_ai(text)
             # Xabarni saqlash
@@ -357,7 +362,7 @@ async def broadcast_scheduler_worker():
         async with SessionLocal() as db:
             try:
                 # Use UTC for comparison to match storage
-                now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+                now_utc = datetime.utcnow().replace(tzinfo=None)
                 pending_query = await db.execute(
                     select(ScheduledBroadcast).filter(
                         ScheduledBroadcast.status == 'pending', 

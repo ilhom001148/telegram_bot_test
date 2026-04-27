@@ -112,8 +112,13 @@ function ArchiveManager({ token, showFlash }) {
        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
        body: JSON.stringify({ text: answerText })
     })
-    .then(res => res.json())
+    .then(async res => {
+       const data = await res.json();
+       if (!res.ok) throw new Error(data.detail || 'Xatolik yuz berdi');
+       return data;
+    })
     .then(() => {
+       setQuestions(prev => prev.map(m => m.id === qId ? { ...m, is_answered: true, answer_text: answerText, answered_at: new Date().toISOString() } : m));
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');
@@ -1553,17 +1558,46 @@ function Dashboard({ token, showFlash }) {
        return data;
     })
     .then(() => {
-       // Lahzalik yo'qolish effekti uchun state'ni yangilaymiz
-       setStats(prev => ({
-         ...prev,
-         latest_unanswered: prev.latest_unanswered.filter(item => item.id !== qId),
-         unanswered_questions: Math.max(0, prev.unanswered_questions - 1)
-       }));
+       // 1. Vizual effekt: Savollarni o'ngga uchib ketishini ta'minlaymiz
+       const answeredItem = stats.latest_unanswered.find(item => item.id === qId);
+       const textToMatch = answeredItem ? answeredItem.text : null;
+
+       // Barcha bir xil matnli savollarni topib animatsiya beramiz
+       stats.latest_unanswered.forEach(item => {
+          if (item.id === qId || (textToMatch && item.text === textToMatch)) {
+             const card = document.getElementById(`q-card-${item.id}`);
+             if (card) {
+                card.style.transform = 'translateX(100px)';
+                card.style.opacity = '0';
+             }
+          }
+       });
+
+       // 2. State'dan barcha dublikatlarni darhol o'chirish
+       setTimeout(() => {
+          setStats(prev => {
+            const itemsToRemove = prev.latest_unanswered.filter(item => 
+               item.id === qId || (textToMatch && item.text === textToMatch)
+            );
+            return {
+               ...prev,
+               latest_unanswered: prev.latest_unanswered.filter(item => 
+                  item.id !== qId && (!textToMatch || item.text !== textToMatch)
+               ),
+               unanswered_questions: Math.max(0, prev.unanswered_questions - itemsToRemove.length)
+            };
+          });
+       }, 300);
+       
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');
        showFlash("Javob yuborildi");
-       fetchStats();
+       
+       // 3. Server bazani yangilab olishi uchun kutib keyin fetch qilamiz
+       setTimeout(() => {
+          fetchStats();
+       }, 1500);
     })
     .catch((err) => { 
        setSending(false); 
@@ -1611,7 +1645,12 @@ function Dashboard({ token, showFlash }) {
              <div className="summary-title" style={{marginBottom:'1rem'}}>Kutilayotgan savollar ({stats.unanswered_questions || 0})</div>
              <div className="unanswered-list" style={{maxHeight:'400px', overflowY:'auto'}}>
                 {stats.latest_unanswered && stats.latest_unanswered.length > 0 ? stats.latest_unanswered.map(q => (
-                  <div key={q.id} className="unanswered-item" style={{display: 'block', padding:'1rem', background:'rgba(255,255,255,0.02)', borderRadius:'12px', marginBottom:'10px'}}>
+                  <div 
+                    key={q.id} 
+                    id={`q-card-${q.id}`}
+                    className="unanswered-item" 
+                    style={{display: 'block', padding:'1rem', background:'rgba(255,255,255,0.02)', borderRadius:'12px', marginBottom:'10px', transition: 'all 0.5s ease'}}
+                  >
                     <div className="flex-between" style={{alignItems: 'flex-start', gap:'15px'}}>
                       <div style={{flex:1}}>
                         <div style={{fontSize:'0.9rem', lineHeight:1.4, cursor:'pointer', position:'relative'}} 
@@ -1969,6 +2008,7 @@ function Messages({ token, showFlash }) {
        return data;
     })
     .then(() => {
+       // State'ni yangilash
        setMessages(prev => prev.map(m => m.id === qId ? { ...m, is_answered: true, answer_text: answerText, answered_at: new Date().toISOString() } : m));
        setSending(false);
        setAnsweringId(null);
@@ -1979,136 +2019,101 @@ function Messages({ token, showFlash }) {
     .catch((err) => { setSending(false); showFlash(err.message || "Xatolik yuz berdi", "error"); });
   };
 
+  const getAvatarColor = (name) => {
+    const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6'];
+    const charCode = (name || 'U').charCodeAt(0);
+    return colors[charCode % colors.length];
+  };
+
   if (loading) return <div className="loader"></div>;
 
   return (
     <div style={{animation:'fadeIn 0.5s ease-out'}}>
-      <div className="flex-between" style={{marginBottom:'2rem'}}>
+      <div className="flex-between" style={{marginBottom:'2.5rem', alignItems:'center'}}>
          <div>
-            <h2 className="header-title" style={{margin:0}}>Muloqotlar jurnali</h2>
-            <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginTop:'5px'}}>Foydalanuvchilar bilan barcha muloqotlar tarixi</p>
+            <h2 className="header-title" style={{margin:0, fontSize:'2rem'}}>Muloqotlar jurnali</h2>
+            <div style={{display:'flex', alignItems:'center', gap:'12px', marginTop:'8px'}}>
+               <span className="live-status-badge">Real-vaqt rejimida</span>
+               <p style={{fontSize:'0.85rem', color:'var(--text-muted)'}}>Jami {total} ta muloqot aniqlandi</p>
+            </div>
          </div>
-         <a href={`${API_URL}/export/messages`} className="btn btn-sm btn-outline" style={{padding:'10px 24px', borderRadius:'12px', borderColor:'rgba(255,255,255,0.1)', background:'rgba(255,255,255,0.03)', color:'#fff'}}>
-            📥 Excel yuklab olish
+         <a href={`${API_URL}/export/messages`} className="btn btn-sm btn-outline premium-btn-action" style={{gap:'10px'}}>
+            <Icons.Folder style={{width:16}} /> Excel hisoboti
          </a>
       </div>
 
-      <div style={{display:'flex', flexDirection:'column', gap:'1.5rem'}}>
+      <div style={{display:'flex', flexDirection:'column', gap:'2rem'}}>
         {[
-          { id: 'unanswered', title: 'Kutilmoqda', color: '#ef4444', items: messages.filter(m => !m.is_answered) },
-          { id: 'answered', title: 'Javob berilgan', color: '#10b981', items: messages.filter(m => m.is_answered) }
+          { id: 'unanswered', title: 'Kutilmoqda', color: 'var(--danger)', items: messages.filter(m => !m.is_answered) },
+          { id: 'answered', title: 'Javob berilgan', color: 'var(--success)', items: messages.filter(m => m.is_answered) }
         ].map(group => group.items.length > 0 && (
-          <div key={group.id} className="glass-card" style={{padding:0, overflow:'hidden', border:'1px solid var(--card-border)'}}>
-            <div 
-              className="list-group-header" 
-              style={{padding:'1rem 1.5rem', background:'rgba(255,255,255,0.02)', borderBottom:'1px solid var(--card-border)', display:'flex', alignItems:'center', gap:'1rem'}}
-            >
-              <Icons.ChevronDown style={{color:'var(--text-muted)'}} />
-              <div style={{fontWeight:700, fontSize:'1rem', color:'#fff', flex:1}}>
-                {group.title}
-                <span style={{marginLeft:'10px', fontSize:'0.8rem', color:'var(--text-muted)', fontWeight:400}}>({group.items.length} xabar)</span>
-              </div>
-              <div style={{width:8, height:8, borderRadius:'50%', background:group.color, boxShadow:`0 0 10px ${group.color}`}}></div>
+          <div key={group.id} className="premium-list-group">
+            <div className="list-group-header-new">
+               <div style={{width:12, height:12, borderRadius:4, background:group.color, boxShadow:`0 0 10px ${group.color}`}}></div>
+               <span className="list-group-title">{group.title}</span>
+               <span className="list-group-count">{group.items.length} ta xabar</span>
             </div>
 
-            <div className="table-wrapper">
-              <table className="clickup-table">
+            <div className="premium-table-container">
+              <table className="premium-modern-table">
                 <thead>
                   <tr>
-                    <th className="clickup-column-header" style={{width:'45%', paddingLeft:'1.5rem'}}>Xabar va Mazmuni</th>
-                    <th className="clickup-column-header">Kimdan / Assignee</th>
-                    <th className="clickup-column-header">Vaqt / Guruh</th>
-                    <th className="clickup-column-header" style={{textAlign:'center'}}>Priority</th>
+                    <th style={{width:'80px', textAlign:'center'}}>Vaqt</th>
+                    <th style={{width:'220px'}}>Kimdan</th>
+                    <th>Xabar mazmuni</th>
+                    <th style={{width:'200px'}}>Holati</th>
                   </tr>
                 </thead>
                 <tbody>
                   {group.items.map(msg => (
-                    <tr key={msg.id} className="clickup-row" style={{verticalAlign:'top'}}>
-                      <td style={{paddingLeft:'1.5rem', paddingBottom:'1.5rem'}}>
-                        <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
-                          {/* SAVOL BLOKI */}
-                          <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
-                            <div 
-                              style={{
-                                background: 'rgba(255,255,255,0.04)',
-                                padding: '12px 16px',
-                                borderRadius: '14px 14px 14px 4px',
-                                fontSize: '0.92rem',
-                                lineHeight: '1.6',
-                                color: '#f8fafc',
-                                border: '1px solid rgba(255,255,255,0.06)',
-                                cursor: msg.is_answered ? 'default' : 'pointer',
-                                position: 'relative',
-                                transition: 'all 0.3s ease'
-                              }}
-                              onClick={() => { if(!msg.is_answered) { setAnsweringId(msg.id); setAnswerText(''); } }}
-                            >
-                              {msg.text}
-                              <div style={{textAlign:'right', marginTop:'6px', fontSize:'0.65rem', color:'rgba(255,255,255,0.4)', fontWeight:600}}>
-                                SAVOL • {formatDate(msg.created_at)}
-                              </div>
-                            </div>
+                    <tr key={msg.id} className="premium-row">
+                      <td style={{textAlign:'center'}}>
+                        <div className="msg-time-badge">{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                      </td>
+                      <td>
+                        <div className="user-profile-cell">
+                          <div className="user-avatar-mini" style={{background: getAvatarColor(msg.full_name)}}>
+                            {(msg.full_name || 'U')[0].toUpperCase()}
                           </div>
-                          
-                          {/* JAVOB BERISH FORMASI */}
-                          {answeringId === msg.id && (
-                            <div style={{marginTop:'4px', animation:'fadeIn 0.3s ease', paddingLeft:'1.5rem'}}>
-                              <textarea 
-                                rows="3" 
-                                value={answerText} 
-                                onChange={e => setAnswerText(e.target.value)}
-                                placeholder="Javobingizni yozing..."
-                                style={{
-                                  width:'100%', 
-                                  background:'rgba(99, 102, 241, 0.08)', 
-                                  border:'2px solid var(--primary)', 
-                                  color:'#fff', 
-                                  borderRadius:'14px',
-                                  padding:'12px',
-                                  fontSize:'0.9rem',
-                                  outline:'none',
-                                  boxShadow: '0 0 15px rgba(99, 102, 241, 0.2)'
-                                }}
-                                autoFocus
-                              />
-                              <div style={{display:'flex', gap:'8px', marginTop:'10px', justifyContent:'flex-end'}}>
-                                <button className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)} style={{fontSize:'0.75rem', padding:'8px 18px', borderRadius:'10px'}}>Bekor qilish</button>
-                                <button className="btn btn-sm" onClick={(e) => handleSendAnswer(e, msg.id)} disabled={sending} style={{fontSize:'0.75rem', padding:'8px 24px', borderRadius:'10px', background:'var(--primary)'}}>
-                                  {sending ? '⏳...' : 'Yuborish'}
-                                </button>
-                              </div>
+                          <div className="user-info-stack">
+                            <span className="user-name-bold">{msg.full_name || 'Noma\'lum'}</span>
+                            <span className="user-tag">{msg.username ? `@${msg.username}` : 'No username'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="message-bubble-cell">
+                          <p className="message-text-preview">{msg.text}</p>
+                          {msg.is_answered && msg.answer_text && (
+                            <div className="admin-reply-box">
+                               <div className="reply-label">SIZNING JAVOBINGIZ:</div>
+                               <p className="reply-text">{msg.answer_text}</p>
+                               <div className="reply-meta">
+                                  <span>{msg.answered_by_bot ? 'AI Bot' : 'Admin'}</span>
+                                  <span>•</span>
+                                  <span>{new Date(msg.answered_at).toLocaleTimeString()}</span>
+                               </div>
                             </div>
                           )}
-
-                          {/* JAVOB BLOKI */}
-                          {msg.is_answered && (
-                            <div style={{
-                              marginLeft: '2rem',
-                              padding:'12px 16px', 
-                              background:'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.05))', 
-                              borderRadius:'14px 14px 4px 14px', 
-                              border:'1px solid rgba(16, 185, 129, 0.25)',
-                              fontSize:'0.9rem',
-                              position: 'relative'
-                            }}>
-                               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px'}}>
-                                  <span style={{
-                                    color:'#10b981', 
-                                    fontWeight:'900', 
-                                    fontSize:'0.6rem', 
-                                    textTransform:'uppercase',
-                                    letterSpacing: '1px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '5px'
-                                  }}>
-                                    {msg.answered_by === 'Bot' ? '🤖 AI BOT' : `👤 ${msg.answered_by || 'ADMIN'}`} JAVOBI
-                                  </span>
-                                  <span style={{fontSize:'0.65rem', color:'rgba(16, 185, 129, 0.7)', fontWeight:600}}>
-                                    {formatDate(msg.answered_at)}
-                                  </span>
+                          {!msg.is_answered && answeringId !== msg.id && (
+                            <button className="btn-reply-minimal" onClick={() => { setAnsweringId(msg.id); setAnswerText(''); }}>
+                               <Icons.ChevronDown style={{width:12, transform:'rotate(-90deg)'}} /> Javob berish
+                            </button>
+                          )}
+                          {answeringId === msg.id && (
+                            <div className="inline-reply-form" style={{animation:'slideIn 0.3s ease', marginTop:'10px'}}>
+                               <textarea 
+                                 autoFocus
+                                 value={answerText}
+                                 onChange={e => setAnswerText(e.target.value)}
+                                 placeholder="Mijozga javob yozing..."
+                               />
+                               <div className="reply-actions">
+                                  <button className="btn btn-sm btn-outline" onClick={() => setAnsweringId(null)}>Bekor qilish</button>
+                                  <button className="btn btn-sm" onClick={(e) => handleSendAnswer(e, msg.id)} disabled={sending}>
+                                    {sending ? 'Yuborilmoqda...' : 'Yuborish'}
+                                  </button>
                                </div>
-                               <div style={{color:'rgba(255,255,255,0.95)', lineHeight: '1.5'}}>{msg.answer_text || "Javob xabari saqlanmagan"}</div>
                             </div>
                           )}
                         </div>
@@ -2357,7 +2362,7 @@ function GroupHistory({ token, group, onBack, showFlash }) {
        return data;
     })
     .then(() => {
-       setMessages(prev => prev.map(m => m.id === qId ? { ...m, is_answered: true, answer_text: answerText, answered_at: new Date().toISOString() } : m));
+       setMsgs(prev => prev.map(m => m.id === qId ? { ...m, is_answered: true, answer_text: answerText, answered_at: new Date().toISOString() } : m));
        setSending(false);
        setAnsweringId(null);
        setAnswerText('');

@@ -14,7 +14,6 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tashkent
-ENV PORT=10000
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -33,8 +32,6 @@ COPY . .
 # Copy the built React app from stage 1
 COPY --from=build-stage /app/admin-panel/dist /app/admin-panel/dist
 
-# Expose port
-EXPOSE 10000
-
 # Start command
-CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-10000} --no-access-log"]
+# Render provides the PORT environment variable. We default to 10000 if not provided.
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-10000}"]

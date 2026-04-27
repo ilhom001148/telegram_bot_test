@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import or_, select, func
 from bot.models import Group, Message, KnowledgeBase, Setting, User
@@ -101,7 +101,7 @@ async def create_message(
     total_tokens: int = 0,
     is_staff: bool = False,
 ) -> Message:
-    # Dublikatni tekshirish
+    # 1. Xabar ID bo'yicha tekshirish (Telegram takroriy yuborganda baribir tekshirish kerak)
     stmt = select(Message).filter(
         Message.group_id == group_id,
         Message.telegram_message_id == telegram_message_id
@@ -154,9 +154,33 @@ async def mark_question_answered(
     question: Message,
     answered_by_bot: bool = False,
 ) -> Message:
+    now = datetime.utcnow()
+    
+    # 1. Tanlangan savolni yopish
     question.is_answered = True
     question.answered_by_bot = answered_by_bot
-    question.answered_at = datetime.now(timezone.utc)
+    question.answered_at = now
+    
+    # 2. Xuddi shu guruhdagi aynan bir xil matnli boshqa yopilmagan savollarni ham yopish
+    # Bu orqali dublikat savollar Dashboard'dan birato'la yo'qoladi
+    stmt = (
+        select(Message)
+        .filter(
+            Message.group_id == question.group_id,
+            Message.text == question.text,
+            Message.is_answered == False,
+            Message.id != question.id
+        )
+    )
+    result = await db.execute(stmt)
+    duplicates = result.scalars().all()
+    
+    for dup in duplicates:
+        dup.is_answered = True
+        dup.answered_by_bot = answered_by_bot
+        dup.answered_at = now
+        print(f"✅ Dublikat savol avtomatik yopildi (ID: {dup.id})")
+
     await db.commit()
     await db.refresh(question)
     return question

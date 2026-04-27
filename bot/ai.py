@@ -40,46 +40,27 @@ def detect_question(text: str) -> bool:
         return True
 
     # 3. Savol va yordam so'zlari (Uzbek & Russian)
-    # Ko'chmas mulk va qurilish sohasiga oid kengaytirilgan ro'yxat
     question_keywords = [
-        # Uzbek Question Words
         "nima", "qanday", "nega", "qachon", "kim", "qancha", "qaysi", "qanaqa", 
-        "nechta", "qayerda", "nimaga", "qilib", "qilsam",
-        # Real Estate specific (Uzbek)
+        "nechta", "qayerda", "nimaga", "qilib", "qilsam", "aytib", "bering",
         "narxi", "puli", "nechpul", "necha pul", "qancha turadi", "to'lov", "rassrochka", 
         "bo'lib to'lash", "kredit", "ipoteka", "manzil", "joylashuvi", "lokatsiya", 
-        "qayer", "kvadrat", "maydoni", "xona", "etaj", "qavat", "lift", "dokument", 
-        "shartnoma", "kadastr", "propiska", "qachon bitsa", "qachon tugaydi", "srok",
+        "kvadrat", "maydoni", "xona", "etaj", "qavat", "lift", "dokument", 
+        "shartnoma", "kadastr", "propiska", "bitsa", "tugaydi", "srok",
         "bormi", "qolganmi", "sotildimi", "tashrif", "ko'rsat", "ko'rsa", "ko'ray",
-        # Help/Problem (Uzbek)
         "yordam", "maslahat", "tushuntir", "ayt", "gapir", "muammo", "xato", "ishlamayapti",
-        # Russian Question Words
         "что", "как", "почему", "когда", "кто", "сколько", "какой", "где", "зачем",
-        # Real Estate specific (Russian)
         "цена", "стоимость", "стоит", "оплата", "рассрочка", "кредит", "ипотека",
         "адрес", "локация", "квадрат", "метраж", "этаж", "комнат", "документ", 
-        "договор", "кадастр", "когда сдача", "готов", "есть ли", "можно ли",
-        # Help/Problem (Russian)
+        "договор", "кадастр", "сдача", "готов", "есть ли", "можно ли",
         "помоги", "совет", "объясни", "подскажи", "ошибка", "проблема", "не работает"
     ]
     
-    # Matnni so'zlarga ajratib tekshirish
-    words = text_lower.split()
-    
-    # Faqat bitta so'z bo'lsa va u savol bo'lmasa (masalan: "Salom", "Rahmat")
-    if len(words) <= 1 and "?" not in text_lower:
-        # Lekin "bormi?", "qancha?" kabi so'zlar bo'lsa True
-        if any(kw == text_lower for kw in ["bormi", "qancha", "narxi", "necha", "qayerda"]):
-            return True
+    # 4. Uzunlik va boshqa filtrlar
+    if len(text_lower) < 3:
         return False
-
-    # Ambiguous words that need to be part of a question
-    ambiguous_keywords = ["bo'ladi", "mumkin", "kerak", "qilsa"]
-    if any(kw in text_lower for kw in ambiguous_keywords):
-        if "?" in text_lower or any(suffix in text_lower for suffix in ["-mi", "mi "]):
-            return True
-
-    return any(kw in text_lower for kw in question_keywords)
+        
+    return any(kw in text_lower for kw in question_keywords) or "?" in text_lower
 
 async def is_question_ai(text: str) -> bool:
     """AI-based verification to see if the message is worth responding (Smart)."""

@@ -1368,3 +1368,216 @@ tr:hover .clickable-text { color: var(--primary); }
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.02);
 }
+
+/* --- Premium Modern Table & List UI --- */
+.premium-list-group {
+  background: rgba(17, 25, 40, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.list-group-header-new {
+  padding: 1.25rem 2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.list-group-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.list-group-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+.premium-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.premium-modern-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.premium-modern-table th {
+  padding: 1.25rem 1rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.premium-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+}
+
+.premium-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.msg-time-badge {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.user-profile-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 1rem 0;
+}
+
+.user-avatar-mini {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1rem;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.user-info-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name-bold {
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.user-tag {
+  font-size: 0.75rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.message-bubble-cell {
+  padding: 1.25rem 1rem;
+}
+
+.message-text-preview {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #f1f5f9;
+  margin-bottom: 1rem;
+}
+
+.admin-reply-box {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  padding: 1.25rem;
+  border-radius: 16px;
+  margin-top: 10px;
+}
+
+.reply-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.reply-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.reply-meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.modern-status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.tag-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.tag-pending {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.btn-reply-minimal {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  padding: 6px 16px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-reply-minimal:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.inline-reply-form textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--primary);
+  border-radius: 16px;
+  padding: 1rem;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+.reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}

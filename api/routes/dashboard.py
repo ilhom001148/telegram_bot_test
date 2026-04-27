@@ -182,7 +182,7 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
         from datetime import datetime, timedelta
         daily_activity = []
         for i in range(6, -1, -1):
-            date = datetime.now() - timedelta(days=i)
+            date = datetime.utcnow() - timedelta(days=i)
             start_date = date.replace(hour=0, minute=0, second=0, microsecond=0)
             end_date = date.replace(hour=23, minute=59, second=59, microsecond=999999)
             
