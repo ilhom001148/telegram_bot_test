@@ -144,9 +144,10 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
                 "KO'RSATMALAR:\n"
                 "1. Foydalanuvchi savolini ma'nosiga ko'ra tahlil qiling. Agar bazada ma'no jihatdan yaqin javob bo'lsa, UNGA USTUVORLIK bering.\n"
                 "2. Bazadagi ma'lumotlarni shunchaki nusxalamang, ularni foydalanuvchi savoliga moslab, chiroyli va tushunarli tilda bayon qiling.\n"
-                "3. Agar bazada ma'lumot bo'lmasa, o'zingizning professional bilimlaringiz bilan to'ldiring.\n\n"
+                "3. Agar bazada ma'lumot bo'lmasa, o'zingizning professional bilimlaringiz bilan to'ldiring.\n"
+                "4. Foydalanuvchi bilan do'stona va professional tilda gaplashing.\n\n"
                 f"Kompaniya haqida: {company_info}\n\n"
-                f"MAXSUS BILIMLAR BAZASI:\n{context}"
+                f"MAXSUS BILIMLAR BAZASI (Eng dolzarb qismlar):\n{context[:8000]}" # Limit context to stay safe
             )
     elif custom_system_prompt:
         system_prompt = f"{custom_system_prompt}\n\nKompaniya ma'lumotlari: {company_info}"

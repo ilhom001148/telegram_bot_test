@@ -46,12 +46,12 @@ async def export_messages(db: AsyncSession = Depends(get_db)):
         
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["ID", "Foydalanuvchi", "Guruh ID", "Xabar matni", "Savolmi?", "Javob berilganmi?", "Javob matni", "Sana"])
+        writer.writerow(["ID", "Foydalanuvchi", "Guruh ID", "Xabar matni", "Savolmi?", "Javob berilganmi?", "Javob matni", "Sana (Toshkent)", "Telegram Havolasi"])
         
+        from datetime import timedelta
         for item in data:
             ans_text = ""
             if item.is_answered:
-                # Savolga tegishli javob xabarini qidiramiz
                 ans_query = await db.execute(
                     select(Message).filter(
                         Message.group_id == item.group_id, 
@@ -62,9 +62,11 @@ async def export_messages(db: AsyncSession = Depends(get_db)):
                 if answer:
                     ans_text = answer.text
                 elif not item.answered_by_bot:
-                    # Agar admin panel orqali bo'lsa (history'da saqlangan bo'lishi mumkin)
                     ans_text = "Admin Panel orqali javob berilgan"
 
+            # Toshkent vaqtiga o'girish (+5 soat)
+            tashkent_time = (item.created_at + timedelta(hours=5)) if item.created_at else None
+            
             writer.writerow([
                 item.id, 
                 item.full_name or item.username or "Noma'lum",
@@ -73,7 +75,8 @@ async def export_messages(db: AsyncSession = Depends(get_db)):
                 "Ha" if item.is_question else "Yo'q",
                 "Ha" if item.is_answered else "Yo'q",
                 ans_text,
-                item.created_at.strftime("%Y-%m-%d %H:%M") if item.created_at else ""
+                tashkent_time.strftime("%Y-%m-%d %H:%M") if tashkent_time else "",
+                item.telegram_link # Model ichidagi propertydan foydalanamiz
             ])
             
         output.seek(0)
@@ -134,8 +137,9 @@ async def export_daily_report(date: str, db: AsyncSession = Depends(get_db)):
         
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["Vaqti", "Kimdan", "Username", "Savol matni", "Holati", "Javob matni", "Javob berdi"])
+        writer.writerow(["Vaqti", "Kimdan", "Username", "Savol matni", "Holati", "Javob matni", "Javob berdi", "Telegram Havolasi"])
         
+        from datetime import timedelta
         for q in questions:
             # Javobni topish
             ans_res = await db.execute(
@@ -150,14 +154,18 @@ async def export_daily_report(date: str, db: AsyncSession = Depends(get_db)):
             ans_text = answer.text if answer else (q.text if q.is_answered and not q.answered_by_bot else "")
             ans_by = answer.full_name if answer else ("Admin" if q.is_answered and not q.answered_by_bot else "")
 
+            # Toshkent vaqtiga o'girish
+            t_time = (q.created_at + timedelta(hours=5)) if q.created_at else None
+
             writer.writerow([
-                q.created_at.strftime("%H:%M") if q.created_at else "",
+                t_time.strftime("%H:%M") if t_time else "",
                 q.full_name or "Noma'lum",
                 f"@{q.username}" if q.username else "anonim",
                 q.text,
                 status,
                 ans_text,
-                ans_by
+                ans_by,
+                q.telegram_link
             ])
             
         output.seek(0)

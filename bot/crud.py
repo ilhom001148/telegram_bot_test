@@ -191,7 +191,7 @@ async def get_all_knowledge(db: AsyncSession):
     return result.scalars().all()
 
 
-async def search_knowledge(db: AsyncSession, query_text: str, limit: int = 3) -> list[KnowledgeBase]:
+async def search_knowledge(db: AsyncSession, query_text: str, limit: int = 15) -> list[KnowledgeBase]:
     # 1. Keywordsga ajratish (2 tadan ortiq harfli so'zlar)
     keywords = [w.lower() for w in query_text.split() if len(w) > 2]
     if not keywords:
@@ -228,9 +228,14 @@ async def search_knowledge(db: AsyncSession, query_text: str, limit: int = 3) ->
             if kw in cand_text:
                 score += 1
         
-        # Agar savol qismida aniq moslik bo'lsa, qo'shimcha ball beramiz
+        # Agar savol qismida aniq moslik bo'lsa, JUDA KATTA ball beramiz
         if query_text.lower() in (cand.question or "").lower():
-            score += 2
+            score += 10
+        
+        # Sarlavhadagi so'zlar mosligini ham tekshiramiz
+        for kw in keywords:
+            if kw in (cand.question or "").lower():
+                score += 2
             
         ranked.append((score, cand))
     
