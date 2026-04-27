@@ -17,6 +17,13 @@ from api.routes.users import router as users_router
 from api.routes.export import router as export_router
 from api.routes.companies import router as companies_router
 
+from typing import Set, Dict
+import time
+
+# [NEW] Dublikatlarni oldini olish uchun (Update ID tracking)
+PROCESSED_UPDATES: Set[int] = set()
+MAX_CACHE_SIZE = 1000
+
 async def init_db():
     from sqlalchemy import text
     async with engine.begin() as conn:
@@ -101,6 +108,18 @@ async def telegram_webhook(update: dict):
     print(f"DEBUG: WEBHOOK INCOMING: {update}")
     # 1. Agar Telegramdan kelayotgan xabar bo'lsa
     if "update_id" in update:
+        update_id = update["update_id"]
+        
+        # Dublikatni tekshirish
+        if update_id in PROCESSED_UPDATES:
+            print(f"DEBUG: WEBHOOK DUPLICATE (Skipping): {update_id}")
+            return {"ok": True}
+        
+        # Cache'ni boshqarish (Xotira to'lib ketmasligi uchun)
+        if len(PROCESSED_UPDATES) > MAX_CACHE_SIZE:
+            PROCESSED_UPDATES.clear()
+        PROCESSED_UPDATES.add(update_id)
+
         try:
             from bot.main import dp
             from bot.bot_instance import get_bot
@@ -108,8 +127,7 @@ async def telegram_webhook(update: dict):
             
             bot = get_bot()
             telegram_update = Update(**update)
-            # [FIX] Fondagi vazifa sifatida ishga tushiramiz, 
-            # shunda Telegramga darhol javob qaytadi va u dublikat yubormaydi.
+            # [FIX] Fondagi vazifa sifatida ishga tushiramiz
             asyncio.create_task(dp.feed_update(bot, telegram_update))
             return {"ok": True}
         except Exception as e:
