@@ -99,6 +99,11 @@ class Message(Base):
         return None
 
 
+class ProcessedUpdate(Base):
+    __tablename__ = "processed_updates"
+    update_id = Column(BigInteger, primary_key=True)
+    processed_at = Column(DateTime, default=datetime.utcnow)
+
 class KnowledgeBase(Base):
     __tablename__ = "knowledge_base"
 

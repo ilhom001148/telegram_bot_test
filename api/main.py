@@ -110,15 +110,22 @@ async def telegram_webhook(update: dict):
     if "update_id" in update:
         update_id = update["update_id"]
         
-        # Dublikatni tekshirish
-        if update_id in PROCESSED_UPDATES:
-            print(f"DEBUG: WEBHOOK DUPLICATE (Skipping): {update_id}")
-            return {"ok": True}
-        
-        # Cache'ni boshqarish (Xotira to'lib ketmasligi uchun)
-        if len(PROCESSED_UPDATES) > MAX_CACHE_SIZE:
-            PROCESSED_UPDATES.clear()
-        PROCESSED_UPDATES.add(update_id)
+        from bot.db import SessionLocal
+        from bot.models import ProcessedUpdate
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+        from sqlalchemy import insert
+
+        async with SessionLocal() as db:
+            try:
+                # Bazaga yozishga harakat qilamiz (Agar bo'lsa, xato beradi yoki o'tib ketadi)
+                # Primary key constraint dublikatni to'xtatadi
+                stmt = insert(ProcessedUpdate).values(update_id=update_id)
+                await db.execute(stmt)
+                await db.commit()
+            except Exception:
+                # Agar xato bo'lsa, demak bu Update ID allaqachon bazada bor
+                print(f"✅ DB DUPLICATE BLOCKED: {update_id}")
+                return {"ok": True}
 
         try:
             from bot.main import dp
@@ -127,7 +134,6 @@ async def telegram_webhook(update: dict):
             
             bot = get_bot()
             telegram_update = Update(**update)
-            # [FIX] Fondagi vazifa sifatida ishga tushiramiz
             asyncio.create_task(dp.feed_update(bot, telegram_update))
             return {"ok": True}
         except Exception as e:
