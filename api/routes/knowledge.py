@@ -61,15 +61,22 @@ async def extract_knowledge_api(text: str, db: AsyncSession):
     provider_raw = await get_setting(db, "ai_provider", "openai")
     provider = provider_raw.lower() if provider_raw else "openai"
     
-    # 2. Matnni bo'laklarga bo'lish
-    chunks = split_text_into_chunks(text, chunk_size=30000)
+    # 2. Matnni bo'laklarga bo'lish (Kichikroq chunklar = yaxshiroq detal)
+    chunks = split_text_into_chunks(text, chunk_size=10000)
     all_extracted_knowledge = []
     
     prompt = (
-        "Senga quyida bir nechta sahifali text beriladi. Ushbu textdan BARCHA MUHIM ma'lumotlarni SAVOL va JAVOB ko'rinishida ajratib ol. "
-        "Matn mazmunini to'liq qamrab oluvchi, detallashtirilgan barcha savol-javoblar zanjirini shakllantir. "
-        "Hech qanday muhim detal qolib ketmasin. Savol va javoblar aniq, tushunarli va mazmunli bo'lsin. "
-        "Natijani FAQAT JSON formatida qaytar: {\"knowledge\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
+        "Siz 'UyQur' ko'chmas mulk kompaniyasi uchun professional bilimlar bazasi mutaxassisiz.\n"
+        "VAZIFA: Quyidagi matndan barcha muhim biznes ma'lumotlarini SAVOL va JAVOB shaklida ajratib oling.\n\n"
+        "QUYIDAGI MA'LUMOTLARGA ALOHIDA E'TIBOR BERING:\n"
+        "- Narxlar, kvadrat metrlari, qavatlar va binolar holati.\n"
+        "- To'lov shartlari (rassrochka, kredit, ipoteka, chegirmalar, boshlang'ich to'lov).\n"
+        "- Manzillar, lokatsiyalar va mo'ljallar.\n"
+        "- Shartnoma tuzish tartibi, kerakli hujjatlar va kadastr ma'lumotlari.\n"
+        "- Kompaniya qoidalari, ish vaqti va kontaktlar.\n\n"
+        "JUDA DETALLASHGAN BO'LSIN: Matndagi kichik detallarni ham (masalan, lift bormi, qachon bitadi va h.k.) savol-javobga aylantiring.\n"
+        "FAQAT matnda bor ma'lumotlardan foydalaning. O'zingizdan ma'lumot qo'shmang.\n"
+        "Natijani FAQAT JSON formatida qaytaring: {\"knowledge\": [{\"question\": \"...\", \"answer\": \"...\"}, ...]}"
     )
 
     for chunk in chunks:
