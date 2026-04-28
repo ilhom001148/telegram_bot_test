@@ -1,23 +1,18 @@
 import asyncio
-from api.dependencies import get_db
-from bot.models import Group, Message
-from sqlalchemy import select, func
+from bot.db import SessionLocal
+from bot.models import Message
+from sqlalchemy import select
 
-async def check_db():
-    print("Checking database...")
-    async for db in get_db():
-        # Get all groups
-        g_res = await db.execute(select(Group.id, Group.title, Group.telegram_id))
-        groups = g_res.all()
-        print(f"Total groups: {len(groups)}")
-        for g in groups:
-            m_res = await db.execute(select(func.count(Message.id)).filter(Message.group_id == g.id))
-            m_count = m_res.scalar()
-            print(f"Group ID: {g.id}, Title: {g.title}, Telegram ID: {g.telegram_id}, Messages: {m_count}")
-        
-        # Get total messages
-        all_m_res = await db.execute(select(func.count(Message.id)))
-        print(f"Total messages in DB: {all_m_res.scalar()}")
+async def check_messages():
+    async with SessionLocal() as db:
+        result = await db.execute(select(Message).order_by(Message.id.desc()).limit(20))
+        msgs = result.scalars().all()
+        print(f"{'ID':<5} | {'From':<15} | {'Text':<30} | {'Is Q':<5} | {'Ans':<5}")
+        print("-" * 70)
+        for m in msgs:
+            sender = m.full_name or m.username or "Unknown"
+            text = (m.text or "").replace("\n", " ")[:30]
+            print(f"{m.id:<5} | {sender:<15} | {text:<30} | {str(m.is_question):<5} | {str(m.is_answered):<5}")
 
 if __name__ == "__main__":
-    asyncio.run(check_db())
+    asyncio.run(check_messages())

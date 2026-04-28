@@ -566,11 +566,12 @@ function App() {
           </div>
           
           <div className="nav-group">
-            <div className={`nav-link ${(activeTab === 'messages' || activeTab === 'groups' || activeTab === 'archive' || activeTab === 'customers') ? 'active' : ''}`}><Icons.History /> <span>Muloqotlar ▾</span></div>
+            <div className={`nav-link ${(activeTab === 'messages' || activeTab === 'groups' || activeTab === 'archive' || activeTab === 'customers' || activeTab === 'support_tahlil') ? 'active' : ''}`}><Icons.History /> <span>Muloqotlar ▾</span></div>
             <div className="nav-sub-menu">
               <div className={`nav-link ${activeTab === 'messages' ? 'active' : ''}`} onClick={() => setActiveTab('messages')}><Icons.History /> <span>Jurnal</span></div>
               <div className={`nav-link ${activeTab === 'groups' ? 'active' : ''}`} onClick={() => setActiveTab('groups')}><Icons.Groups /> <span>Guruhlar</span></div>
               <div className={`nav-link ${activeTab === 'customers' ? 'active' : ''}`} onClick={() => setActiveTab('customers')}><Icons.Profile /> <span>Mijozlar (CRM)</span></div>
+              <div className={`nav-link ${activeTab === 'support_tahlil' ? 'active' : ''}`} onClick={() => setActiveTab('support_tahlil')}><Icons.Dashboard /> <span>Support Tahlil</span></div>
               <div className={`nav-link ${activeTab === 'archive' ? 'active' : ''}`} onClick={() => setActiveTab('archive')}><Icons.Folder /> <span>Kunlik Arxiv</span></div>
             </div>
           </div>
@@ -611,6 +612,7 @@ function App() {
         {activeTab === 'database' && <DatabaseManager token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'archive' && <ArchiveManager token={token} showFlash={showFlash} />}
         {activeTab === 'customers' && <CustomersManager token={token} showFlash={showFlash} />}
+        {activeTab === 'support_tahlil' && <SupportDashboard token={token} />}
       </div>
     </div>
   );
@@ -3295,6 +3297,567 @@ function Login({ onLogin }) {
       <button type="submit" className="btn" disabled={loading}>{loading ? 'Kirilmoqda...' : 'Kirish'}</button>
     </form>
   </div></div>);
+}
+
+const SupportChart = ({ data, colors = ['#ef4444', '#10b981'] }) => {
+  const [tooltip, setTooltip] = useState(null);
+  if (!data || data.length === 0) return null;
+  const maxVal = Math.max(...data.map(d => Math.max(d.created, d.resolved, 1)));
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* Tooltip */}
+      {tooltip && (
+        <div className="chart-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+          <div className="chart-tooltip-title">{tooltip.day}</div>
+          <div className="chart-tooltip-row">
+            <span className="chart-tooltip-dot" style={{ background: colors[0] }}></span>
+            <span>Yangi tushgan:</span>
+            <strong>{tooltip.created}</strong>
+          </div>
+          <div className="chart-tooltip-row">
+            <span className="chart-tooltip-dot" style={{ background: colors[1] }}></span>
+            <span>Yopilgan:</span>
+            <strong>{tooltip.resolved}</strong>
+          </div>
+        </div>
+      )}
+
+      <div
+        className="chart-container"
+        style={{ height: '200px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px', padding: '10px 0' }}
+        onMouseLeave={() => setTooltip(null)}
+      >
+        {data.map((d, i) => (
+          <div
+            key={i}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative' }}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const parentRect = e.currentTarget.closest('.chart-container').getBoundingClientRect();
+              setTooltip({
+                day: d.day,
+                created: d.created,
+                resolved: d.resolved,
+                x: rect.left - parentRect.left - 60,
+                y: -90,
+              });
+            }}
+          >
+            <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '3px', height: '160px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                {d.created > 0 && (
+                  <span style={{ fontSize: '0.6rem', color: colors[0], fontWeight: 700, marginBottom: '2px', opacity: 0.9 }}>
+                    {d.created}
+                  </span>
+                )}
+                <div
+                  style={{
+                    width: '10px',
+                    background: `linear-gradient(180deg, ${colors[0]}dd, ${colors[0]}88)`,
+                    height: `${Math.max((d.created / maxVal) * 100, d.created > 0 ? 3 : 0)}%`,
+                    borderRadius: '4px 4px 0 0',
+                    transition: 'all 0.5s ease',
+                    cursor: 'pointer',
+                    boxShadow: `0 0 8px ${colors[0]}55`,
+                  }}
+                ></div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                {d.resolved > 0 && (
+                  <span style={{ fontSize: '0.6rem', color: colors[1], fontWeight: 700, marginBottom: '2px', opacity: 0.9 }}>
+                    {d.resolved}
+                  </span>
+                )}
+                <div
+                  style={{
+                    width: '10px',
+                    background: `linear-gradient(180deg, ${colors[1]}dd, ${colors[1]}88)`,
+                    height: `${Math.max((d.resolved / maxVal) * 100, d.resolved > 0 ? 3 : 0)}%`,
+                    borderRadius: '4px 4px 0 0',
+                    transition: 'all 0.5s ease',
+                    cursor: 'pointer',
+                    boxShadow: `0 0 8px ${colors[1]}55`,
+                  }}
+                ></div>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '8px', whiteSpace: 'nowrap', transform: data.length > 10 ? 'rotate(-45deg)' : 'none', transformOrigin: 'top right' }}>{d.day}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+function AgentAnswersModal({ agentName, period, token, onClose }) {
+  const [answers, setAnswers] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_URL}/dashboard/agent-answers?agent_name=${encodeURIComponent(agentName)}&period=${period}`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => { setAnswers(data.answers || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [agentName, period, token]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose} style={{position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000}}>
+      <div className="glass-card" onClick={e => e.stopPropagation()} style={{width:'90%', maxWidth:'600px', maxHeight:'80vh', display:'flex', flexDirection:'column', position:'relative', padding:'2rem', paddingRight:'1rem'}}>
+        <button onClick={onClose} style={{position:'absolute', top:'1rem', right:'1rem', background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:'1.5rem'}}>&times;</button>
+        <h3 style={{marginTop:0, marginBottom:'0.5rem', color:'var(--text-light)'}}>{agentName}</h3>
+        <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:'1.5rem'}}>Javob berilgan savollar (oxirgi 50 ta)</p>
+        
+        <div style={{overflowY:'auto', flex:1, paddingRight:'10px', display:'flex', flexDirection:'column', gap:'1.5rem'}}>
+          {loading ? (
+            <div className="loader" style={{margin:'2rem auto'}}></div>
+          ) : answers && answers.length > 0 ? (
+            answers.map((ans, i) => (
+              <div key={i} style={{background:'rgba(255,255,255,0.02)', borderRadius:'12px', border:'1px solid rgba(255,255,255,0.05)', overflow:'hidden'}}>
+                 <div style={{padding:'10px 15px', background:'rgba(0,0,0,0.2)', fontSize:'0.75rem', color:'var(--text-muted)', display:'flex', justifyContent:'space-between', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+                    <span>👥 {ans.group_title}</span>
+                    <span>🕒 {formatDate(ans.answered_at)}</span>
+                 </div>
+                 <div style={{padding:'15px', display:'flex', flexDirection:'column', gap:'10px'}}>
+                    {/* Savol qismi */}
+                    <div style={{alignSelf:'flex-start', background:'rgba(239, 68, 68, 0.1)', padding:'10px 15px', borderRadius:'12px 12px 12px 0', maxWidth:'90%', borderLeft:'3px solid var(--danger)'}}>
+                       <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginBottom:'4px'}}>SURALGAN SAVOL</div>
+                       <div style={{fontSize:'0.9rem', lineHeight:'1.4'}}>
+                          {ans.telegram_app_link ? (
+                             <a href={ans.telegram_app_link} className="tg-link" style={{color:'#fff'}}>{ans.question_text}</a>
+                          ) : ans.question_text}
+                       </div>
+                    </div>
+                    {/* Javob qismi */}
+                    <div style={{alignSelf:'flex-end', background:'rgba(16, 185, 129, 0.1)', padding:'10px 15px', borderRadius:'12px 12px 0 12px', maxWidth:'90%', borderRight:'3px solid var(--success)'}}>
+                       <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginBottom:'4px', textAlign:'right'}}>XODIM JAVOBI</div>
+                       <div style={{fontSize:'0.9rem', lineHeight:'1.4', color:'#fff'}}>
+                          {ans.answer_text}
+                       </div>
+                    </div>
+                 </div>
+              </div>
+            ))
+          ) : (
+             <div style={{textAlign:'center', padding:'3rem 0'}}>
+                <div style={{fontSize:'3rem', opacity:0.5, marginBottom:'1rem'}}>📭</div>
+                <p style={{color:'var(--text-muted)'}}>Ushbu davrda javob berilgan savollar topilmadi</p>
+             </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupportDashboard({ token }) {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [period, setPeriod] = useState("1_week");
+
+  // Reply states
+  const [answeringTicket, setAnsweringTicket] = useState(null);
+  const [answerText, setAnswerText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API_URL}/dashboard/support-stats?period=${period}`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => { setStats(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [token, period]);
+
+  const handleSendAnswer = (e) => {
+    e.preventDefault();
+    if (!answerText.trim() || !answeringTicket) return;
+    setSending(true);
+    fetch(`${API_URL}/questions/${answeringTicket.id}/answer`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+       body: JSON.stringify({ text: answerText })
+    })
+    .then(async res => {
+       const data = await res.json();
+       if (!res.ok) throw new Error(data.detail || 'Xatolik yuz berdi');
+       return data;
+    })
+    .then(() => {
+       setStats(prev => ({
+           ...prev,
+           open_tickets: prev.open_tickets.filter(t => t.id !== answeringTicket.id)
+       }));
+       setSending(false);
+       setAnsweringTicket(null);
+       setAnswerText('');
+    })
+    .catch((err) => { setSending(false); alert(err.message || "Xatolik yuz berdi"); });
+  };
+
+  if (!stats && loading) return <div className="loader"></div>;
+  if (!stats) return <div style={{textAlign:'center', padding:'2rem', color:'var(--text-muted)'}}>Ma'lumot topilmadi</div>;
+
+  const top = stats.top_metrics;
+  const p = stats.periods;
+  const s = stats.sources;
+
+  const formatDateLocal = (isoString) => {
+    if (!isoString) return '—';
+    const d = new Date(isoString);
+    const pd = (n) => n.toString().padStart(2, '0');
+    return `${pd(d.getDate())}/${pd(d.getMonth()+1)}/${d.getFullYear().toString().slice(-2)}, ${pd(d.getHours())}:${pd(d.getMinutes())}`;
+  };
+
+  // Donut chart calculations
+  const totalSources = (s?.guruh || 0) + (s?.shaxsiy || 0) || 1;
+  const degGuruh = ((s?.guruh || 0) / totalSources) * 360;
+  const degShaxsiy = ((s?.shaxsiy || 0) / totalSources) * 360;
+  const conicStr = `conic-gradient(
+    #60a5fa 0deg ${degGuruh}deg, 
+    #34d399 ${degGuruh}deg 360deg
+  )`;
+
+  const periodLabel = {
+    '1_day': 'Bugungi so\'rovlar',
+    '1_week': 'Hafta so\'rovlari',
+    '1_month': 'Oy so\'rovlari',
+    'all_time': 'Jami so\'rovlar'
+  }[period] || 'Davr so\'rovlari';
+
+  return (
+    <div style={{animation: 'fadeIn 0.5s ease-out', background: '#090e17', padding: '20px', borderRadius: '12px', minHeight: '100vh', margin: '-20px'}}>
+      
+      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '4px' }}>
+          {[
+            { id: '1_day', label: 'Bugun' },
+            { id: '1_week', label: 'Hafta' },
+            { id: '1_month', label: 'Oy' },
+            { id: 'all_time', label: 'Jami' }
+          ].map(p => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              style={{
+                background: period === p.id ? '#e0f2fe' : 'transparent',
+                color: period === p.id ? '#0f172a' : '#94a3b8',
+                border: 'none',
+                padding: '6px 16px',
+                borderRadius: '6px',
+                fontWeight: 600,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="new-dashboard">
+        {selectedAgent && (
+          <AgentAnswersModal agentName={selectedAgent} period={period} token={token} onClose={() => setSelectedAgent(null)} />
+        )}
+
+        {/* ROW 1: 5 Top Metric Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '20px' }}>
+          <div className="new-metric-card">
+            <div className="new-metric-card-title">{periodLabel}</div>
+            <div className="new-metric-card-value">{top.total_tickets}</div>
+            <div className="new-metric-card-desc">Jami ticketlar</div>
+          </div>
+          <div className="new-metric-card">
+            <div className="new-metric-card-title">Yopilgan</div>
+            <div className="new-metric-card-value">{top.resolved_tickets}</div>
+            <div className="new-metric-card-desc">Xodimlar yopgan ticketlar</div>
+          </div>
+          <div className="new-metric-card">
+            <div className="new-metric-card-title">Yopilish foizi</div>
+            <div className="new-metric-card-value">{top.resolve_rate}%</div>
+            <div className="new-metric-card-desc">Yopilgan / jami</div>
+          </div>
+          <div className="new-metric-card">
+            <div className="new-metric-card-title">Guruhlardan</div>
+            <div className="new-metric-card-value">{top.from_groups}</div>
+            <div className="new-metric-card-desc">Mijozlardan tushgan so'rovlar</div>
+          </div>
+          <div className="new-metric-card">
+            <div className="new-metric-card-title">O'rtacha yopish</div>
+            <div className="new-metric-card-value">{top.avg_response_minutes}</div>
+            <div className="new-metric-card-desc">Daqiqa</div>
+          </div>
+        </div>
+
+        {/* ROW 2: Periods & Sources */}
+        <div className="dashboard-row">
+          <div className="new-panel">
+            <div className="new-panel-title">Davrlar bo'yicha ticketlar</div>
+            <div className="new-panel-subtitle">Bugun, hafta, oy va jami kesimi</div>
+            
+            <div className="bar-row">
+              <div className="bar-label">Bugun</div>
+              <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (p.bugun / (p.jami || 1)) * 100)}%`, background: '#60a5fa'}}></div></div>
+              <div className="bar-value">{p.bugun}</div>
+            </div>
+            <div className="bar-row">
+              <div className="bar-label">Hafta</div>
+              <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (p.hafta / (p.jami || 1)) * 100)}%`, background: '#60a5fa'}}></div></div>
+              <div className="bar-value">{p.hafta}</div>
+            </div>
+            <div className="bar-row">
+              <div className="bar-label">Oy</div>
+              <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (p.oy / (p.jami || 1)) * 100)}%`, background: '#60a5fa'}}></div></div>
+              <div className="bar-value">{p.oy}</div>
+            </div>
+            <div className="bar-row">
+              <div className="bar-label">Jami</div>
+              <div className="bar-container"><div className="bar-fill" style={{width: '100%', background: '#60a5fa'}}></div></div>
+              <div className="bar-value">{p.jami}</div>
+            </div>
+          </div>
+          
+          <div className="new-panel">
+            <div className="new-panel-title">Manbalar</div>
+            <div className="new-panel-subtitle">{periodLabel} taqsimoti</div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '40px', marginTop: '10px' }}>
+              <div className="donut-wrapper" style={{background: conicStr}}>
+                <div className="donut-inner">{(s?.guruh || 0) + (s?.shaxsiy || 0)}</div>
+              </div>
+              <div style={{ flex: 1, paddingRight: '20px' }}>
+                 <div className="bar-row">
+                   <div className="bar-label" style={{width:'100px', display:'flex', alignItems:'center', gap:'10px'}}>
+                      <div style={{width:10,height:10,borderRadius:'50%',background:'#60a5fa'}}></div> Guruh
+                   </div>
+                   <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, ((s?.guruh || 0) / totalSources) * 100)}%`, background: '#60a5fa'}}></div></div>
+                   <div className="bar-value">{s?.guruh || 0}</div>
+                 </div>
+                 <div className="bar-row">
+                   <div className="bar-label" style={{width:'100px', display:'flex', alignItems:'center', gap:'10px'}}>
+                      <div style={{width:10,height:10,borderRadius:'50%',background:'#34d399'}}></div> Shaxsiy
+                   </div>
+                   <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, ((s?.shaxsiy || 0) / totalSources) * 100)}%`, background: '#34d399'}}></div></div>
+                   <div className="bar-value">{s?.shaxsiy || 0}</div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ROW 3: Top agents & Active groups */}
+        <div className="dashboard-row">
+          <div className="new-panel">
+            <div className="new-panel-title">Top xodimlar</div>
+            <div className="new-panel-subtitle">Yopilgan ticketlar bo'yicha</div>
+            {stats.top_agents && stats.top_agents.map((a, i) => (
+               <div className="bar-row" key={i}>
+                  <div className="bar-label" style={{width: '200px'}}>{a.name}</div>
+                  <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (a.resolved / (stats.top_agents[0]?.resolved || 1)) * 100)}%`, background: '#34d399'}}></div></div>
+                  <div className="bar-value">{a.resolved}</div>
+               </div>
+            ))}
+          </div>
+          
+          <div className="new-panel">
+            <div className="new-panel-title">Faol guruhlar</div>
+            <div className="new-panel-subtitle">Jami so'rovlar bo'yicha</div>
+            {stats.active_groups && stats.active_groups.map((g, i) => (
+               <div className="bar-row" key={i}>
+                  <div className="bar-label" style={{width: '200px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}} title={g.name}>{g.name}</div>
+                  <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (g.total / (stats.active_groups[0]?.total || 1)) * 100)}%`, background: '#fbbf24'}}></div></div>
+                  <div className="bar-value">{g.total}</div>
+               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ROW 4: Agent Stats Table */}
+        <div className="new-panel">
+          <div className="new-panel-title">Eng ko'p ticket yopgan xodimlar</div>
+          <div className="new-panel-subtitle">Hafta kesimi</div>
+          <div style={{overflowX: 'auto'}}>
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>Xodim</th>
+                  <th>Username</th>
+                  <th>Yopilgan</th>
+                  <th style={{width:'250px'}}>Yopish ulushi</th>
+                  <th>Chatlar</th>
+                  <th>O'rt. vaqt</th>
+                  <th>Oxirgi yopish</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.agent_stats && stats.agent_stats.map((a, i) => (
+                  <tr key={i} onClick={() => setSelectedAgent(a.name)} style={{cursor:'pointer'}} title="Javoblar tarixini ko'rish">
+                    <td style={{fontWeight: 700}}>{a.name}</td>
+                    <td style={{color: '#94a3b8'}}>@{a.username || 'noma\'lum'}</td>
+                    <td>{a.resolved}</td>
+                    <td>
+                       <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                          <span style={{fontWeight:800, width:'50px'}}>{a.share}%</span>
+                          <div className="bar-container" style={{flex:1, height:'6px'}}><div className="bar-fill" style={{width:`${a.share}%`, background:'#34d399'}}></div></div>
+                       </div>
+                    </td>
+                    <td>{a.chats}</td>
+                    <td>{a.avg_time} min</td>
+                    <td>{formatDateLocal(a.last_resolved)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ROW 5: Open tickets */}
+        <div className="new-panel">
+          <div className="new-panel-title">Ochiq so'rovlar</div>
+          <div style={{overflowX: 'auto', marginTop:'15px'}}>
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>Mijoz</th>
+                  <th>Manba</th>
+                  <th>Matn</th>
+                  <th>Vaqt</th>
+                  <th>Javob</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.open_tickets && stats.open_tickets.map((t, i) => (
+                  <tr key={i}>
+                    <td style={{fontWeight: 700}}>{t.client}</td>
+                    <td><span className="badge-source">{t.source}</span></td>
+                    <td style={{maxWidth: '400px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}} title={t.text}>
+                      <a href={t.telegram_app_link || '#'} target="_blank" rel="noopener noreferrer" style={{color: '#e0f2fe', textDecoration: 'none'}} className="hover-underline">
+                        {t.text}
+                      </a>
+                    </td>
+                    <td>{formatDateLocal(t.time)}</td>
+                    <td>
+                       <button className="btn-javob" onClick={() => setAnsweringTicket(t)}>Javob</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ROW 6: Group Stats */}
+        <div className="new-panel">
+          <div className="new-panel-title">Guruhlar bo'yicha mijoz so'rovlari</div>
+          <div className="new-panel-subtitle">Jami so'rov, ochiq ticket va yopilish foizi</div>
+          <div style={{overflowX: 'auto'}}>
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>Guruh</th>
+                  <th>Jami so'rov</th>
+                  <th>Ochiq</th>
+                  <th>Yopilgan</th>
+                  <th style={{width:'250px'}}>Yopilish</th>
+                  <th>Mijozlar</th>
+                  <th>Oxirgi so'rov</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.group_stats && stats.group_stats.map((g, i) => (
+                  <tr key={i}>
+                    <td style={{fontWeight: 700}}>
+                      <a href={g.link || '#'} target="_blank" rel="noopener noreferrer" style={{color: '#e0f2fe', textDecoration: 'none'}} className="hover-underline">
+                        {g.name}
+                      </a>
+                    </td>
+                    <td>{g.total}</td>
+                    <td>{g.open}</td>
+                    <td>{g.resolved}</td>
+                    <td>
+                       <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                          <span style={{fontWeight:800, width:'50px'}}>{g.resolve_rate}%</span>
+                          <div className="bar-container" style={{flex:1, height:'6px'}}><div className="bar-fill" style={{width:`${g.resolve_rate}%`, background:'#60a5fa'}}></div></div>
+                       </div>
+                    </td>
+                    <td>{g.users}</td>
+                    <td>{formatDateLocal(g.last_question)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ROW 7: Overall Agent Statistics */}
+        <div className="new-panel">
+          <div className="new-panel-title">Xodimlar umumiy statistikasi</div>
+          <div style={{overflowX: 'auto', marginTop:'15px'}}>
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>Xodim</th>
+                  <th>Username</th>
+                  <th>Javoblar</th>
+                  <th>Yopilgan</th>
+                  <th>O'rt. daqiqa</th>
+                  <th>Oxirgi #done</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.agent_overall_stats && stats.agent_overall_stats.map((a, i) => (
+                  <tr key={i}>
+                    <td style={{fontWeight: 700}}>{a.name}</td>
+                    <td style={{color: '#94a3b8'}}>@{a.username || 'noma\'lum'}</td>
+                    <td>{a.received}</td>
+                    <td>{a.resolved}</td>
+                    <td>{a.avg_time} min</td>
+                    <td>{formatDateLocal(a.last_resolved)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Reply Modal */}
+      {answeringTicket && (
+        <div className="modal-overlay" onClick={() => setAnsweringTicket(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '600px'}}>
+            <div className="flex-between" style={{marginBottom: '1rem'}}>
+              <h3 style={{margin: 0}}>Mijozga javob yozish</h3>
+              <button className="btn-close" onClick={() => setAnsweringTicket(null)}>&times;</button>
+            </div>
+            <div style={{background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '8px', marginBottom: '15px', fontSize: '14px', borderLeft: '4px solid #60a5fa'}}>
+              <div style={{fontWeight: 'bold', marginBottom: '5px', color: '#60a5fa'}}>{answeringTicket.client}</div>
+              <div style={{lineHeight: '1.5'}}>{answeringTicket.text}</div>
+            </div>
+            <form onSubmit={handleSendAnswer}>
+              <textarea
+                value={answerText}
+                onChange={(e) => setAnswerText(e.target.value)}
+                placeholder="Javobingizni shu yerga yozing..."
+                style={{width: '100%', minHeight: '120px', padding: '15px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white', marginBottom: '15px', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical'}}
+                autoFocus
+              ></textarea>
+              <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+                <button type="button" className="btn btn-secondary" onClick={() => setAnsweringTicket(null)}>Bekor qilish</button>
+                <button type="submit" className="btn btn-primary" disabled={sending || !answerText.trim()}>
+                  {sending ? 'Yuborilmoqda...' : 'Javobni yuborish'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 }
 
 export default App;
