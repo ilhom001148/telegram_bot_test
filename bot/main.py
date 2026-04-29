@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 import asyncio
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ChatType
@@ -185,8 +186,9 @@ async def respond_with_ai(message: TgMessage, text: str, user_lang: str, q_msg_d
                 return
 
             # 2. DARHOL 'Javob berildi' deb belgilaymiz (AI hali o'ylashdan oldin!)
+            from datetime import timezone
             q_msg.is_answered = True
-            q_msg.answered_at = datetime.utcnow()
+            q_msg.answered_at = datetime.now(timezone.utc)
             q_msg.answered_by = "Bot"
             await db.commit()
 

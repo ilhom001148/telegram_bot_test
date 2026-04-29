@@ -254,11 +254,11 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
 async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1_week"):
     try:
         from sqlalchemy import cast, Integer, or_, func
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         from sqlalchemy.orm import joinedload
         from bot.models import Group
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         start_date = None
         
         if period == "1_day":
@@ -294,7 +294,10 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
         valid_diffs = []
         for c_at, a_at in avg_res.all():
             if c_at and a_at:
-                diff = (a_at.replace(tzinfo=None) - c_at.replace(tzinfo=None)).total_seconds()
+                # Ikkalasini ham naive qilish orqali solishtiramiz
+                c_naive = c_at.replace(tzinfo=None) if c_at.tzinfo else c_at
+                a_naive = a_at.replace(tzinfo=None) if a_at.tzinfo else a_at
+                diff = (a_naive - c_naive).total_seconds()
                 if diff > 0 and diff < 86400 * 30: # ignore future or absurdly old
                     valid_diffs.append(diff)
         
@@ -352,7 +355,9 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
                 "resolved": len(bot_answers), 
                 "chats": set([b.group_id for b in bot_answers]), 
                 "times": [], 
-                "last": max(answered_times) if answered_times else now
+                # Vaqtlarni bir xillashtiramiz (naive/aware muammosini oldini olish uchun)
+                normalized_times = [t.replace(tzinfo=timezone.utc) if not t.tzinfo else t for t in answered_times]
+                "last": max(normalized_times) if normalized_times else now
             }
 
         # Match questions to calculate agent avg response time
@@ -365,7 +370,10 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
                 key = (r.group_id, r.reply_to_message_id)
                 if key in qs_dict and r.created_at:
                     q_time = qs_dict[key]
-                    diff = (r.created_at - q_time).total_seconds()
+                    # Ikkalasi ham aware ekanligiga ishonch hosil qilamiz
+                    r_at = r.created_at if r.created_at.tzinfo else r.created_at.replace(tzinfo=timezone.utc)
+                    q_at = q_time if q_time.tzinfo else q_time.replace(tzinfo=timezone.utc)
+                    diff = (r_at - q_at).total_seconds()
                     if diff >= 0 and diff < 86400 * 30: # Limit to max 30 days
                         agent_data[r.full_name or "Noma'lum"]["times"].append(diff)
                         
@@ -491,7 +499,10 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
                 key = (r.group_id, r.reply_to_message_id)
                 if key in all_qs_dict and r.created_at:
                     q_time = all_qs_dict[key]
-                    diff = (r.created_at - q_time).total_seconds()
+                    # Ikkalasi ham aware ekanligiga ishonch hosil qilamiz
+                    r_at = r.created_at if r.created_at.tzinfo else r.created_at.replace(tzinfo=timezone.utc)
+                    q_at = q_time if q_time.tzinfo else q_time.replace(tzinfo=timezone.utc)
+                    diff = (r_at - q_at).total_seconds()
                     if diff >= 0 and diff < 86400 * 30:
                         all_agent_data[r.full_name or "Noma'lum"]["times"].append(diff)
                         
@@ -875,7 +886,7 @@ async def get_agent_answers(agent_name: str, period: str = "all", db: AsyncSessi
         from datetime import datetime, timedelta
         from sqlalchemy.orm import joinedload
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         start_date = None
         
         if period == "1_day":
