@@ -28,20 +28,318 @@ const Icons = {
   List: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>,
   Search: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>,
   ExternalLink: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>,
+  MessageCircle: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>,
+  CheckCircle: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
   Flag: ({className}) => <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"/></svg>,
   Calendar: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5v-5z"/></svg>,
   ChevronDown: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>,
   Add: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>,
-  CheckCircle: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>,
-  MessageCircle: () => <svg className="svg-icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/></svg>,
+  Activity: ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+  Package: ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.89 1.45l8 4.6a2 2 0 0 1 1 1.73v9.24a2 2 0 0 1-1 1.73l-8 4.6a2 2 0 0 1-2 0l-8-4.6a2 2 0 0 1-1-1.73V7.78a2 2 0 0 1 1-1.73l8-4.6a2 2 0 0 1 2 0z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
+  Briefcase: ({size=24}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
 };
 
 const getAvatarColor = (name) => {
-  const colors = ['#6366f1', '#4f46e5', '#4338ca', '#8b5cf6', '#7c3aed', '#6d28d9'];
+  const colors = ['#4f46e5', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#0f172a'];
   let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < (name || 'U').length; i++) hash = (name || 'U').charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
 };
+
+// Professional Theme Styles
+const ProfessionalThemeStyles = () => (
+  <style>{`
+    :root {
+      --canvas-bg: #f9fafb;
+      --canvas-sidebar: #111827;
+      --canvas-card: #ffffff;
+      --canvas-text: #111827;
+      --canvas-text-muted: #6b7280;
+      --canvas-primary: #4f46e5;
+      --canvas-light-primary: #eef2ff;
+      --canvas-success: #10b981;
+      --canvas-light-success: #ecfdf5;
+      --canvas-danger: #ef4444;
+      --canvas-light-danger: #fef2f2;
+      --canvas-warning: #f59e0b;
+      --canvas-light-warning: #fffbeb;
+      --canvas-border: #e5e7eb;
+      --canvas-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --canvas-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .prof-dashboard {
+      display: flex;
+      min-height: 100vh;
+      background: var(--canvas-bg);
+      color: var(--canvas-text);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .prof-sidebar {
+      width: 280px;
+      background: var(--canvas-sidebar);
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+    }
+
+    .prof-sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: white;
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 48px;
+      padding: 0 8px;
+    }
+
+    .prof-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      color: #a2a3b7;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+      margin-bottom: 5px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .prof-nav-item:hover, .prof-nav-item.active {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .prof-nav-item.active {
+      background: var(--canvas-primary);
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+    }
+
+    .prof-nav-item.active svg {
+      color: var(--canvas-primary);
+    }
+
+    .prof-summary-box {
+      margin-top: auto;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px border-dashed rgba(255,255,255,0.1);
+    }
+
+    .prof-summary-title {
+      color: white;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .prof-summary-text {
+      color: #7e8299;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .prof-content {
+      flex: 1;
+      padding: 30px 40px;
+      overflow-y: auto;
+      height: 100vh;
+    }
+
+    .prof-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 30px;
+    }
+
+    .prof-title h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 0;
+      color: #0f172a;
+      letter-spacing: -0.025em;
+    }
+
+    .prof-title p {
+      color: var(--canvas-text-muted);
+      margin: 8px 0 0 0;
+      font-size: 1rem;
+    }
+
+    .prof-filters {
+      display: flex;
+      background: white;
+      padding: 5px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+      border: 1px solid var(--canvas-border);
+    }
+
+    .prof-filter-btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: #7e8299;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+
+    .prof-filter-btn.active {
+      background: var(--canvas-light-primary);
+      color: var(--canvas-primary);
+    }
+
+    .prof-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+
+    .prof-kpi-card {
+      background: var(--canvas-card);
+      padding: 32px;
+      border-radius: 24px;
+      box-shadow: var(--canvas-shadow);
+      border: 1px solid var(--canvas-border);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .prof-kpi-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--canvas-shadow-lg);
+    }
+
+    .prof-kpi-label {
+      color: var(--canvas-text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .prof-kpi-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #181c32;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .prof-kpi-trend {
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .prof-kpi-trend.up { background: var(--canvas-light-success); color: var(--canvas-success); }
+    .prof-kpi-trend.down { background: var(--canvas-light-danger); color: var(--canvas-danger); }
+
+    .prof-grid-main {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 25px;
+    }
+
+    .prof-panel {
+      background: var(--canvas-card);
+      padding: 40px;
+      border-radius: 24px;
+      box-shadow: var(--canvas-shadow);
+      border: 1px solid var(--canvas-border);
+    }
+
+    .prof-panel-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #181c32;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .prof-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+
+    .prof-table th {
+      text-align: left;
+      padding: 16px 20px;
+      color: var(--canvas-text-muted);
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid var(--canvas-bg);
+    }
+
+    .prof-table td {
+      padding: 20px;
+      border-bottom: 1px solid var(--canvas-bg);
+      font-size: 1rem;
+      color: #334155;
+    }
+
+    .prof-table td:first-child { border-left: 1px solid var(--canvas-border); border-radius: 10px 0 0 10px; }
+    .prof-table td:last-child { border-right: 1px solid var(--canvas-border); border-radius: 0 10px 10px 0; }
+
+    .prof-badge-rating {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 0.8rem;
+    }
+
+    .rating-ap { background: #e1f0ff; color: #0095e8; }
+    .rating-a { background: #e8fff3; color: #50cd89; }
+    .rating-b { background: #fff8dd; color: #ffc700; }
+    .rating-c { background: #fff5f8; color: #f1416c; }
+
+    .prof-alert-item {
+      display: flex;
+      gap: 15px;
+      padding: 15px;
+      border-radius: 12px;
+      background: var(--canvas-light-danger);
+      margin-bottom: 15px;
+      border-left: 4px solid var(--canvas-danger);
+    }
+
+    .prof-alert-icon { color: var(--canvas-danger); }
+    .prof-alert-content h4 { margin: 0; font-size: 0.95rem; font-weight: 700; }
+    .prof-alert-content p { margin: 5px 0 0 0; font-size: 0.85rem; color: #7e8299; }
+
+    .prof-tag-top {
+      background: #f1416c;
+      color: white;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      text-transform: uppercase;
+    }
+  `}</style>
+);
 
 const getInitials = (name) => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
@@ -512,6 +810,7 @@ function BroadcastManager({ token, showFlash }) {
 function App() {
   const [token, setToken] = useState(sessionStorage.getItem('admin_token'));
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [otherExpanded, setOtherExpanded] = useState(false);
   const [username, setUsername] = useState('');
   const [isAuthChecking, setIsAuthChecking] = useState(!!token);
   
@@ -550,57 +849,92 @@ function App() {
   if (isAuthChecking) return <div className="loader"></div>;
   if (!token) return <Login onLogin={(t) => { sessionStorage.setItem('admin_token', t); setToken(t); }} />;
 
+  const navItems = [
+    { id: 'dashboard', label: 'Asosiy panel', icon: <Icons.Dashboard /> },
+    { id: 'performance', label: 'Support Performance', icon: <Icons.Activity /> },
+    { id: 'product', label: 'Product Analytics', icon: <Icons.Package /> },
+    { id: 'company', label: 'Company Activity', icon: <Icons.Briefcase /> },
+    { 
+      id: 'other_menus', 
+      label: 'Boshqa menyular', 
+      icon: <Icons.Grid />, 
+      isParent: true,
+      subItems: [
+        { id: 'messages', label: 'Muloqotlar jurnali', icon: <Icons.History /> },
+        { id: 'companies', label: 'Kompaniyalar', icon: <Icons.Company /> },
+        { id: 'groups', label: 'Guruhlar', icon: <Icons.Groups /> },
+        { id: 'knowledge', label: 'Botni o\'qitish', icon: <Icons.Training /> },
+        { id: 'broadcast', label: 'Xabar yuborish', icon: <Icons.Broadcast /> },
+        { id: 'archive', label: 'Kunlik Arxiv', icon: <Icons.Folder /> },
+        { id: 'customers', label: 'Mijozlar (CRM)', icon: <Icons.Profile /> },
+        { id: 'settings', label: 'Sozlamalar', icon: <Icons.Settings /> },
+        { id: 'database', label: 'MB Boshqaruvi', icon: <Icons.Database /> }
+      ]
+    }
+  ];
+
   return (
-    <div className="app-container">
-      <div className="sidebar">
-        <div className="brand">
-          <Icons.Bot /> <span>UyQur</span>
+    <div className="prof-dashboard">
+      <ProfessionalThemeStyles />
+      
+      {/* Sidebar Navigation */}
+      <div className="prof-sidebar">
+        <div className="prof-sidebar-logo">
+          <div style={{background: 'var(--canvas-primary)', width: '35px', height: '35px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent:'center'}}>
+            <Icons.Bot style={{width:'20px', color:'white'}} />
+          </div>
+          UyQur Admin
         </div>
-        <div className="nav-links">
-          <div className="nav-group">
-            <div className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}><Icons.Dashboard /> <span>Asosiy</span></div>
-          </div>
-          
-          <div className="nav-group">
-            <div className={`nav-link ${activeTab === 'companies' ? 'active' : ''}`} onClick={() => setActiveTab('companies')}><Icons.Company /> <span>Kompaniyalar</span></div>
-          </div>
-          
-          <div className="nav-group">
-            <div className={`nav-link ${(activeTab === 'messages' || activeTab === 'groups' || activeTab === 'archive' || activeTab === 'customers' || activeTab === 'support_tahlil') ? 'active' : ''}`}><Icons.History /> <span>Muloqotlar ▾</span></div>
-            <div className="nav-sub-menu">
-              <div className={`nav-link ${activeTab === 'messages' ? 'active' : ''}`} onClick={() => setActiveTab('messages')}><Icons.History /> <span>Jurnal</span></div>
-              <div className={`nav-link ${activeTab === 'groups' ? 'active' : ''}`} onClick={() => setActiveTab('groups')}><Icons.Groups /> <span>Guruhlar</span></div>
-              <div className={`nav-link ${activeTab === 'customers' ? 'active' : ''}`} onClick={() => setActiveTab('customers')}><Icons.Profile /> <span>Mijozlar (CRM)</span></div>
-              <div className={`nav-link ${activeTab === 'support_tahlil' ? 'active' : ''}`} onClick={() => setActiveTab('support_tahlil')}><Icons.Dashboard /> <span>Support Tahlil</span></div>
-              <div className={`nav-link ${activeTab === 'archive' ? 'active' : ''}`} onClick={() => setActiveTab('archive')}><Icons.Folder /> <span>Kunlik Arxiv</span></div>
-            </div>
-          </div>
 
-          <div className="nav-group">
-            <div className={`nav-link ${(activeTab === 'knowledge' || activeTab === 'broadcast' || activeTab === 'monitoring') ? 'active' : ''}`}><Icons.Bot /> <span>Bot Boshqaruvi ▾</span></div>
-            <div className="nav-sub-menu">
-              <div className={`nav-link ${activeTab === 'knowledge' ? 'active' : ''}`} onClick={() => setActiveTab('knowledge')}><Icons.Training /> <span>Botni o'qitish</span></div>
-              <div className={`nav-link ${activeTab === 'broadcast' ? 'active' : ''}`} onClick={() => setActiveTab('broadcast')}><Icons.Broadcast /> <span>Xabar yuborish</span></div>
-            </div>
-          </div>
+        <div style={{flex: 1, overflowY: 'auto', margin: '0 -10px', padding: '0 10px'}}>
+           {navItems.map(item => (
+             <React.Fragment key={item.id}>
+               <div 
+                 className={`prof-nav-item ${activeTab === item.id ? 'active' : ''}`} 
+                 onClick={() => {
+                   if (item.isParent) {
+                     setOtherExpanded(!otherExpanded);
+                   } else {
+                     setActiveTab(item.id);
+                   }
+                 }}
+               >
+                 {item.icon} <span>{item.label}</span>
+                 {item.isParent && <div style={{marginLeft:'auto', transition:'transform 0.3s', transform: otherExpanded ? 'rotate(180deg)' : 'rotate(0)'}}><Icons.ChevronDown /></div>}
+               </div>
+               
+               {item.isParent && otherExpanded && item.subItems.map(sub => (
+                 <div 
+                   key={sub.id} 
+                   className={`prof-nav-item ${activeTab === sub.id ? 'active' : ''}`} 
+                   onClick={() => setActiveTab(sub.id)}
+                   style={{paddingLeft: '40px', fontSize: '0.85rem'}}
+                 >
+                   {sub.icon} <span>{sub.label}</span>
+                 </div>
+               ))}
+             </React.Fragment>
+           ))}
+        </div>
 
-          <div className="nav-group">
-            <div className={`nav-link ${(activeTab === 'settings' || activeTab === 'database' || activeTab === 'profile') ? 'active' : ''}`}><Icons.Settings /> <span>Tizim & Sozlamalar ▾</span></div>
-            <div className="nav-sub-menu">
-              <div className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}><Icons.Settings /> <span>Sozlamalar</span></div>
-              <div className={`nav-link ${activeTab === 'database' ? 'active' : ''}`} onClick={() => setActiveTab('database')}><Icons.Database /> <span>Ma'lumotlar bazasi</span></div>
-              <div className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}><Icons.Profile /> <span>Profil</span></div>
-            </div>
+        <div className="prof-summary-box">
+          <div className="prof-summary-title">
+            <span role="img" aria-label="user">👤</span> {username || 'Admin'}
           </div>
-
-          <div className="nav-group" style={{marginTop: 'auto'}}>
-            <div className="nav-link logout" onClick={handleLogout}><Icons.Logout /> <span>Chiqish</span></div>
+          <div className="prof-summary-text">
+            Tizim boshqaruvchisi sifatida tizimga kirdingiz.
           </div>
+          <button className="prof-nav-item" onClick={handleLogout} style={{marginTop: '15px', width: '100%', background: 'rgba(241, 65, 108, 0.1)', color: '#f1416c', border: 'none'}}>
+            <Icons.Logout /> Chiqish
+          </button>
         </div>
       </div>
-      <div className="main-content">
-        {flash && <div className={`flash-banner ${flash.type}`}>{flash.text}</div>}
+
+      {/* Main Content Area */}
+      <div className="prof-content">
+        {flash && <div className={`flash-banner ${flash.type}`} style={{position:'fixed', top:'20px', right:'20px', zIndex:3000}}>{flash.text}</div>}
         <ConfirmModal {...modal} onCancel={() => setModal({ ...modal, isOpen: false })} />
+        
         {activeTab === 'dashboard' && <Dashboard token={token} showFlash={showFlash} />}
         {activeTab === 'companies' && <CompaniesManager token={token} />}
         {activeTab === 'messages' && <Messages token={token} showFlash={showFlash} />}
@@ -612,7 +946,7 @@ function App() {
         {activeTab === 'database' && <DatabaseManager token={token} showFlash={showFlash} askConfirm={askConfirm} />}
         {activeTab === 'archive' && <ArchiveManager token={token} showFlash={showFlash} />}
         {activeTab === 'customers' && <CustomersManager token={token} showFlash={showFlash} />}
-        {activeTab === 'support_tahlil' && <SupportDashboard token={token} />}
+        {['performance', 'product', 'company'].includes(activeTab) && <AnalyticsDashboard token={token} activeSubTab={activeTab} setActiveSubTab={setActiveTab} />}
       </div>
     </div>
   );
@@ -1630,148 +1964,121 @@ function Dashboard({ token, showFlash }) {
   if (loading) return <div className="loader"></div>;
 
   return (
-    <div className="dashboard-layout">
-      {/* Stat Cards */}
-      <div className="grid-cards" style={{gridTemplateColumns:'repeat(4, 1fr)', gap:'1.5rem', marginBottom:'2rem'}}>
-         <div className="glass-card stat-card">
-            <div className="stat-label">Jami xabarlar</div>
-            <div className="stat-value">{stats.total_messages || 0}</div>
-         </div>
-         <div className="glass-card stat-card">
-            <div className="stat-label">Jami so'rovlar</div>
-            <div className="stat-value">{stats.total_questions || 0}</div>
-         </div>
-         <div className="glass-card stat-card">
-            <div className="stat-label">Bot javoblari</div>
-            <div className="stat-value" style={{color:'var(--primary)'}}>{stats.bot_answers || 0}</div>
-         </div>
-         <div className="glass-card stat-card">
-            <div className="stat-label">Guruhlar</div>
-            <div className="stat-value">{stats.total_groups || 0}</div>
-         </div>
-      </div>
-
-      <div className="glass-card" style={{padding:'2rem', marginBottom:'2rem'}}>
-        <div className="summary-header" style={{display:'flex', justifyContent:'space-between', marginBottom:'1.5rem'}}>
-           <div className="summary-title" style={{margin:0}}>Haftalik faollik (Xabarlar va Savollar)</div>
-           <div style={{display:'flex', gap:'15px', fontSize:'0.75rem'}}>
-              <span style={{display:'flex', alignItems:'center', gap:'5px'}}><span style={{width:'8px', height:'8px', background:'#6366f1', borderRadius:'2px'}}></span> Xabarlar</span>
-              <span style={{display:'flex', alignItems:'center', gap:'5px'}}><span style={{width:'8px', height:'8px', background:'#ec4899', borderRadius:'2px'}}></span> Savollar</span>
-           </div>
+    <div style={{animation:'fadeIn 0.5s ease-out'}}>
+      <div className="prof-header">
+        <div className="prof-title">
+          <h1>Tizim tahlili</h1>
+          <p>Botning umumiy holati va faollik ko'rsatkichlari</p>
         </div>
-        <SimpleBarChart data={stats.daily_activity} />
       </div>
 
-      <div className="grid-cards" style={{gridTemplateColumns:'1fr 1fr', gap:'2rem'}}>
-          <div className="glass-card" style={{marginBottom:0}}>
-             <div className="summary-title" style={{marginBottom:'1rem'}}>Kutilayotgan savollar ({stats.unanswered_questions || 0})</div>
-             <div className="unanswered-list" style={{maxHeight:'400px', overflowY:'auto'}}>
-                {stats.latest_unanswered && stats.latest_unanswered.length > 0 ? stats.latest_unanswered.map(q => (
-                  <div 
-                    key={q.id} 
-                    id={`q-card-${q.id}`}
-                    className="unanswered-item" 
-                    style={{display: 'block', padding:'1rem', background:'rgba(255,255,255,0.02)', borderRadius:'12px', marginBottom:'10px', transition: 'all 0.5s ease'}}
-                  >
-                    <div className="flex-between" style={{alignItems: 'flex-start', gap:'15px'}}>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:'0.9rem', lineHeight:1.4, cursor:'pointer', position:'relative'}} 
-                             onClick={() => {setAnsweringId(q.id); setAnswerText('');}}>
-                          {q.telegram_app_link ? (
-                            <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} title="Telegramda ko'rish">{q.text}</a>
-                          ) : q.text}
-                        </div>
-                        <div style={{fontSize:'0.7rem', color:'var(--text-muted)', marginTop:'5px'}}>
-                           {q.telegram_app_link ? (
-                             <a href={q.telegram_app_link} className="tg-link" onClick={e => e.stopPropagation()} style={{color:'inherit'}} title="Telegramda ko'rish">
-                               {q.full_name} • {q.group_title} • {formatDate(q.created_at)}
-                             </a>
-                           ) : (
-                             <>{q.full_name} • {q.group_title} • {formatDate(q.created_at)}</>
-                           )}
-                        </div>
-                      </div>
-                      {answeringId !== q.id && <button className="btn btn-sm" onClick={() => {setAnsweringId(q.id); setAnswerText('');}}>Javob berish</button>}
+      <div className="prof-kpi-grid">
+         <div className="prof-kpi-card">
+            <div className="prof-kpi-label"><Icons.MessageCircle style={{color:'#8950fc'}}/> Jami xabarlar</div>
+            <div className="prof-kpi-value">{stats.total_messages?.toLocaleString()}</div>
+            <div style={{fontSize:'0.8rem', color:'var(--canvas-text-muted)', marginTop:'5px'}}>Tizim boshlanganidan beri</div>
+         </div>
+         <div className="prof-kpi-card">
+            <div className="prof-kpi-label"><Icons.Groups style={{color:'#3699ff'}}/> Guruhlar</div>
+            <div className="prof-kpi-value">{stats.total_groups}</div>
+            <div style={{fontSize:'0.8rem', color:'var(--canvas-text-muted)', marginTop:'5px'}}>Faol guruhlar</div>
+         </div>
+         <div className="prof-kpi-card">
+            <div className="prof-kpi-label"><Icons.Profile style={{color:'#1bc5bd'}}/> Mijozlar</div>
+            <div className="prof-kpi-value">{stats.total_users?.toLocaleString()}</div>
+            <div style={{fontSize:'0.8rem', color:'var(--canvas-text-muted)', marginTop:'5px'}}>Noyob foydalanuvchilar</div>
+         </div>
+         <div className="prof-kpi-card">
+            <div className="prof-kpi-label"><Icons.Training style={{color:'#ffa800'}}/> AI Bilimlar</div>
+            <div className="prof-kpi-value">{stats.total_kb}</div>
+            <div style={{fontSize:'0.8rem', color:'var(--canvas-text-muted)', marginTop:'5px'}}>O'rgatilgan savollar</div>
+         </div>
+      </div>
+
+      <div className="prof-grid-main">
+          <div className="prof-panel">
+             <div className="prof-panel-title">Haftalik faollik</div>
+             <SimpleBarChart data={stats.daily_activity || []} />
+          </div>
+
+          <div className="prof-panel">
+             <div className="prof-panel-title">Kutilayotgan so'rovlar ({stats.unanswered_questions || 0})</div>
+             <div style={{display:'flex', flexDirection:'column', gap:'12px', maxHeight:'300px', overflowY:'auto'}}>
+                {stats.latest_unanswered && stats.latest_unanswered.length > 0 ? stats.latest_unanswered.map((q, i) => (
+                  <div key={i} className="prof-alert-item" style={{background:'var(--canvas-light-primary)', borderLeftColor:'var(--canvas-primary)', margin:0, cursor:'pointer'}} onClick={() => setAnsweringId(q.id)}>
+                    <div style={{flex:1}}>
+                       <div style={{fontWeight:700, fontSize:'0.9rem'}}>{q.full_name}</div>
+                       <div style={{fontSize:'0.8rem', color:'var(--canvas-text)', marginTop:'4px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', width:'200px'}}>{q.text}</div>
                     </div>
-                    
-                    {answeringId === q.id && (
-                      <form onSubmit={handleSendAnswer} style={{marginTop: '1rem'}}>
-                        <textarea 
-                          rows="3" 
-                          value={answerText} 
-                          onChange={e => setAnswerText(e.target.value)}
-                          placeholder="Javobingizni yozing..."
-                          style={{width:'100%', padding:'10px', fontSize:'0.9rem', marginBottom:'10px'}}
-                          required
-                        />
-                        <div className="flex-between">
-                           <button type="button" className="btn btn-sm btn-danger" onClick={() => setAnsweringId(null)}>Bekor qilish</button>
-                           <button type="submit" className="btn btn-sm" disabled={sending}>{sending ? 'Yuborilmoqda...' : 'Yuborish'}</button>
-                        </div>
-                      </form>
-                    )}
                   </div>
-                )) : <p style={{color:'var(--text-muted)', fontSize:'0.9rem', textAlign:'center', padding:'2rem'}}>Kutilayotgan savollar topilmadi.</p>}
+                )) : (
+                  <div style={{textAlign:'center', padding:'20px', color:'var(--canvas-text-muted)'}}>Kutilayotgan savollar yo'q</div>
+                )}
+             </div>
+          </div>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'25px', marginTop:'25px'}}>
+          <div className="prof-panel">
+             <div className="prof-panel-title">AI Provayderlar Sarfi</div>
+             <div style={{display:'flex', flexDirection:'column', gap:'15px'}}>
+                {stats.ai_usage?.map((ai, i) => (
+                  <div key={i} style={{padding:'15px', borderRadius:'12px', background:'var(--canvas-bg)', border:'1px solid var(--canvas-border)'}}>
+                    <div className="flex-between">
+                       <span style={{fontWeight:800, color:'var(--canvas-primary)'}}>{ai.provider.toUpperCase()}</span>
+                       <span style={{fontSize:'1.1rem', fontWeight:800}}>{ai.tokens.toLocaleString()} <small style={{fontSize:'0.7rem'}}>token</small></span>
+                    </div>
+                    <div className="flex-between" style={{marginTop:'8px', fontSize:'0.8rem', color:'var(--canvas-text-muted)'}}>
+                       <span>So'rovlar soni:</span>
+                       <span>{ai.requests} ta</span>
+                    </div>
+                  </div>
+                ))}
              </div>
           </div>
 
-          <div className="glass-card" style={{marginBottom:0}}>
-             <div className="summary-title" style={{marginBottom:'1.5rem'}}>Trenddagi mavzular (AI)</div>
-             {stats.trending_topics && stats.trending_topics.map((t, i) => (
-                <div key={i} className="trending-topic">
-                   <div className="topic-info">
-                      <span>{t.word}</span>
-                      <span className="trending-count">{t.count} marta</span>
-                   </div>
-                   <div className="topic-bar-bg">
-                      <div className="topic-bar-fill" style={{width: `${(t.count / (stats.trending_topics[0]?.count || 1)) * 100}%`, background:'linear-gradient(90deg, #ec4899, #f43f5e)'}}></div>
-                   </div>
-                </div>
-             ))}
+          <div className="prof-panel">
+             <div className="prof-panel-title">Trenddagi mavzular</div>
+             <div style={{display:'flex', flexDirection:'column', gap:'15px'}}>
+                {stats.trending_topics?.map((t, i) => (
+                  <div key={i}>
+                    <div className="flex-between" style={{fontSize:'0.9rem', marginBottom:'5px'}}>
+                       <span style={{fontWeight:600}}>{t.word}</span>
+                       <span style={{color:'var(--canvas-text-muted)'}}>{t.count} marta</span>
+                    </div>
+                    <div style={{width:'100%', height:'6px', background:'#f1f1f1', borderRadius:'3px'}}>
+                       <div style={{width:`${(t.count / (stats.trending_topics[0]?.count || 1)) * 100}%`, height:'100%', background:'var(--canvas-primary)', borderRadius:'3px'}}></div>
+                    </div>
+                  </div>
+                ))}
+             </div>
           </div>
       </div>
-
-      <div className="glass-card" style={{marginTop:'2rem'}}>
-         <div className="summary-title" style={{marginBottom:'1.5rem'}}>Eng faol guruhlar</div>
-         <div className="grid-cards" style={{gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'1rem', marginBottom:0}}>
-             {stats.top_groups && stats.top_groups.map((g, i) => (
-                <div key={i} className="glass-card" style={{margin:0, padding:'1rem', background:'rgba(255,255,255,0.03)'}}>
-                   <div style={{fontSize:'0.9rem', fontWeight:600}}>{g.title}</div>
-                   <div style={{fontSize:'1.3rem', marginTop:'0.5rem', fontWeight:'700'}}>{g.messages} <small style={{fontSize:'0.7rem', color:'var(--text-muted)', fontWeight:'normal'}}>xabar</small></div>
-                </div>
-             ))}
-         </div>
-      </div>
-
-      <div className="glass-card" style={{marginTop:'2rem'}}>
-         <div className="summary-title" style={{marginBottom:'1.5rem'}}>AI Provayderlar Sarfi (Umumiy)</div>
-         <div className="grid-cards" style={{gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:'1.5rem'}}>
-             {stats.ai_usage && stats.ai_usage.length > 0 ? stats.ai_usage.map((ai, i) => (
-                <div key={i} className="glass-card" style={{margin:0, padding:'1.5rem', borderLeft:'4px solid var(--primary)', position:'relative', overflow:'hidden'}}>
-                   <div style={{position:'absolute', top:'-10px', right:'-10px', opacity:0.1}}><Icons.Bot /></div>
-                   <div style={{fontSize:'1.1rem', fontWeight:700, textTransform:'uppercase', color:'var(--primary)', marginBottom:'0.2rem'}}>{ai.provider}</div>
-                   {ai.groups && ai.groups.length > 0 && (
-                      <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginBottom:'0.8rem', display:'flex', flexWrap:'wrap', gap:'5px'}}>
-                         {ai.groups.map((g, idx) => (
-                            <span key={idx} style={{background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px'}}>
-                               {g.title}
-                            </span>
-                         ))}
-                      </div>
-                   )}
-                   
-                   <div style={{fontSize:'1.8rem', fontWeight:800}}>{ai.tokens.toLocaleString()} <span style={{fontSize:'0.8rem', color:'var(--text-muted)'}}>token</span></div>
-                   <div style={{marginTop:'10px', fontSize:'0.85rem', color:'var(--text-muted)'}}>
-                      <div className="flex-between"><span>Jami so'rovlar:</span> <b>{ai.requests} ta</b></div>
-                   </div>
-                </div>
-             )) : (
-                <div style={{gridColumn:'1/-1', textAlign:'center', padding:'2rem', color:'var(--text-muted)'}}>
-                   AI sarfi haqida ma'lumotlar mavjud emas.
-                </div>
-             )}
-         </div>
-      </div>
+      {answeringId && (
+        <div className="modal-overlay" onClick={() => setAnsweringId(null)} style={{background:'rgba(0,0,0,0.5)', zIndex:2000}}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '600px', background:'white', color:'#181c32', border:'none'}}>
+            <div className="flex-between" style={{marginBottom: '1rem'}}>
+              <h3 style={{margin: 0, fontWeight:700}}>Savolga javob berish</h3>
+              <button className="btn-close" onClick={() => setAnsweringId(null)} style={{color:'#a2a3b7'}}>&times;</button>
+            </div>
+            <form onSubmit={handleSendAnswer}>
+              <textarea
+                value={answerText}
+                onChange={(e) => setAnswerText(e.target.value)}
+                placeholder="Javobingizni shu yerga yozing..."
+                style={{width: '100%', minHeight: '120px', padding: '15px', borderRadius: '12px', border: '1px solid #eff2f5', background: '#ffffff', color: '#181c32', marginBottom: '15px', fontSize: '14px', fontFamily: 'inherit'}}
+                autoFocus
+              ></textarea>
+              <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+                <button type="button" className="btn" onClick={() => setAnsweringId(null)} style={{background:'#f1f1f1', color:'#7e8299'}}>Bekor qilish</button>
+                <button type="submit" className="btn" disabled={sending || !answerText.trim()} style={{background:'var(--canvas-primary)', color:'white'}}>
+                  {sending ? 'Yuborilmoqda...' : 'Yuborish'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2076,8 +2383,8 @@ function Messages({ token, showFlash }) {
                <span className="list-group-count">{group.items.length} ta xabar</span>
             </div>
 
-            <div className="premium-table-container">
-              <table className="premium-modern-table">
+            <div className="prof-panel" style={{padding:'0', overflow:'hidden'}}>
+              <table className="prof-table">
                 <thead>
                   <tr>
                     <th style={{width:'80px', textAlign:'center'}}>Vaqt</th>
@@ -3420,7 +3727,6 @@ function AgentAnswersModal({ agentName, period, token, onClose }) {
                     <span>🕒 {formatDate(ans.answered_at)}</span>
                  </div>
                  <div style={{padding:'15px', display:'flex', flexDirection:'column', gap:'10px'}}>
-                    {/* Savol qismi */}
                     <div style={{alignSelf:'flex-start', background:'rgba(239, 68, 68, 0.1)', padding:'10px 15px', borderRadius:'12px 12px 12px 0', maxWidth:'90%', borderLeft:'3px solid var(--danger)'}}>
                        <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginBottom:'4px'}}>SURALGAN SAVOL</div>
                        <div style={{fontSize:'0.9rem', lineHeight:'1.4'}}>
@@ -3429,21 +3735,15 @@ function AgentAnswersModal({ agentName, period, token, onClose }) {
                           ) : ans.question_text}
                        </div>
                     </div>
-                    {/* Javob qismi */}
                     <div style={{alignSelf:'flex-end', background:'rgba(16, 185, 129, 0.1)', padding:'10px 15px', borderRadius:'12px 12px 0 12px', maxWidth:'90%', borderRight:'3px solid var(--success)'}}>
-                       <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginBottom:'4px', textAlign:'right'}}>XODIM JAVOBI</div>
-                       <div style={{fontSize:'0.9rem', lineHeight:'1.4', color:'#fff'}}>
-                          {ans.answer_text}
-                       </div>
+                       <div style={{fontSize:'0.65rem', color:'var(--text-muted)', marginBottom:'4px'}}>ADMIN JAVOBI</div>
+                       <div style={{fontSize:'0.9rem', lineHeight:'1.4'}}>{ans.answer_text}</div>
                     </div>
                  </div>
               </div>
             ))
           ) : (
-             <div style={{textAlign:'center', padding:'3rem 0'}}>
-                <div style={{fontSize:'3rem', opacity:0.5, marginBottom:'1rem'}}>📭</div>
-                <p style={{color:'var(--text-muted)'}}>Ushbu davrda javob berilgan savollar topilmadi</p>
-             </div>
+            <p style={{textAlign:'center', padding:'2rem', color:'var(--text-muted)'}}>Hech qanday javob topilmadi.</p>
           )}
         </div>
       </div>
@@ -3451,23 +3751,558 @@ function AgentAnswersModal({ agentName, period, token, onClose }) {
   );
 }
 
+// SVG Chart Components
+const AnalyticsBarChart = ({ data, colors = ['#6366f1', '#ec4899'] }) => {
+  const [tooltip, setTooltip] = useState(null);
+  if (!data || data.length === 0) return null;
+  const maxVal = Math.max(...data.map(d => Math.max(d.value, 1)));
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {tooltip && (
+        <div className="chart-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+          <div className="chart-tooltip-title">{tooltip.label}</div>
+          <div className="chart-tooltip-row">
+            <span className="chart-tooltip-dot" style={{ background: colors[0] }}></span>
+            <span>Qiymat:</span>
+            <strong>{tooltip.value}</strong>
+          </div>
+        </div>
+      )}
+      <div
+        className="chart-container"
+        style={{ height: '200px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px', padding: '10px 0' }}
+        onMouseLeave={() => setTooltip(null)}
+      >
+        {data.map((d, i) => (
+          <div
+            key={i}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative' }}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const parentRect = e.currentTarget.closest('.chart-container').getBoundingClientRect();
+              setTooltip({
+                label: d.label,
+                value: d.value,
+                x: rect.left - parentRect.left - 60,
+                y: -60,
+              });
+            }}
+          >
+            <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height: '160px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', width: '100%' }}>
+                <div
+                  style={{
+                    width: '70%',
+                    background: `linear-gradient(180deg, ${colors[0]}dd, ${colors[0]}88)`,
+                    height: `${Math.max((d.value / maxVal) * 100, d.value > 0 ? 3 : 0)}%`,
+                    borderRadius: '4px 4px 0 0',
+                    transition: 'all 0.5s ease',
+                    cursor: 'pointer',
+                    boxShadow: `0 0 8px ${colors[0]}55`,
+                  }}
+                ></div>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.65rem', color: 'var(--canvas-text-muted)', marginTop: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', textAlign: 'center' }}>{d.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AnalyticsPieChart = ({ data }) => {
+  if (!data || data.length === 0) return null;
+  const total = data.reduce((acc, d) => acc + d.value, 0);
+  let currentAngle = 0;
+  const colors = ['#6366f1', '#10b981', '#f1416c', '#ffc700', '#7239ea', '#0095e8'];
+  
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+      <svg width="150" height="150" viewBox="0 0 100 100">
+        {data.map((d, i) => {
+          const angle = (d.value / total) * 360;
+          const x1 = 50 + 45 * Math.cos((currentAngle * Math.PI) / 180);
+          const y1 = 50 + 45 * Math.sin((currentAngle * Math.PI) / 180);
+          currentAngle += angle;
+          const x2 = 50 + 45 * Math.cos((currentAngle * Math.PI) / 180);
+          const y2 = 50 + 45 * Math.sin((currentAngle * Math.PI) / 180);
+          const largeArcFlag = angle > 180 ? 1 : 0;
+          return (
+            <path key={i} d={`M 50 50 L ${x1} ${y1} A 45 45 0 ${largeArcFlag} 1 ${x2} ${y2} Z`} fill={colors[i % colors.length]} stroke="white" strokeWidth="1" />
+          );
+        })}
+        <circle cx="50" cy="50" r="25" fill="white" />
+      </svg>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem' }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors[i % colors.length] }}></div>
+            <span style={{ fontWeight: 700, color: '#181c32' }}>{d.value}</span>
+            <span style={{ color: '#7e8299', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AnalyticsLineChart = ({ data, color = "#6366f1" }) => {
+  if (!data || data.length === 0) return null;
+  const maxVal = Math.max(...data.map(d => d.value), 1);
+  const width = 500;
+  const height = 150;
+  const points = data.map((d, i) => `${(i / (data.length - 1)) * width},${height - (d.value / maxVal) * height}`).join(' ');
+  
+  return (
+    <div style={{ width: '100%', height: '180px', marginTop: '10px' }}>
+      <svg width="100%" height="150" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={`M 0 ${height} L ${points} L ${width} ${height} Z`} fill="url(#lineGradient)" />
+        <polyline fill="none" stroke={color} strokeWidth="3" points={points} strokeLinejoin="round" strokeLinecap="round" />
+        {data.map((d, i) => (
+          <circle key={i} cx={(i / (data.length - 1)) * width} cy={height - (d.value / maxVal) * height} r="4" fill="white" stroke={color} strokeWidth="2" />
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 5px' }}>
+        {data.map((d, i) => (i % (Math.ceil(data.length/7)) === 0) && (
+          <span key={i} style={{ fontSize: '0.7rem', color: '#7e8299', fontWeight: 600 }}>{d.label}</span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AnalyticsMultiLineChart = ({ data, lines = [] }) => {
+  if (!data || data.length === 0 || lines.length === 0) return null;
+  const maxVal = Math.max(...data.flatMap(d => lines.map(l => d[l.key] || 0)), 1);
+  const width = 500;
+  const height = 150;
+  
+  return (
+    <div style={{ width: '100%', height: '180px', marginTop: '10px' }}>
+      <svg width="100%" height="150" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        {lines.map((line, lineIdx) => {
+           const points = data.map((d, i) => `${(i / (data.length - 1)) * width},${height - ((d[line.key] || 0) / maxVal) * height}`).join(' ');
+           return (
+             <g key={line.key}>
+                <polyline fill="none" stroke={line.color} strokeWidth="2" points={points} strokeLinejoin="round" strokeLinecap="round" />
+                {data.map((d, i) => (
+                  <circle key={i} cx={(i / (data.length - 1)) * width} cy={height - ((d[line.key]||0) / maxVal) * height} r="3" fill="white" stroke={line.color} strokeWidth="1.5" />
+                ))}
+             </g>
+           );
+        })}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 5px' }}>
+        {data.map((d, i) => (i % (Math.ceil(data.length/7)) === 0) && (
+          <span key={i} style={{ fontSize: '0.7rem', color: '#7e8299', fontWeight: 600 }}>{d.label}</span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+function AnalyticsDashboard({ token, activeSubTab, setActiveSubTab }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("1_week");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`${API_URL}/dashboard/analytics?period=${period}`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(d => { setData(d); setLoading(false); })
+      .catch(e => { console.error(e); setLoading(false); });
+  }, [token, period]);
+
+  if (loading || !data) return (
+    <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh'}}>
+      <div className="loader"></div>
+      <p style={{marginTop:'20px', color:'var(--canvas-text-muted)'}}>Premium analitika yuklanmoqda...</p>
+    </div>
+  );
+
+  const performance = data.performance || {};
+  const products = data.product || [];
+  const companies = data.companies || [];
+  const agents = data.agent_performance || [];
+  const overdueList = performance.overdue_list || [];
+  const hourlyTrend = data.hourly_trend || [];
+
+  return (
+    <div style={{ animation: 'fadeIn 0.5s ease-out', paddingBottom: '50px', background: '#f0f2f5', margin: '-30px', padding: '30px', minHeight: '100vh', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+        .stat-card:hover { transform: translateY(-5px); transition: all 0.3s ease; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .btn-period:hover { background: #f8fafc; }
+        .table-row:hover { background: #f8fafc; }
+      `}</style>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '30px' }}>
+        
+        {/* Left Sidebar Info Card */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+          <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', padding: '25px', borderRadius: '24px', color: 'white', boxShadow: '0 10px 30px rgba(15,23,42,0.15)' }}>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Analytics</h1>
+            <p style={{ opacity: 0.7, margin: '5px 0 0 0', fontSize: '0.9rem' }}>Nazorat paneli v2.0</p>
+            <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.1)', padding: '10px 15px', borderRadius: '12px' }}>
+               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', animation: 'pulse 2s infinite' }}></div>
+               <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Tizim onlayn</span>
+            </div>
+          </div>
+
+          <div style={{ background: 'white', padding: '25px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
+              <span style={{ fontSize: '1.2rem' }}>💡</span>
+              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#1e293b' }}>Bugungi xulosa</h4>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.6', margin: 0 }}>
+              {performance.today_tickets > 0 
+                ? `Bugun jami ${performance.today_tickets} ta ticket kelib tushdi. Ulardan ${performance.resolve_rate} qismi muvaffaqiyatli yopildi. O'rtacha javob vaqti: ${performance.avg_response}.`
+                : "Hozircha bugun ticketlar kelib tushmadi. Tizim barqaror ishlamoqda."}
+            </p>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div>
+          <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+               <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: '#1e293b' }}>
+                 {activeSubTab === 'performance' ? "Support Performance" : 
+                  activeSubTab === 'product' ? "Product Analytics" : 
+                  "Company Activity"}
+               </h2>
+               <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+                 {activeSubTab === 'performance' ? "Xodimlar samaradorligi va xizmat ko'rsatish sifati" : 
+                  activeSubTab === 'product' ? "Modullar bo'yicha savollar tahlili" : 
+                  "Kompaniyalar faolligi monitoringi"}
+               </p>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '4px', borderRadius: '14px' }}>
+              {[
+                { id: '1_day', label: 'Bugun' },
+                { id: '1_week', label: 'Hafta' },
+                { id: '1_month', label: 'Oy' },
+                { id: 'all', label: 'Umumiy' }
+              ].map(p => (
+                <button 
+                  key={p.id} 
+                  onClick={() => setPeriod(p.id)} 
+                  style={{ 
+                    borderRadius: '10px', padding: '8px 20px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
+                    background: period === p.id ? 'white' : 'transparent', 
+                    color: period === p.id ? '#0f172a' : '#64748b',
+                    boxShadow: period === p.id ? '0 4px 6px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {activeSubTab === 'performance' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+              {/* KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+                {[
+                  { label: 'Jami ticketlar', value: performance.today_tickets, trend: performance.trend, icon: '📩', color: '#3b82f6' },
+                  { label: 'Yopilganlar', value: performance.resolved, sub: performance.resolve_rate, icon: '✅', color: '#10b981' },
+                  { label: 'Javobsiz', value: performance.unanswered, sub: performance.overdue > 0 ? `${performance.overdue} ta kechikkan` : 'Hammasi OK', icon: '⏰', color: '#ef4444' },
+                  { label: 'O\'rtacha vaqt', value: performance.avg_response, sub: 'SLA Target: 15m', icon: '⚡', color: '#f59e0b' }
+                ].map((kpi, idx) => (
+                  <div key={idx} className="stat-card" style={{ background: 'white', padding: '25px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'relative', border: '1px solid #eef2f6' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${kpi.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', marginBottom: '15px' }}>{kpi.icon}</div>
+                    <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, marginBottom: '5px' }}>{kpi.label}</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b' }}>{kpi.value || 0}</div>
+                    <div style={{ color: kpi.label === 'Javobsiz' ? '#ef4444' : '#10b981', fontSize: '0.75rem', fontWeight: 700, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {kpi.trend || kpi.sub}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Main Table and Alerts */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '25px' }}>
+                <div style={{ background: 'white', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                  <div style={{ padding: '25px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>Xodimlar statistikasi</h3>
+                      <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.8rem' }}>Period bo'yicha samaradorlik ko'rsatkichlari</p>
+                    </div>
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead style={{ background: '#f8fafc' }}>
+                        <tr>
+                          {['Xodim', 'Javoblar', 'O\'rtacha vaqt', 'SLA', 'Daraja'].map(h => (
+                            <th key={h} style={{ padding: '15px 25px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {agents.length > 0 ? agents.map((a, i) => (
+                          <tr key={i} className="table-row" style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s' }}>
+                            <td style={{ padding: '18px 25px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#3b82f6', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}>{a.name.charAt(0)}</div>
+                                <span style={{ fontWeight: 700, color: '#1e293b' }}>{a.name}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '18px 25px', color: '#475569', fontWeight: 600 }}>{a.answered}</td>
+                            <td style={{ padding: '18px 25px', color: '#475569', fontWeight: 600 }}>{a.avg_time}</td>
+                            <td style={{ padding: '18px 25px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ flex: 1, height: '6px', background: '#f1f5f9', borderRadius: '10px', maxWidth: '60px' }}>
+                                  <div style={{ height: '100%', background: parseInt(a.sla) > 90 ? '#10b981' : '#f59e0b', borderRadius: '10px', width: a.sla }}></div>
+                                </div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{a.sla}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '18px 25px' }}>
+                              <span style={{ 
+                                background: a.grade === 'A+' ? '#ecfdf5' : a.grade === 'A' ? '#eff6ff' : '#fef2f2',
+                                color: a.grade === 'A+' ? '#10b981' : a.grade === 'A' ? '#3b82f6' : '#ef4444',
+                                padding: '4px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 800
+                              }}>{a.grade}</span>
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan="5" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📁</div>
+                            <div style={{ fontWeight: 600 }}>Hozircha ma'lumotlar yo'q</div>
+                          </td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                  <div style={{ background: 'white', borderRadius: '24px', padding: '25px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⚠️</div>
+                      <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#1e293b' }}>Kechikkan savollar</h3>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {overdueList.length > 0 ? overdueList.slice(0, 4).map((o, i) => (
+                        <div key={i} style={{ padding: '15px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#1e293b' }}>{o.client}</span>
+                            <span style={{ background: '#fee2e2', color: '#ef4444', padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800 }}>{o.wait}m kutmoqda</span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                             🏢 {o.group}
+                          </div>
+                        </div>
+                      )) : (
+                        <div style={{ textAlign: 'center', padding: '30px', background: '#f0fdf4', borderRadius: '16px', border: '1px dashed #bbf7d0' }}>
+                          <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>🎉</div>
+                          <div style={{ color: '#10b981', fontWeight: 700, fontSize: '0.85rem' }}>Barcha savollarga o'z vaqtida javob berilgan!</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Trend Chart */}
+              <div style={{ background: 'white', borderRadius: '24px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '25px' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>Faollik dinamikasi ({period === '1_day' ? 'Soatlik' : 'Kunlik'})</h3>
+                    <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>{period === '1_day' ? 'Soatlar' : 'Kunlar'} kesimida kelib tushgan ticketlar soni</p>
+                  </div>
+                  <div style={{ background: '#f8fafc', padding: '8px 15px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
+                    Eng faol: {hourlyTrend.length > 0 ? hourlyTrend.reduce((prev, current) => (prev.value > current.value) ? prev : current).label : '--'}
+                  </div>
+                </div>
+                <AnalyticsLineChart data={hourlyTrend} color="#3b82f6" />
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === 'product' && (() => {
+             const sortedProducts = [...products].sort((a,b) => b.total - a.total);
+             const topModule = sortedProducts.length > 0 ? sortedProducts[0] : null;
+             const totalBugs = products.reduce((acc, p) => acc + p.bug, 0);
+             const totalTickets = products.reduce((acc, p) => acc + p.total, 0);
+             const totalFeatures = products.reduce((acc, p) => acc + p.feature, 0);
+             const bugPercentage = totalTickets > 0 ? Math.round((totalBugs / totalTickets) * 100) : 0;
+             const topFeatureModule = [...products].sort((a,b) => b.feature - a.feature)[0];
+             
+             const criticalTrendModule = [...products].sort((a,b) => {
+                 let ta = parseInt(a.trend.replace('%','').replace('+','')) || 0;
+                 let tb = parseInt(b.trend.replace('%','').replace('+','')) || 0;
+                 return tb - ta;
+             })[0];
+
+             const barData = sortedProducts.map(p => ({label: p.module, value: p.total}));
+             const pieData = sortedProducts.map(p => ({label: p.module, value: p.total}));
+             
+             return (
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+                    <div className="stat-card" style={{ background: 'white', padding: '25px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                      <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, marginBottom: '5px' }}>Eng muammoli modul</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ef4444' }}>{topModule ? topModule.module : '--'}</div>
+                         <div style={{ fontSize: '1.5rem' }}>🔥</div>
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '8px' }}>
+                        {topModule ? `${topModule.total} ta ticket / period` : '--'}
+                      </div>
+                    </div>
+
+                    <div className="stat-card" style={{ background: 'white', padding: '25px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                      <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, marginBottom: '5px' }}>Bug ticketlar</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b' }}>{totalBugs}</div>
+                         <div style={{ fontSize: '1.5rem' }}>🐞</div>
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '8px' }}>
+                        Jami ticketlarning {bugPercentage}%
+                      </div>
+                    </div>
+
+                    <div className="stat-card" style={{ background: 'white', padding: '25px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                      <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, marginBottom: '5px' }}>Feature request</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b' }}>{totalFeatures}</div>
+                         <div style={{ fontSize: '1.5rem' }}>💡</div>
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '8px' }}>
+                        {topFeatureModule && topFeatureModule.feature > 0 ? `${topFeatureModule.module} bo'yicha ko'p` : 'Hozircha yo\'q'}
+                      </div>
+                    </div>
+
+                    <div className="stat-card" style={{ background: 'white', padding: '25px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                      <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 600, marginBottom: '5px' }}>Critical o'sish</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ef4444' }}>{criticalTrendModule ? criticalTrendModule.trend : '--'}</div>
+                         <div style={{ fontSize: '1.5rem' }}>📈</div>
+                      </div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '8px' }}>
+                        {criticalTrendModule ? `${criticalTrendModule.module} modulida` : '--'}
+                      </div>
+                    </div>
+                 </div>
+
+                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                       <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>Modullar bo'yicha ticketlar</h3>
+                       <p style={{ margin: '4px 0 20px 0', color: '#64748b', fontSize: '0.85rem' }}>Qaysi bo'limga ko'proq savol tushmoqda</p>
+                       <AnalyticsBarChart data={barData} colors={['#1e293b', '#64748b']} />
+                    </div>
+                    <div style={{ background: 'white', borderRadius: '24px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                       <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>Ticket ulushi</h3>
+                       <p style={{ margin: '4px 0 20px 0', color: '#64748b', fontSize: '0.85rem' }}>Modullar kesimida foiz ko'rinishi</p>
+                       <div style={{ marginTop: '20px' }}>
+                          <AnalyticsPieChart data={pieData} />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                       <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>Bug vs Feature request</h3>
+                       <p style={{ margin: '4px 0 20px 0', color: '#64748b', fontSize: '0.85rem' }}>Qaysi modulda xatolik, qaysi modulda yangi funksiya talabi ko'p</p>
+                       <div style={{ overflowX: 'auto', background: '#f8fafc', borderRadius: '12px', padding: '10px' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                             <thead>
+                                <tr>
+                                  <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '0.8rem', color: '#64748b' }}>Modul</th>
+                                  <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '0.8rem', color: '#64748b' }}>Ticket</th>
+                                  <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '0.8rem', color: '#64748b' }}>Bug</th>
+                                  <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '0.8rem', color: '#64748b' }}>Feature</th>
+                                  <th style={{ padding: '12px 15px', textAlign: 'left', fontSize: '0.8rem', color: '#64748b' }}>Trend</th>
+                                </tr>
+                             </thead>
+                             <tbody>
+                                {sortedProducts.map((p, i) => {
+                                   let isPositive = p.trend.includes('+');
+                                   let isStable = p.trend === '0%' || p.trend === 'Stable';
+                                   let trendColor = isStable ? '#10b981' : isPositive ? '#ef4444' : '#10b981';
+                                   
+                                   return (
+                                     <tr key={i} style={{ borderTop: '1px solid #eef2f6' }}>
+                                        <td style={{ padding: '15px', fontWeight: 700, color: '#1e293b' }}>{p.module}</td>
+                                        <td style={{ padding: '15px', color: '#64748b' }}>{p.total}</td>
+                                        <td style={{ padding: '15px', color: '#ef4444', fontWeight: 600 }}>{p.bug}</td>
+                                        <td style={{ padding: '15px', color: '#3b82f6', fontWeight: 600 }}>{p.feature}</td>
+                                        <td style={{ padding: '15px' }}>
+                                           <span style={{ background: `${trendColor}20`, color: trendColor, padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                              {p.trend}
+                                           </span>
+                                        </td>
+                                     </tr>
+                                   )
+                                })}
+                             </tbody>
+                          </table>
+                       </div>
+                    </div>
+
+                    <div style={{ background: 'white', borderRadius: '24px', padding: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #eef2f6' }}>
+                       <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>Haftalik trend</h3>
+                       <p style={{ margin: '4px 0 20px 0', color: '#64748b', fontSize: '0.85rem' }}>Muammo o'sib borayotgan modullar</p>
+                       <AnalyticsLineChart data={hourlyTrend} color="#3b82f6" />
+                    </div>
+                 </div>
+               </div>
+             );
+          })()}
+
+          {activeSubTab === 'company' && (
+             <div style={{ background: 'white', padding: '40px', borderRadius: '20px', textAlign: 'center' }}>
+                <Icons.Briefcase size={48} style={{ color: '#e2e8f0', marginBottom: '20px' }} />
+                <h3>Company Activity bo'limi</h3>
+                <p style={{ color: '#64748b' }}>Bu bo'lim hozirda tayyorlanmoqda...</p>
+             </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 function SupportDashboard({ token }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [error, setError] = useState(null);
   const [period, setPeriod] = useState("1_week");
-
-  // Reply states
   const [answeringTicket, setAnsweringTicket] = useState(null);
   const [answerText, setAnswerText] = useState('');
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     fetch(`${API_URL}/dashboard/support-stats?period=${period}`, { headers: { 'Authorization': `Bearer ${token}` } })
-      .then(res => res.json())
-      .then(data => { setStats(data); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(res => {
+         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+         return res.json();
+      })
+      .then(data => { 
+        setStats(data); 
+        setLoading(false); 
+      })
+      .catch((err) => { 
+        console.error("Dashboard fetch error:", err);
+        setError(err.message);
+        setLoading(false); 
+      });
   }, [token, period]);
 
   const handleSendAnswer = (e) => {
@@ -3496,13 +4331,6 @@ function SupportDashboard({ token }) {
     .catch((err) => { setSending(false); alert(err.message || "Xatolik yuz berdi"); });
   };
 
-  if (!stats && loading) return <div className="loader"></div>;
-  if (!stats) return <div style={{textAlign:'center', padding:'2rem', color:'var(--text-muted)'}}>Ma'lumot topilmadi</div>;
-
-  const top = stats.top_metrics;
-  const p = stats.periods;
-  const s = stats.sources;
-
   const formatDateLocal = (isoString) => {
     if (!isoString) return '—';
     const d = new Date(isoString);
@@ -3510,352 +4338,152 @@ function SupportDashboard({ token }) {
     return `${pd(d.getDate())}/${pd(d.getMonth()+1)}/${d.getFullYear().toString().slice(-2)}, ${pd(d.getHours())}:${pd(d.getMinutes())}`;
   };
 
-  // Donut chart calculations
-  const totalSources = (s?.guruh || 0) + (s?.shaxsiy || 0) || 1;
-  const degGuruh = ((s?.guruh || 0) / totalSources) * 360;
-  const degShaxsiy = ((s?.shaxsiy || 0) / totalSources) * 360;
-  const conicStr = `conic-gradient(
-    #60a5fa 0deg ${degGuruh}deg, 
-    #34d399 ${degGuruh}deg 360deg
-  )`;
+  if (loading) return (
+    <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh'}}>
+      <div className="loader"></div>
+      <p style={{marginTop:'20px', color:'var(--canvas-text-muted)'}}>Analitika yuklanmoqda...</p>
+    </div>
+  );
 
-  const periodLabel = {
-    '1_day': 'Bugungi so\'rovlar',
-    '1_week': 'Hafta so\'rovlari',
-    '1_month': 'Oy so\'rovlari',
-    'all_time': 'Jami so\'rovlar'
-  }[period] || 'Davr so\'rovlari';
+  if (error) return (
+    <div style={{textAlign:'center', padding:'3rem', background:'var(--canvas-light-danger)', borderRadius:'12px', margin:'2rem'}}>
+      <Icons.Warning style={{color:'var(--canvas-danger)', width:48, height:48, marginBottom:'1rem'}} />
+      <h3 style={{color:'var(--canvas-danger)'}}>Ma'lumotlarni yuklashda xatolik</h3>
+      <p style={{color:'var(--canvas-text)'}}>{error}</p>
+      <button className="btn" style={{marginTop:'1.5rem'}} onClick={() => window.location.reload()}>Qayta urinish</button>
+    </div>
+  );
+
+  const top = stats.top_stats || { total_tickets: 0, resolved_tickets: 0, resolve_rate: 0, avg_response_minutes: 0 };
+  const overdueTickets = stats.open_tickets?.filter(t => {
+     const waitMinutes = (new Date() - new Date(t.time)) / 60000;
+     return waitMinutes > 30;
+  }) || [];
 
   return (
-    <div style={{animation: 'fadeIn 0.5s ease-out', background: '#090e17', padding: '20px', borderRadius: '12px', minHeight: '100vh', margin: '-20px'}}>
-      
-      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '4px' }}>
-          {[
-            { id: '1_day', label: 'Bugun' },
-            { id: '1_week', label: 'Hafta' },
-            { id: '1_month', label: 'Oy' },
-            { id: 'all_time', label: 'Jami' }
-          ].map(p => (
-            <button
-              key={p.id}
-              onClick={() => setPeriod(p.id)}
-              style={{
-                background: period === p.id ? '#e0f2fe' : 'transparent',
-                color: period === p.id ? '#0f172a' : '#94a3b8',
-                border: 'none',
-                padding: '6px 16px',
-                borderRadius: '6px',
-                fontWeight: 600,
-                fontSize: '13px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+    <div style={{paddingBottom: '50px', animation: 'fadeIn 0.5s ease-out'}}>
+      <div className="prof-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+        <div className="prof-title">
+          <h1>Support Management</h1>
+          <p>Mijozlar so'rovlarini boshqarish va tezkor javob qaytarish</p>
+        </div>
+        <div style={{display:'flex', gap:'10px', background:'var(--canvas-card)', padding:'5px', borderRadius:'12px', border:'1px solid var(--canvas-border)'}}>
+           {["1_day", "1_week", "1_month"].map(p => (
+             <button 
+               key={p} 
+               className={`btn btn-sm ${period === p ? '' : 'btn-outline'}`}
+               style={{borderRadius:'8px', border: period === p ? 'none' : '1px solid transparent', background: period === p ? 'var(--canvas-primary)' : 'transparent', color: period === p ? 'white' : 'var(--canvas-text)'}}
+               onClick={() => setPeriod(p)}
+             >
+               {p === '1_day' ? 'Bugun' : p === '1_week' ? 'Hafta' : 'Oy'}
+             </button>
+           ))}
         </div>
       </div>
 
-      <div className="new-dashboard">
-        {selectedAgent && (
-          <AgentAnswersModal agentName={selectedAgent} period={period} token={token} onClose={() => setSelectedAgent(null)} />
-        )}
-
-        {/* ROW 1: 5 Top Metric Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '20px' }}>
-          <div className="new-metric-card">
-            <div className="new-metric-card-title">{periodLabel}</div>
-            <div className="new-metric-card-value">{top.total_tickets}</div>
-            <div className="new-metric-card-desc">Jami ticketlar</div>
-          </div>
-          <div className="new-metric-card">
-            <div className="new-metric-card-title">Yopilgan</div>
-            <div className="new-metric-card-value">{top.resolved_tickets}</div>
-            <div className="new-metric-card-desc">Xodimlar yopgan ticketlar</div>
-          </div>
-          <div className="new-metric-card">
-            <div className="new-metric-card-title">Yopilish foizi</div>
-            <div className="new-metric-card-value">{top.resolve_rate}%</div>
-            <div className="new-metric-card-desc">Yopilgan / jami</div>
-          </div>
-          <div className="new-metric-card">
-            <div className="new-metric-card-title">Guruhlardan</div>
-            <div className="new-metric-card-value">{top.from_groups}</div>
-            <div className="new-metric-card-desc">Mijozlardan tushgan so'rovlar</div>
-          </div>
-          <div className="new-metric-card">
-            <div className="new-metric-card-title">O'rtacha yopish</div>
-            <div className="new-metric-card-value">{top.avg_response_minutes}</div>
-            <div className="new-metric-card-desc">Daqiqa</div>
-          </div>
+      <div className="prof-kpi-grid">
+        <div className="prof-kpi-card">
+          <div className="prof-kpi-label"><Icons.MessageCircle style={{color:'#0095e8'}} /> Jami so'rovlar</div>
+          <div className="prof-kpi-value">{top.total_tickets}</div>
         </div>
-
-        {/* ROW 2: Periods & Sources */}
-        <div className="dashboard-row">
-          <div className="new-panel">
-            <div className="new-panel-title">Davrlar bo'yicha ticketlar</div>
-            <div className="new-panel-subtitle">Bugun, hafta, oy va jami kesimi</div>
-            
-            <div className="bar-row">
-              <div className="bar-label">Bugun</div>
-              <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (p.bugun / (p.jami || 1)) * 100)}%`, background: '#60a5fa'}}></div></div>
-              <div className="bar-value">{p.bugun}</div>
-            </div>
-            <div className="bar-row">
-              <div className="bar-label">Hafta</div>
-              <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (p.hafta / (p.jami || 1)) * 100)}%`, background: '#60a5fa'}}></div></div>
-              <div className="bar-value">{p.hafta}</div>
-            </div>
-            <div className="bar-row">
-              <div className="bar-label">Oy</div>
-              <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (p.oy / (p.jami || 1)) * 100)}%`, background: '#60a5fa'}}></div></div>
-              <div className="bar-value">{p.oy}</div>
-            </div>
-            <div className="bar-row">
-              <div className="bar-label">Jami</div>
-              <div className="bar-container"><div className="bar-fill" style={{width: '100%', background: '#60a5fa'}}></div></div>
-              <div className="bar-value">{p.jami}</div>
-            </div>
-          </div>
-          
-          <div className="new-panel">
-            <div className="new-panel-title">Manbalar</div>
-            <div className="new-panel-subtitle">{periodLabel} taqsimoti</div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '40px', marginTop: '10px' }}>
-              <div className="donut-wrapper" style={{background: conicStr}}>
-                <div className="donut-inner">{(s?.guruh || 0) + (s?.shaxsiy || 0)}</div>
-              </div>
-              <div style={{ flex: 1, paddingRight: '20px' }}>
-                 <div className="bar-row">
-                   <div className="bar-label" style={{width:'100px', display:'flex', alignItems:'center', gap:'10px'}}>
-                      <div style={{width:10,height:10,borderRadius:'50%',background:'#60a5fa'}}></div> Guruh
-                   </div>
-                   <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, ((s?.guruh || 0) / totalSources) * 100)}%`, background: '#60a5fa'}}></div></div>
-                   <div className="bar-value">{s?.guruh || 0}</div>
-                 </div>
-                 <div className="bar-row">
-                   <div className="bar-label" style={{width:'100px', display:'flex', alignItems:'center', gap:'10px'}}>
-                      <div style={{width:10,height:10,borderRadius:'50%',background:'#34d399'}}></div> Shaxsiy
-                   </div>
-                   <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, ((s?.shaxsiy || 0) / totalSources) * 100)}%`, background: '#34d399'}}></div></div>
-                   <div className="bar-value">{s?.shaxsiy || 0}</div>
-                 </div>
-              </div>
-            </div>
-          </div>
+        <div className="prof-kpi-card">
+          <div className="prof-kpi-label"><Icons.Warning style={{color:'#f1416c', width:'18px'}} /> Ochiq ticketlar</div>
+          <div className="prof-kpi-value">{(stats.open_tickets || []).length}</div>
         </div>
-
-        {/* ROW 3: Top agents & Active groups */}
-        <div className="dashboard-row">
-          <div className="new-panel">
-            <div className="new-panel-title">Top xodimlar</div>
-            <div className="new-panel-subtitle">Yopilgan ticketlar bo'yicha</div>
-            {stats.top_agents && stats.top_agents.map((a, i) => (
-               <div className="bar-row" key={i}>
-                  <div className="bar-label" style={{width: '200px'}}>{a.name}</div>
-                  <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (a.resolved / (stats.top_agents[0]?.resolved || 1)) * 100)}%`, background: '#34d399'}}></div></div>
-                  <div className="bar-value">{a.resolved}</div>
-               </div>
-            ))}
-          </div>
-          
-          <div className="new-panel">
-            <div className="new-panel-title">Faol guruhlar</div>
-            <div className="new-panel-subtitle">Jami so'rovlar bo'yicha</div>
-            {stats.active_groups && stats.active_groups.map((g, i) => (
-               <div className="bar-row" key={i}>
-                  <div className="bar-label" style={{width: '200px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}} title={g.name}>{g.name}</div>
-                  <div className="bar-container"><div className="bar-fill" style={{width: `${Math.min(100, (g.total / (stats.active_groups[0]?.total || 1)) * 100)}%`, background: '#fbbf24'}}></div></div>
-                  <div className="bar-value">{g.total}</div>
-               </div>
-            ))}
-          </div>
+        <div className="prof-kpi-card">
+          <div className="prof-kpi-label"><Icons.CheckCircle style={{color:'#50cd89'}} /> SLA %</div>
+          <div className="prof-kpi-value">{top.resolve_rate}%</div>
         </div>
-
-        {/* ROW 4: Agent Stats Table */}
-        <div className="new-panel">
-          <div className="new-panel-title">Eng ko'p ticket yopgan xodimlar</div>
-          <div className="new-panel-subtitle">Hafta kesimi</div>
-          <div style={{overflowX: 'auto'}}>
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Xodim</th>
-                  <th>Username</th>
-                  <th>Yopilgan</th>
-                  <th style={{width:'250px'}}>Yopish ulushi</th>
-                  <th>Chatlar</th>
-                  <th>O'rt. vaqt</th>
-                  <th>Oxirgi yopish</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.agent_stats && stats.agent_stats.map((a, i) => (
-                  <tr key={i} onClick={() => setSelectedAgent(a.name)} style={{cursor:'pointer'}} title="Javoblar tarixini ko'rish">
-                    <td style={{fontWeight: 700}}>{a.name}</td>
-                    <td style={{color: '#94a3b8'}}>@{a.username || 'noma\'lum'}</td>
-                    <td>{a.resolved}</td>
-                    <td>
-                       <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-                          <span style={{fontWeight:800, width:'50px'}}>{a.share}%</span>
-                          <div className="bar-container" style={{flex:1, height:'6px'}}><div className="bar-fill" style={{width:`${a.share}%`, background:'#34d399'}}></div></div>
-                       </div>
-                    </td>
-                    <td>{a.chats}</td>
-                    <td>{a.avg_time} min</td>
-                    <td>{formatDateLocal(a.last_resolved)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="prof-kpi-card">
+          <div className="prof-kpi-label"><Icons.Clock style={{color:'#ffc700'}} /> Avg Time</div>
+          <div className="prof-kpi-value">{top.avg_response_minutes}m</div>
         </div>
-
-        {/* ROW 5: Open tickets */}
-        <div className="new-panel">
-          <div className="new-panel-title">Ochiq so'rovlar</div>
-          <div style={{overflowX: 'auto', marginTop:'15px'}}>
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Mijoz</th>
-                  <th>Manba</th>
-                  <th>Matn</th>
-                  <th>Vaqt</th>
-                  <th>Javob</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.open_tickets && stats.open_tickets.map((t, i) => (
-                  <tr key={i}>
-                    <td style={{fontWeight: 700}}>{t.client}</td>
-                    <td><span className="badge-source">{t.source}</span></td>
-                    <td style={{maxWidth: '400px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}} title={t.text}>
-                      <a href={t.telegram_app_link || '#'} target="_blank" rel="noopener noreferrer" style={{color: '#e0f2fe', textDecoration: 'none'}} className="hover-underline">
-                        {t.text}
-                      </a>
-                    </td>
-                    <td>{formatDateLocal(t.time)}</td>
-                    <td>
-                       <button className="btn-javob" onClick={() => setAnsweringTicket(t)}>Javob</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* ROW 6: Group Stats */}
-        <div className="new-panel">
-          <div className="new-panel-title">Guruhlar bo'yicha mijoz so'rovlari</div>
-          <div className="new-panel-subtitle">Jami so'rov, ochiq ticket va yopilish foizi</div>
-          <div style={{overflowX: 'auto'}}>
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Guruh</th>
-                  <th>Jami so'rov</th>
-                  <th>Ochiq</th>
-                  <th>Yopilgan</th>
-                  <th style={{width:'250px'}}>Yopilish</th>
-                  <th>Mijozlar</th>
-                  <th>Oxirgi so'rov</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.group_stats && stats.group_stats.map((g, i) => (
-                  <tr key={i}>
-                    <td style={{fontWeight: 700}}>
-                      <a href={g.link || '#'} target="_blank" rel="noopener noreferrer" style={{color: '#e0f2fe', textDecoration: 'none'}} className="hover-underline">
-                        {g.name}
-                      </a>
-                    </td>
-                    <td>{g.total}</td>
-                    <td>{g.open}</td>
-                    <td>{g.resolved}</td>
-                    <td>
-                       <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-                          <span style={{fontWeight:800, width:'50px'}}>{g.resolve_rate}%</span>
-                          <div className="bar-container" style={{flex:1, height:'6px'}}><div className="bar-fill" style={{width:`${g.resolve_rate}%`, background:'#60a5fa'}}></div></div>
-                       </div>
-                    </td>
-                    <td>{g.users}</td>
-                    <td>{formatDateLocal(g.last_question)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* ROW 7: Overall Agent Statistics */}
-        <div className="new-panel">
-          <div className="new-panel-title">Xodimlar umumiy statistikasi</div>
-          <div style={{overflowX: 'auto', marginTop:'15px'}}>
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Xodim</th>
-                  <th>Username</th>
-                  <th>Javoblar</th>
-                  <th>Yopilgan</th>
-                  <th>O'rt. daqiqa</th>
-                  <th>Oxirgi #done</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.agent_overall_stats && stats.agent_overall_stats.map((a, i) => (
-                  <tr key={i}>
-                    <td style={{fontWeight: 700}}>{a.name}</td>
-                    <td style={{color: '#94a3b8'}}>@{a.username || 'noma\'lum'}</td>
-                    <td>{a.received}</td>
-                    <td>{a.resolved}</td>
-                    <td>{a.avg_time} min</td>
-                    <td>{formatDateLocal(a.last_resolved)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
 
-      {/* Reply Modal */}
+      <div className="prof-grid-main">
+        <div className="prof-panel">
+          <div className="prof-panel-title">Hozirgi ochiq so'rovlar</div>
+          <table className="prof-table">
+            <thead>
+              <tr>
+                <th>Mijoz</th>
+                <th>Guruh</th>
+                <th>Xabar</th>
+                <th>Vaqt</th>
+                <th>Amal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.open_tickets?.length > 0 ? stats.open_tickets.slice(0, 10).map((t, i) => (
+                <tr key={i}>
+                  <td style={{fontWeight: 700}}>{t.client}</td>
+                  <td><span className="prof-badge-rating rating-ap">{t.source}</span></td>
+                  <td style={{maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+                    <a href={t.telegram_app_link || '#'} target="_blank" rel="noopener noreferrer" style={{color: 'var(--canvas-primary)', textDecoration: 'none'}}>
+                      {t.text}
+                    </a>
+                  </td>
+                  <td style={{fontSize:'0.8rem', color:'var(--canvas-text-muted)'}}>{formatDateLocal(t.time)}</td>
+                  <td>
+                    <button className="prof-badge-rating rating-a" style={{border:'none', cursor:'pointer'}} onClick={() => setAnsweringTicket(t)}>Javob</button>
+                  </td>
+                </tr>
+              )) : (
+                <tr><td colSpan="5" style={{textAlign:'center', padding:'20px', color:'var(--canvas-text-muted)'}}>Ochiq ticketlar yo'q</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{display:'flex', flexDirection:'column', gap:'25px'}}>
+          <div className="prof-panel">
+             <div className="prof-panel-title">Kechikkan so'rovlar ({overdueTickets.length})</div>
+             {overdueTickets.length > 0 ? overdueTickets.slice(0, 5).map((t, i) => (
+                <div key={i} className="prof-alert-item" onClick={() => setAnsweringTicket(t)} style={{cursor:'pointer'}}>
+                   <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                    <Icons.Warning style={{color:'var(--canvas-danger)'}} />
+                    <div style={{flex:1}}>
+                       <h4 style={{margin:0, fontSize:'0.9rem'}}>{t.client}</h4>
+                       <div style={{marginTop:'5px', color:'var(--canvas-danger)', fontWeight:700, fontSize:'0.7rem'}}>
+                          {Math.floor((new Date() - new Date(t.time)) / 60000)} daqiqa kechikmoqda
+                       </div>
+                    </div>
+                  </div>
+                </div>
+             )) : (
+                <div style={{textAlign:'center', color: 'var(--canvas-text-muted)', padding:'20px'}}>
+                   Hammasi vaqtida!
+                </div>
+             )}
+          </div>
+        </div>
+      </div>
+
       {answeringTicket && (
         <div className="modal-overlay" onClick={() => setAnsweringTicket(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '600px'}}>
-            <div className="flex-between" style={{marginBottom: '1rem'}}>
-              <h3 style={{margin: 0}}>Mijozga javob yozish</h3>
-              <button className="btn-close" onClick={() => setAnsweringTicket(null)}>&times;</button>
-            </div>
-            <div style={{background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '8px', marginBottom: '15px', fontSize: '14px', borderLeft: '4px solid #60a5fa'}}>
-              <div style={{fontWeight: 'bold', marginBottom: '5px', color: '#60a5fa'}}>{answeringTicket.client}</div>
-              <div style={{lineHeight: '1.5'}}>{answeringTicket.text}</div>
+            <h3>Javob yozish</h3>
+            <div style={{background: '#f8f9fa', padding: '15px', borderRadius: '12px', marginBottom: '15px'}}>
+              <strong>{answeringTicket.client}</strong>: {answeringTicket.text}
             </div>
             <form onSubmit={handleSendAnswer}>
               <textarea
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
-                placeholder="Javobingizni shu yerga yozing..."
-                style={{width: '100%', minHeight: '120px', padding: '15px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white', marginBottom: '15px', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical'}}
+                placeholder="Javobingiz..."
+                style={{width: '100%', minHeight: '120px', padding: '15px', borderRadius: '12px', marginBottom: '15px'}}
                 autoFocus
               ></textarea>
               <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
-                <button type="button" className="btn btn-secondary" onClick={() => setAnsweringTicket(null)}>Bekor qilish</button>
-                <button type="submit" className="btn btn-primary" disabled={sending || !answerText.trim()}>
-                  {sending ? 'Yuborilmoqda...' : 'Javobni yuborish'}
+                <button type="button" className="btn btn-outline" onClick={() => setAnsweringTicket(null)}>Bekor qilish</button>
+                <button type="submit" className="btn" disabled={sending || !answerText.trim()}>
+                  {sending ? 'Yuborilmoqda...' : 'Yuborish'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }

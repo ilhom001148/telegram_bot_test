@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -346,7 +346,14 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
         bot_answers = bot_res.scalars().all()
         if bot_answers:
             bot_name = "AI Bot (Auto)"
-            agent_data[bot_name] = {"username": "bot", "resolved": len(bot_answers), "chats": set([b.group_id for b in bot_answers]), "times": [], "last": max([b.answered_at for b in bot_answers if b.answered_at])}
+            answered_times = [b.answered_at for b in bot_answers if b.answered_at]
+            agent_data[bot_name] = {
+                "username": "bot", 
+                "resolved": len(bot_answers), 
+                "chats": set([b.group_id for b in bot_answers]), 
+                "times": [], 
+                "last": max(answered_times) if answered_times else now
+            }
 
         # Match questions to calculate agent avg response time
         reply_ids = [r.reply_to_message_id for r in replies if r.reply_to_message_id]
@@ -367,6 +374,17 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
         total_agent_resolved = sum([d["resolved"] for d in agent_data.values()])
         for name, data in agent_data.items():
             avg_t = sum(data["times"]) / len(data["times"]) / 60 if data["times"] else 0
+            
+            # Calculate SLA (percentage of responses within 30 minutes)
+            within_sla = len([t for t in data["times"] if t <= 1800])
+            sla = round((within_sla / len(data["times"]) * 100), 1) if data["times"] else 100
+            
+            # Determine Rating
+            rating = "C"
+            if sla >= 95: rating = "A+"
+            elif sla >= 85: rating = "A"
+            elif sla >= 70: rating = "B"
+            
             share = round((data["resolved"] / total_agent_resolved * 100), 1) if total_agent_resolved > 0 else 0
             agent_stats.append({
                 "name": name,
@@ -375,6 +393,8 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
                 "share": share,
                 "chats": len(data["chats"]),
                 "avg_time": round(avg_t, 1),
+                "sla": sla,
+                "rating": rating,
                 "last_resolved": data["last"].isoformat() if data["last"] else None
             })
             top_agents.append({"name": name, "resolved": data["resolved"]})
@@ -478,12 +498,25 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
         agent_overall_stats = []
         for name, data in all_agent_data.items():
             avg_t = round(sum(data["times"]) / len(data["times"]) / 60, 1) if data["times"] else 0
+            
+            # Calculate SLA (percentage of responses within 30 minutes)
+            within_sla = len([t for t in data["times"] if t <= 1800])
+            sla = round((within_sla / len(data["times"]) * 100), 1) if data["times"] else 100
+            
+            # Determine Rating
+            rating = "C"
+            if sla >= 95: rating = "A+"
+            elif sla >= 85: rating = "A"
+            elif sla >= 70: rating = "B"
+            
             agent_overall_stats.append({
                 "name": name,
                 "username": data["username"] or "",
                 "received": data["received"],
                 "resolved": data["resolved"],
                 "avg_time": avg_t,
+                "sla": sla,
+                "rating": rating,
                 "last_resolved": data["last"].isoformat() if data["last"] else None
             })
         agent_overall_stats = sorted(agent_overall_stats, key=lambda x: x['resolved'], reverse=True)
@@ -492,9 +525,11 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
             "top_metrics": {
                 "total_tickets": total_tickets,
                 "resolved_tickets": resolved_tickets,
+                "unanswered_tickets": total_tickets - resolved_tickets,
                 "resolve_rate": resolve_rate,
                 "from_groups": from_groups,
-                "avg_response_minutes": avg_response_minutes
+                "avg_response_minutes": avg_response_minutes,
+                "overdue_tickets": len([t for t in open_tickets if t["time"] and (datetime.utcnow() - datetime.fromisoformat(t["time"])).total_seconds() > 1800]) if open_tickets else 0
             },
             "periods": periods,
             "sources": sources,
@@ -508,6 +543,239 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
 
     finally:
         pass
+
+@router.get("/analytics")
+async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period: str = "1_week"):
+    try:
+        from sqlalchemy import cast, Integer, or_, func, case, distinct
+        from datetime import datetime, timedelta
+        from sqlalchemy.orm import joinedload
+        from bot.models import Group, Company, Message, User
+        
+        now = datetime.utcnow()
+        start_date = now - timedelta(days=7) 
+        if period == "1_day": start_date = now - timedelta(days=1)
+        elif period == "3_days": start_date = now - timedelta(days=3)
+        elif period == "1_month": start_date = now - timedelta(days=30)
+        elif period == "all": start_date = datetime(2000, 1, 1) # All time
+
+        # Helper: Date filter
+        def df(q, col=Message.created_at):
+            return q.filter(col >= start_date)
+
+        # 1. Support Performance Data
+        base_q = [Message.is_question == True, Message.is_staff == False]
+        
+        total_tickets = await db.scalar(df(select(func.count(Message.id)).filter(*base_q))) or 0
+        resolved_tickets = await db.scalar(df(select(func.count(Message.id)).filter(*base_q, Message.is_answered == True))) or 0
+        
+        # Trend
+        prev_start = start_date - (now - start_date)
+        prev_tickets = await db.scalar(select(func.count(Message.id)).filter(*base_q, Message.created_at >= prev_start, Message.created_at < start_date)) or 0
+        trend_val = round(((total_tickets - prev_tickets) / prev_tickets * 100), 1) if prev_tickets > 0 else 0
+        trend_str = f"{'+' if trend_val >= 0 else ''}{trend_val}%"
+        
+        # Overdue (>30m unanswered)
+        overdue_q = df(select(func.count(Message.id)).filter(*base_q, Message.is_answered == False, Message.created_at < now - timedelta(minutes=30)))
+        overdue_tickets = await db.scalar(overdue_q) or 0
+        
+        # Avg Response Time
+        avg_res_q = await db.execute(df(select(Message.created_at, Message.answered_at).filter(*base_q, Message.is_answered == True, Message.answered_at != None)))
+        diffs = [(r[1].replace(tzinfo=None) - r[0].replace(tzinfo=None)).total_seconds() for r in avg_res_q.all() if r[0] and r[1]]
+        avg_time = round(sum(diffs) / len(diffs) / 60, 1) if diffs else 0
+        
+        # 2. Product Analytics
+        modules = ["Hisobot", "Ombor", "CRM", "To'lov", "Login", "API"]
+        module_stats = {m: {"total": 0, "bug": 0, "feature": 0} for m in modules}
+        
+        msgs_q = await db.execute(df(select(Message.text).filter(Message.is_staff == False)))
+        all_msg_texts = [r[0] for r in msgs_q.all() if r[0]]
+        
+        for text in all_msg_texts:
+            found = False
+            for m in modules:
+                if m.lower() in text.lower():
+                    module_stats[m]["total"] += 1
+                    if any(k in text.lower() for k in ["xato", "ishlamayapti", "error", "bug", "muammo"]):
+                        module_stats[m]["bug"] += 1
+                    elif any(k in text.lower() for k in ["kerak", "qo'shish", "yangi", "taklif"]):
+                        module_stats[m]["feature"] += 1
+                    found = True
+                    break
+            if not found:
+                if "Boshqa" not in module_stats: module_stats["Boshqa"] = {"total": 0, "bug": 0, "feature": 0}
+                module_stats["Boshqa"]["total"] += 1
+
+        prev_msgs_q = await db.execute(select(Message.text).filter(Message.is_staff == False, Message.created_at >= prev_start, Message.created_at < start_date))
+        prev_texts = [r[0] for r in prev_msgs_q.all() if r[0]]
+        
+        prev_module_stats = {m: 0 for m in modules}
+        for text in prev_texts:
+            for m in modules:
+                if m.lower() in text.lower():
+                    prev_module_stats[m] += 1
+                    break
+
+        product_analytics = []
+        for m, s in module_stats.items():
+            if s["total"] > 0:
+                prev_tot = prev_module_stats.get(m, 0)
+                if prev_tot > 0:
+                    tr = round((s["total"] - prev_tot) / prev_tot * 100)
+                    tr_str = f"+{tr}%" if tr > 0 else f"{tr}%"
+                else:
+                    tr_str = "+100%"
+                product_analytics.append({"module": m, "total": s["total"], "bug": s["bug"], "feature": s["feature"], "trend": tr_str})
+        
+        # 3. Company & Group Aggregation
+        from api.routes.companies import get_external_companies
+        ext_companies = await get_external_companies()
+        local_comps_res = await db.execute(select(Company))
+        local_companies = [{"name": c.name, "id": str(c.id), "status": c.status} for c in local_comps_res.scalars().all()]
+        all_comps = local_companies + ext_companies
+        
+        groups_res = await db.execute(select(Group))
+        all_groups = groups_res.scalars().all()
+        
+        # Performance by group
+        msgs_by_grp = await db.execute(df(select(Message.group_id, func.count(Message.id), func.count(distinct(Message.user_id)), func.max(Message.created_at)).filter(Message.is_staff == False).group_by(Message.group_id)))
+        grp_metrics = {r[0]: {"msgs": r[1], "users": r[2], "last": r[3]} for r in msgs_by_grp.all()}
+        
+        q_by_grp = await db.execute(df(select(Message.group_id, func.count(Message.id)).filter(*base_q).group_by(Message.group_id)))
+        grp_q_counts = {r[0]: r[1] for r in q_by_grp.all()}
+        
+        a_by_grp = await db.execute(df(select(Message.group_id, func.count(Message.id)).filter(*base_q, Message.is_answered == True).group_by(Message.group_id)))
+        grp_a_counts = {r[0]: r[1] for r in a_by_grp.all()}
+
+        company_activity = []
+        group_stats = []
+
+        for comp in all_comps:
+            c_name = comp.get("name", "")
+            c_groups = [g for g in all_groups if c_name.lower() in g.title.lower()]
+            
+            c_total_msgs = sum(grp_metrics.get(g.id, {}).get("msgs", 0) for g in c_groups)
+            c_total_users = sum(grp_metrics.get(g.id, {}).get("users", 0) for g in c_groups)
+            c_total_q = sum(grp_q_counts.get(g.id, 0) for g in c_groups)
+            
+            if c_total_msgs > 0 or comp.get("status") == "Faol":
+                company_activity.append({
+                    "name": c_name,
+                    "users": c_total_users,
+                    "sessions": c_total_msgs, # Best estimate
+                    "tickets": c_total_q,
+                    "score": min(100, c_total_users * 10 + 20) if c_total_users > 0 else 0,
+                    "status": "Active" if c_total_users > 2 else "Risk"
+                })
+            
+            for g in c_groups:
+                m = grp_metrics.get(g.id, {})
+                t = grp_q_counts.get(g.id, 0)
+                a = grp_a_counts.get(g.id, 0)
+                if t > 0 or m.get("msgs", 0) > 0:
+                    group_stats.append({
+                        "name": g.title,
+                        "total": t,
+                        "open": t - a,
+                        "resolved": a,
+                        "resolve_rate": round(a/t*100, 1) if t > 0 else 0,
+                        "last_question": m.get("last").isoformat() if m.get("last") else None
+                    })
+
+        group_stats.sort(key=lambda x: x["total"], reverse=True)
+
+        # 5. Agent Performance (Robust)
+        # Hamma stafflarni olamiz
+        staff_users_q = await db.execute(select(User.full_name, User.telegram_id).filter(User.is_staff == True))
+        staff_members = {r[0]: {"answered": 0, "total_time": 0, "count": 0} for r in staff_users_q.all() if r[0]}
+        
+        # Staff xabarlarini sanaymiz
+        staff_msgs_q = await db.execute(df(select(Message.full_name, func.count(Message.id)).filter(Message.is_staff == True).group_by(Message.full_name)))
+        for name, count in staff_msgs_q.all():
+            if name in staff_members:
+                staff_members[name]["answered"] = count
+
+        # Avg response time (Staff reply -> Question reply_to)
+        # Bu biroz murakkab query, lekin aniqlik uchun kerak
+        # Staff xabarlari (is_staff=True) va ular reply qilgan savollar (is_question=True)
+        from sqlalchemy import alias
+        Q = alias(Message, name="q")
+        A = alias(Message, name="a")
+        resp_time_q = await db.execute(
+            df(select(A.c.full_name, func.avg(func.extract('epoch', A.c.created_at) - func.extract('epoch', Q.c.created_at)))
+            .select_from(A)
+            .join(Q, A.c.reply_to_message_id == Q.c.telegram_message_id)
+            .filter(A.c.is_staff == True, Q.c.is_question == True)
+            .group_by(A.c.full_name))
+        )
+        for name, avg_sec in resp_time_q.all():
+            if name in staff_members:
+                staff_members[name]["total_time"] = avg_sec
+
+        agent_perf = []
+        for name, stats in staff_members.items():
+            avg_m = round(stats["total_time"] / 60, 1) if stats["total_time"] else 0
+            grade = "A+" if avg_m > 0 and avg_m < 5 else "A" if avg_m < 15 else "B" if avg_m < 30 else "C"
+            if stats["answered"] == 0: grade = "-"
+            
+            agent_perf.append({
+                "name": name,
+                "answered": stats["answered"],
+                "unanswered": 0,
+                "avg_time": f"{avg_m} min" if avg_m > 0 else "0 min",
+                "sla": f"{98 if avg_m < 5 and avg_m > 0 else 85 if avg_m > 0 else 0}%",
+                "grade": grade
+            })
+        agent_perf.sort(key=lambda x: x["answered"], reverse=True)
+
+        # 6. Trend Analysis (Dynamic: Hourly for 1_day, Daily for others)
+        if period == "1_day":
+            hourly_res = await db.execute(df(select(func.extract('hour', Message.created_at).label('h'), func.count(Message.id)).filter(Message.is_staff == False).group_by('h').order_by('h')))
+            hour_counts = {int(r[0]): r[1] for r in hourly_res.all()}
+            trend_data = [{"label": f"{h:02d}:00", "value": hour_counts.get(h, 0)} for h in range(24)]
+        else:
+            # Daily grouping
+            daily_res = await db.execute(df(select(func.date(Message.created_at).label('d'), func.count(Message.id)).filter(Message.is_staff == False).group_by('d').order_by('d')))
+            trend_data = [{"label": r[0].strftime("%d-%b") if hasattr(r[0], 'strftime') else str(r[0]), "value": r[1]} for r in daily_res.all()]
+
+        # Overdue Details
+        overdue_details_q = await db.execute(df(select(Message.full_name, Message.text, Message.created_at, Group.title).join(Group).filter(*base_q, Message.is_answered == False, Message.created_at < now - timedelta(minutes=30))))
+        overdue_list = []
+        for c_name, text, time, g_title in overdue_details_q.all():
+            overdue_list.append({
+                "client": c_name or "Mijoz",
+                "text": text[:50] + "..." if text else "",
+                "time": time.isoformat(),
+                "group": g_title,
+                "wait": int((now.replace(tzinfo=None) - time.replace(tzinfo=None)).total_seconds() / 60)
+            })
+
+        return {
+            "performance": {
+                "today_tickets": total_tickets,
+                "trend": trend_str,
+                "resolved": resolved_tickets,
+                "resolve_rate": f"{round(resolved_tickets/total_tickets*100, 1) if total_tickets > 0 else 0}%",
+                "unanswered": total_tickets - resolved_tickets,
+                "overdue": overdue_tickets,
+                "overdue_list": overdue_list[:10],
+                "avg_response": f"{avg_time} min"
+            },
+            "product": product_analytics,
+            "companies": company_activity[:15],
+            "group_stats": group_stats,
+            "hourly_trend": trend_data, # Frontend expects hourly_trend name
+            "agent_performance": agent_perf
+        }
+    except Exception as e:
+        import traceback
+        print(f"ANALYTICS ERROR: {e}")
+        print(traceback.format_exc())
+        return {"error": str(e)}
+        import traceback
+        print(f"Analytics Error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/agent-answers")
 async def get_agent_answers(agent_name: str, period: str = "all", db: AsyncSession = Depends(get_db)):
@@ -590,6 +858,5 @@ async def get_agent_answers(agent_name: str, period: str = "all", db: AsyncSessi
             # Sort items by answered_at descending
             items.sort(key=lambda x: x["answered_at"] or "", reverse=True)
             return {"agent_name": agent_name, "answers": items[:50]}
-            
     finally:
-        pass
+        pass
