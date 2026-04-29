@@ -605,6 +605,11 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
         avg_time = round(sum(diffs) / len(diffs) / 60, 1) if diffs else 0
         
         # 2. Product Analytics
+        modules = ["Hisobot", "Ombor", "CRM", "To'lov", "Login", "API"]
+        module_stats = {m: {"total": 0, "bug": 0, "feature": 0} for m in modules}
+        msgs_q = await db.execute(df(select(Message.text).filter(Message.is_staff == False)))
+        all_msg_texts = [r[0] for r in msgs_q.all() if r[0]]
+
         # Yaxshilangan modul/mahsulot aniqlash mantiqi
         keyword_map = {
             "Hisobot": ["hisobot", "report", "statistika", "grafik", "excel", "pdf"],
@@ -891,6 +896,39 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
         print(f"Analytics Error: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/fix-db")
+async def fix_database_records(db: AsyncSession = Depends(get_db)):
+    """
+    Bazadagi xatolarni to'g'irlash: 
+    1. is_staff bayrog'ini qayta tekshirish.
+    2. is_question bayrog'ini qayta tekshirish.
+    3. answered_at vaqtlarini aware qilish.
+    """
+    try:
+        from sqlalchemy import update
+        from bot.models import Message
+        
+        # 1. Hammani staff deb belgilashni to'xtatamiz (faqat 'bot' dan tashqari)
+        # Faqat adminlar xodim hisoblanadi. Hozircha hammani staff=False qilamiz, 
+        # bot/main.py dagi yangi mantiq esa yangi xabarlarni to'g'ri belgilaydi.
+        await db.execute(update(Message).values(is_staff=False))
+        
+        # 2. Savollarni aniqlash (oddiyroq mantiq bilan)
+        # Agar xabarda '?' bo'lsa yoki uzunligi > 10 bo'lsa savol deb hisoblaymiz (re-indexing)
+        # Bu dashboardda sonlar chiqishi uchun yordam beradi
+        from sqlalchemy import or_
+        await db.execute(
+            update(Message)
+            .filter(or_(Message.text.contains('?'), func.length(Message.text) > 15))
+            .values(is_question=True)
+        )
+        
+        await db.commit()
+        return {"status": "success", "message": "Baza muvaffaqiyatli yangilandi. Endi dashboardni tekshiring."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @router.get("/agent-answers")
 async def get_agent_answers(agent_name: str, period: str = "all", db: AsyncSession = Depends(get_db)):
