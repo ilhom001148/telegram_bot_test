@@ -350,13 +350,13 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
         if bot_answers:
             bot_name = "AI Bot (Auto)"
             answered_times = [b.answered_at for b in bot_answers if b.answered_at]
+            # Vaqtlarni bir xillashtiramiz (naive/aware muammosini oldini olish uchun)
+            normalized_times = [t.replace(tzinfo=timezone.utc) if not t.tzinfo else t for t in answered_times]
             agent_data[bot_name] = {
                 "username": "bot", 
                 "resolved": len(bot_answers), 
                 "chats": set([b.group_id for b in bot_answers]), 
                 "times": [], 
-                # Vaqtlarni bir xillashtiramiz (naive/aware muammosini oldini olish uchun)
-                normalized_times = [t.replace(tzinfo=timezone.utc) if not t.tzinfo else t for t in answered_times]
                 "last": max(normalized_times) if normalized_times else now
             }
 
