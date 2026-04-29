@@ -24,7 +24,7 @@ class User(Base):
     full_name = Column(String(255), nullable=True)
     username = Column(String(255), nullable=True)
     is_staff = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Group(Base):
@@ -34,7 +34,7 @@ class Group(Base):
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     title = Column(String(255), nullable=False)
     username = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     messages = relationship("Message", back_populates="group")
 
@@ -64,8 +64,8 @@ class Message(Base):
 
     reply_to_message_id = Column(Integer, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    answered_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    answered_at = Column(DateTime(timezone=True), nullable=True)
 
     group = relationship("Group", back_populates="messages")
 
@@ -110,7 +110,7 @@ class KnowledgeBase(Base):
     id = Column(Integer, primary_key=True, index=True)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Admin(Base):
@@ -136,7 +136,7 @@ class ScheduledBroadcast(Base):
     target_group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
     scheduled_at = Column(DateTime(timezone=True), nullable=False)
     status = Column(String(50), default="pending")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Company(Base):

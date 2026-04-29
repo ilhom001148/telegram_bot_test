@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -179,7 +180,6 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
                 trending_formatted = []
 
         # Daily Activity for Chart (Last 7 days)
-        from datetime import datetime, timedelta
         daily_activity = []
         for i in range(6, -1, -1):
             date = datetime.utcnow() - timedelta(days=i)
@@ -254,7 +254,6 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db)):
 async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1_week"):
     try:
         from sqlalchemy import cast, Integer, or_, func
-        from datetime import datetime, timedelta, timezone
         from sqlalchemy.orm import joinedload
         from bot.models import Group
         
@@ -559,11 +558,9 @@ async def get_support_stats(db: AsyncSession = Depends(get_db), period: str = "1
 async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period: str = "1_week"):
     try:
         from sqlalchemy import cast, Integer, or_, func, case, distinct
-        from datetime import datetime, timedelta
         from sqlalchemy.orm import joinedload
         from bot.models import Group, Company, Message, User
         
-        from datetime import datetime, timedelta, timezone
         now = datetime.now(timezone.utc)
         start_date = now - timedelta(days=7) # Default
         if period == "1_day": start_date = now - timedelta(days=1)
@@ -608,20 +605,25 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
         avg_time = round(sum(diffs) / len(diffs) / 60, 1) if diffs else 0
         
         # 2. Product Analytics
-        modules = ["Hisobot", "Ombor", "CRM", "To'lov", "Login", "API"]
-        module_stats = {m: {"total": 0, "bug": 0, "feature": 0} for m in modules}
-        
-        msgs_q = await db.execute(df(select(Message.text).filter(Message.is_staff == False)))
-        all_msg_texts = [r[0] for r in msgs_q.all() if r[0]]
+        # Yaxshilangan modul/mahsulot aniqlash mantiqi
+        keyword_map = {
+            "Hisobot": ["hisobot", "report", "statistika", "grafik", "excel", "pdf"],
+            "Ombor": ["ombor", "sklad", "tovar", "qoldiq", "priyom", "chiqim", "inventory"],
+            "CRM": ["mijoz", "crm", "sotuv", "lead", "shartnoma", "kelishuv", "client"],
+            "To'lov": ["to'lov", "payme", "click", "kassa", "pul", "money", "tolov", "payment"],
+            "Login": ["login", "parol", "kirish", "auth", "profil", "akkount", "password"],
+            "API": ["api", "webhook", "integration", "integratsiya", "sozlama", "bog'lanish"]
+        }
         
         for text in all_msg_texts:
+            text_lower = text.lower()
             found = False
-            for m in modules:
-                if m.lower() in text.lower():
+            for m, keywords in keyword_map.items():
+                if any(k in text_lower for k in keywords):
                     module_stats[m]["total"] += 1
-                    if any(k in text.lower() for k in ["xato", "ishlamayapti", "error", "bug", "muammo"]):
+                    if any(k in text_lower for k in ["xato", "ishlamayapti", "error", "bug", "muammo", "yordam"]):
                         module_stats[m]["bug"] += 1
-                    elif any(k in text.lower() for k in ["kerak", "qo'shish", "yangi", "taklif"]):
+                    elif any(k in text_lower for k in ["kerak", "qo'shish", "yangi", "taklif", "qilsa bo'ladi", "qo'shing"]):
                         module_stats[m]["feature"] += 1
                     found = True
                     break
@@ -677,8 +679,18 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
         for comp in all_comps:
             c_name = comp.get("name", "")
             c_status = comp.get("status", "Yangi")
-            c_groups = [g for g in all_groups if c_name.lower() in g.title.lower()]
+            # Kompaniyani guruhga bog'lash: nomi yoki title'da borligi bo'yicha
+            c_groups = [g for g in all_groups if c_name.lower() in g.title.lower() or (g.username and c_name.lower() in g.username.lower())]
             
+            # Agar birorta ham guruh topilmasa, lekin xabarlar bo'lsa (Boshqa guruhlar)
+            if not c_groups and c_name == "Boshqa":
+                # Hech bir kompaniyaga tegishli bo'lmagan guruhlar
+                assigned_group_ids = []
+                for comp_other in all_comps:
+                    if comp_other.get("name") != "Boshqa":
+                        assigned_group_ids.extend([g.id for g in all_groups if comp_other.get("name").lower() in g.title.lower()])
+                c_groups = [g for g in all_groups if g.id not in assigned_group_ids]
+
             c_total_msgs = sum(grp_metrics.get(g.id, {}).get("msgs", 0) for g in c_groups)
             c_total_users = sum(grp_metrics.get(g.id, {}).get("users", 0) for g in c_groups)
             c_total_q = sum(grp_q_counts.get(g.id, 0) for g in c_groups)
@@ -883,7 +895,6 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
 @router.get("/agent-answers")
 async def get_agent_answers(agent_name: str, period: str = "all", db: AsyncSession = Depends(get_db)):
     try:
-        from datetime import datetime, timedelta
         from sqlalchemy.orm import joinedload
         
         now = datetime.now(timezone.utc)

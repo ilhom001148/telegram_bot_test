@@ -359,7 +359,8 @@ async def broadcast_scheduler_worker():
         async with SessionLocal() as db:
             try:
                 # Use UTC for comparison to match storage
-                now_utc = datetime.utcnow().replace(tzinfo=None)
+                from datetime import timezone
+                now_utc = datetime.now(timezone.utc)
                 pending_query = await db.execute(
                     select(ScheduledBroadcast).filter(
                         ScheduledBroadcast.status == 'pending', 
