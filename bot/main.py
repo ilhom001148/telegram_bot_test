@@ -258,14 +258,8 @@ async def handle_group_message(message: TgMessage):
             if text.strip().startswith("/"):
                 return
 
-            # [NEW] Staff/Admin check (Automatically catch "uyqur" or "softex" in username/nickname)
-            u_lower = (message.from_user.username or "").lower() if message.from_user else ""
-            n_lower = (message.from_user.full_name or "").lower() if message.from_user else ""
-            staff_keywords = ["uyqur", "softex"]
-            
-            is_staff = any(kw in u_lower for kw in staff_keywords) or \
-                       any(kw in n_lower for kw in staff_keywords) or \
-                       (await is_user_staff(message.chat.id, message.from_user.id) if message.from_user else False)
+            # [NEW] Staff/Admin check (Telegram guruhidagi adminlik huquqiga tayanadi)
+            is_staff = (await is_user_staff(message.chat.id, message.from_user.id) if message.from_user else False)
 
             is_question = await is_question_ai(text)
             # Xabarni saqlash
@@ -432,7 +426,11 @@ async def start_bot():
             elif WEBHOOK_URL:
                 # ✅ O'z webhookimizni to'g'ridan-to'g'ri Telegramga ro'yxatdan o'tkazamiz
                 clean_url = WEBHOOK_URL.strip().rstrip('/')
-                webhook_endpoint = f"{clean_url}/webhook/bot"
+                # Agar URL da allaqachon /webhook bo'lsa, uni takrorlamaslik kerak
+                if "/webhook" in clean_url:
+                    webhook_endpoint = f"{clean_url}/bot" if not clean_url.endswith("/bot") else clean_url
+                else:
+                    webhook_endpoint = f"{clean_url}/webhook/bot"
                 await bot.set_webhook(
                     url=webhook_endpoint,
                     drop_pending_updates=True,

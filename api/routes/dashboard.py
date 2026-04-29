@@ -552,12 +552,14 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
         from sqlalchemy.orm import joinedload
         from bot.models import Group, Company, Message, User
         
-        now = datetime.utcnow()
-        start_date = now - timedelta(days=7) 
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        start_date = now - timedelta(days=7) # Default
         if period == "1_day": start_date = now - timedelta(days=1)
         elif period == "3_days": start_date = now - timedelta(days=3)
+        elif period == "1_week": start_date = now - timedelta(days=7)
         elif period == "1_month": start_date = now - timedelta(days=30)
-        elif period == "all": start_date = datetime(2000, 1, 1) # All time
+        elif period == "all": start_date = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
         # Helper: Date filter
         def df(q, col=Message.created_at):
@@ -572,8 +574,18 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
         # Trend
         prev_start = start_date - (now - start_date)
         prev_tickets = await db.scalar(select(func.count(Message.id)).filter(*base_q, Message.created_at >= prev_start, Message.created_at < start_date)) or 0
-        trend_val = round(((total_tickets - prev_tickets) / prev_tickets * 100), 1) if prev_tickets > 0 else 0
-        trend_str = f"{'+' if trend_val >= 0 else ''}{trend_val}%"
+        
+        if prev_tickets == 0 and total_tickets > 0:
+            trend_str = "+100%"
+        elif prev_tickets == 0 and total_tickets == 0:
+            trend_str = "0%"
+        else:
+            trend_val = round(((total_tickets - prev_tickets) / prev_tickets * 100), 1)
+            # Agar foiz juda katta bo'lib ketsa, limit qo'yamiz yoki butun qismini chiqaramiz
+            if trend_val > 999:
+                trend_str = f"+{round(total_tickets - prev_tickets)} ta"
+            else:
+                trend_str = f"{'+' if trend_val >= 0 else ''}{trend_val}%"
         
         # Overdue (>30m unanswered)
         overdue_q = df(select(func.count(Message.id)).filter(*base_q, Message.is_answered == False, Message.created_at < now - timedelta(minutes=30)))
@@ -581,7 +593,7 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
         
         # Avg Response Time
         avg_res_q = await db.execute(df(select(Message.created_at, Message.answered_at).filter(*base_q, Message.is_answered == True, Message.answered_at != None)))
-        diffs = [(r[1].replace(tzinfo=None) - r[0].replace(tzinfo=None)).total_seconds() for r in avg_res_q.all() if r[0] and r[1]]
+        diffs = [abs((r[1].replace(tzinfo=None) - r[0].replace(tzinfo=None)).total_seconds()) for r in avg_res_q.all() if r[0] and r[1]]
         avg_time = round(sum(diffs) / len(diffs) / 60, 1) if diffs else 0
         
         # 2. Product Analytics
@@ -619,12 +631,13 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
         product_analytics = []
         for m, s in module_stats.items():
             if s["total"] > 0:
-                prev_tot = prev_module_stats.get(m, 0)
-                if prev_tot > 0:
-                    tr = round((s["total"] - prev_tot) / prev_tot * 100)
-                    tr_str = f"+{tr}%" if tr > 0 else f"{tr}%"
+                prev_m = prev_module_stats.get(m, 0)
+                if prev_m > 0:
+                    tr = round((s["total"] - prev_m) / prev_m * 100)
+                    if tr > 999: tr_str = f"+{s['total'] - prev_m} ta"
+                    else: tr_str = f"+{tr}%" if tr > 0 else f"{tr}%"
                 else:
-                    tr_str = "+100%"
+                    tr_str = "+100%" if s["total"] > 0 else "0%"
                 product_analytics.append({"module": m, "total": s["total"], "bug": s["bug"], "feature": s["feature"], "trend": tr_str})
         
         # 3. Company & Group Aggregation
@@ -652,20 +665,62 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
 
         for comp in all_comps:
             c_name = comp.get("name", "")
+            c_status = comp.get("status", "Yangi")
             c_groups = [g for g in all_groups if c_name.lower() in g.title.lower()]
             
             c_total_msgs = sum(grp_metrics.get(g.id, {}).get("msgs", 0) for g in c_groups)
             c_total_users = sum(grp_metrics.get(g.id, {}).get("users", 0) for g in c_groups)
             c_total_q = sum(grp_q_counts.get(g.id, 0) for g in c_groups)
+            c_total_a = sum(grp_a_counts.get(g.id, 0) for g in c_groups)
             
-            if c_total_msgs > 0 or comp.get("status") == "Faol":
+            # Advanced Health Scoring
+            health_score = 0
+            reasons = []
+            
+            if c_total_users > 0:
+                health_score += 30 # Baza: foydalanuvchi borligi uchun
+                if c_total_users > 5: health_score += 20
+                
+                # Javob berish sifati (SLA)
+                if c_total_q > 0:
+                    res_rate = c_total_a / c_total_q
+                    health_score += (res_rate * 50)
+                    if res_rate < 0.5: reasons.append("Savollarning yarmidan ko'pi javobsiz")
+                else:
+                    health_score += 50 # Savol bo'lmasa, demak muammo yo'q
+            else:
+                reasons.append("Tizimda birorta ham faol foydalanuvchi yo'q")
+                
+            # Obuna muddati (agar mavjud bo'lsa)
+            sub_end = comp.get("subscription_end")
+            if sub_end:
+                try:
+                    from datetime import datetime
+                    end_dt = datetime.fromisoformat(sub_end.replace("Z", ""))
+                    days_left = (end_dt - datetime.utcnow()).days
+                    if days_left < 0:
+                        health_score -= 50
+                        reasons.append("Obuna muddati tugagan")
+                        c_status = "Muddati o'tgan"
+                    elif days_left < 7:
+                        health_score -= 20
+                        reasons.append(f"Obuna {days_left} kunda tugaydi")
+                except: pass
+
+            # Final Status Determination
+            final_status = c_status
+            if health_score < 40: final_status = "Risk"
+            elif health_score > 80: final_status = "Active"
+            
+            if c_total_msgs > 0 or c_status in ["Faol", "Active", "Yangi"]:
                 company_activity.append({
                     "name": c_name,
                     "users": c_total_users,
-                    "sessions": c_total_msgs, # Best estimate
+                    "sessions": c_total_msgs,
                     "tickets": c_total_q,
-                    "score": min(100, c_total_users * 10 + 20) if c_total_users > 0 else 0,
-                    "status": "Active" if c_total_users > 2 else "Risk"
+                    "score": max(0, min(100, int(health_score))),
+                    "status": final_status,
+                    "reasons": reasons if reasons else ["Hozircha hamma ko'rsatkichlar me'yorda"]
                 })
             
             for g in c_groups:
@@ -684,49 +739,85 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
 
         group_stats.sort(key=lambda x: x["total"], reverse=True)
 
-        # 5. Agent Performance (Robust)
-        # Hamma stafflarni olamiz
-        staff_users_q = await db.execute(select(User.full_name, User.telegram_id).filter(User.is_staff == True))
-        staff_members = {r[0]: {"answered": 0, "total_time": 0, "count": 0} for r in staff_users_q.all() if r[0]}
+        # 5. Agent Performance (Advanced Contextual Logic)
+        from datetime import timedelta
         
-        # Staff xabarlarini sanaymiz
-        staff_msgs_q = await db.execute(df(select(Message.full_name, func.count(Message.id)).filter(Message.is_staff == True).group_by(Message.full_name)))
-        for name, count in staff_msgs_q.all():
-            if name in staff_members:
-                staff_members[name]["answered"] = count
-
-        # Avg response time (Staff reply -> Question reply_to)
-        # Bu biroz murakkab query, lekin aniqlik uchun kerak
-        # Staff xabarlari (is_staff=True) va ular reply qilgan savollar (is_question=True)
-        from sqlalchemy import alias
-        Q = alias(Message, name="q")
-        A = alias(Message, name="a")
-        resp_time_q = await db.execute(
-            df(select(A.c.full_name, func.avg(func.extract('epoch', A.c.created_at) - func.extract('epoch', Q.c.created_at)))
-            .select_from(A)
-            .join(Q, A.c.reply_to_message_id == Q.c.telegram_message_id)
-            .filter(A.c.is_staff == True, Q.c.is_question == True)
-            .group_by(A.c.full_name))
+        # 1. Fetch all relevant data for the period
+        all_msgs_res = await db.execute(
+            select(Message)
+            .filter(Message.created_at >= start_date)
+            .order_by(Message.chat_id, Message.created_at.asc())
         )
-        for name, avg_sec in resp_time_q.all():
-            if name in staff_members:
-                staff_members[name]["total_time"] = avg_sec
+        all_msgs = all_msgs_res.scalars().all()
+        
+        # Group messages by chat_id
+        chats = {}
+        for m in all_msgs:
+            if m.chat_id not in chats: chats[m.chat_id] = []
+            chats[m.chat_id].append(m)
+            
+        agent_stats = {}
+        
+        for chat_id, msgs in chats.items():
+            unanswered_qs = [] # Stack of questions waiting for answer
+            
+            for m in msgs:
+                if m.is_question and not m.is_staff:
+                    unanswered_qs.append(m)
+                
+                elif m.is_staff and not m.answered_by_bot:
+                    name = m.full_name or "Noma'lum"
+                    if name not in agent_stats:
+                        agent_stats[name] = {"replies": 0, "total_time": 0, "matched": 0}
+                    
+                    agent_stats[name]["replies"] += 1
+                    
+                    # Try to match this staff message to a question
+                    target_q = None
+                    
+                    # Priority 1: Direct Reply
+                    if m.reply_to_message_id:
+                        target_q = next((q for q in unanswered_qs if q.telegram_message_id == m.reply_to_message_id), None)
+                    
+                    # Priority 2: Smart Contextual Match (if no direct reply)
+                    if not target_q and unanswered_qs:
+                        # Take the most recent question
+                        last_q = unanswered_qs[-1]
+                        # Only match if within 6 hours
+                        if (m.created_at - last_q.created_at).total_seconds() < 21600:
+                            target_q = last_q
+                    
+                    if target_q:
+                        diff = (m.created_at - target_q.created_at).total_seconds() / 60
+                        agent_stats[name]["total_time"] += diff
+                        agent_stats[name]["matched"] += 1
+                        # Once answered, remove from unanswered stack
+                        if target_q in unanswered_qs:
+                            unanswered_qs.remove(target_q)
 
         agent_perf = []
-        for name, stats in staff_members.items():
-            avg_m = round(stats["total_time"] / 60, 1) if stats["total_time"] else 0
-            grade = "A+" if avg_m > 0 and avg_m < 5 else "A" if avg_m < 15 else "B" if avg_m < 30 else "C"
-            if stats["answered"] == 0: grade = "-"
+        for name, s in agent_stats.items():
+            if "uyqur" not in name.lower(): continue
+            
+            avg_m = round(s["total_time"] / s["matched"], 1) if s["matched"] > 0 else 0
+            # SLA based on matched answers
+            sla = 0
+            if s["matched"] > 0:
+                sla = 95 if avg_m < 15 else (85 if avg_m < 60 else 70)
+            elif s["replies"] > 0:
+                sla = 40 # Active but not using reply/slow
+                
+            grade = "A+" if avg_m > 0 and avg_m < 10 else "A" if avg_m < 30 else "B" if avg_m < 120 else "C"
             
             agent_perf.append({
                 "name": name,
-                "answered": stats["answered"],
-                "unanswered": 0,
+                "replies": s["replies"],
                 "avg_time": f"{avg_m} min" if avg_m > 0 else "0 min",
-                "sla": f"{98 if avg_m < 5 and avg_m > 0 else 85 if avg_m > 0 else 0}%",
+                "sla": f"{sla}%",
                 "grade": grade
             })
-        agent_perf.sort(key=lambda x: x["answered"], reverse=True)
+            
+        agent_perf.sort(key=lambda x: x["replies"], reverse=True)
 
         # 6. Trend Analysis (Dynamic: Hourly for 1_day, Daily for others)
         if period == "1_day":
@@ -739,12 +830,13 @@ async def get_comprehensive_analytics(db: AsyncSession = Depends(get_db), period
             trend_data = [{"label": r[0].strftime("%d-%b") if hasattr(r[0], 'strftime') else str(r[0]), "value": r[1]} for r in daily_res.all()]
 
         # Overdue Details
-        overdue_details_q = await db.execute(df(select(Message.full_name, Message.text, Message.created_at, Group.title).join(Group).filter(*base_q, Message.is_answered == False, Message.created_at < now - timedelta(minutes=30))))
+        overdue_details_q = await db.execute(df(select(Message.id, Message.full_name, Message.text, Message.created_at, Group.title).join(Group).filter(*base_q, Message.is_answered == False, Message.created_at < now - timedelta(minutes=30))))
         overdue_list = []
-        for c_name, text, time, g_title in overdue_details_q.all():
+        for m_id, c_name, text, time, g_title in overdue_details_q.all():
             overdue_list.append({
+                "id": m_id,
                 "client": c_name or "Mijoz",
-                "text": text[:50] + "..." if text else "",
+                "text": text if text else "",
                 "time": time.isoformat(),
                 "group": g_title,
                 "wait": int((now.replace(tzinfo=None) - time.replace(tzinfo=None)).total_seconds() / 60)

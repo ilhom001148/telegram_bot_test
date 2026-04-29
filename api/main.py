@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import asyncio
 
 from bot.db import engine, Base, SessionLocal
 from bot.models import Group, Message, KnowledgeBase, Admin, Setting, User, Company
@@ -101,6 +102,7 @@ async def telegram_webhook_test():
 
 @app.post("/webhook/bot")
 @app.post("/webhook/bot/")
+@app.post("/webhook/webhook/bot")  # [NEW] Fallback for double /webhook duplication
 async def telegram_webhook(update: dict):
     """
     Telegram webhook endpoint + External Company Webhook Fallback.
@@ -160,7 +162,6 @@ async def telegram_webhook(update: dict):
             except Exception as e:
                 return {"status": "error", "message": str(e)}
 
-import asyncio
 from bot.main import start_bot
 
 @app.on_event("startup")

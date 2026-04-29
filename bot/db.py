@@ -10,8 +10,14 @@ DATABASE_URL_RAW = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL_RAW:
     from bot.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+    
+    # Majburiy host to'g'irlash (bug fix for 'localhoste')
+    clean_host = DB_HOST.strip()
+    if clean_host == "localhoste":
+        clean_host = "localhost"
+        
     DATABASE_URL = (
-        f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{clean_host}:{DB_PORT}/{DB_NAME}"
     )
 else:
     # Bo'sh joylarni olib tashlaymiz

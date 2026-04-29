@@ -177,11 +177,13 @@ async def answer_question(
             print(f"✅ [API] Xabar yuborildi. ID: {sent_msg.message_id}")
         except Exception as e:
             # Agar reply message topilmasa (o'chib ketgan bo'lsa), oddiy xabar yuboramiz
-            if "reply message not found" in str(e).lower() or "message to reply not found" in str(e).lower():
-                print("⚠️ [API] Original xabar topilmadi, oddiy xabar sifatida yuborilmoqda...")
+            err_str = str(e).lower()
+            if "not found" in err_str or "replied" in err_str or "reply" in err_str:
+                print(f"⚠️ [API] Original xabar topilmadi yoki o'chirilgan ({e}), oddiy xabar sifatida yuborilmoqda...")
+                user_mention = f"@{question.username}" if question.username else question.full_name or "Mijoz"
                 sent_msg = await bot.send_message(
                     chat_id=chat_id,
-                    text=f"Javob (savol o'chirilgan): \n\n{data.text}"
+                    text=f"{user_mention}, savolingizga javob (asl xabar o'chirilgan):\n\n{data.text}"
                 )
                 print(f"✅ [API] Oddiy xabar sifatida yuborildi. ID: {sent_msg.message_id}")
             else:

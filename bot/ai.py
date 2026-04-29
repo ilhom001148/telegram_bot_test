@@ -133,8 +133,9 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
                 "1. So'zma-so'z moslikni qidirmang, MA'NOSIGA e'tibor bering. (Masalan: 'Narxi' va 'Necha pul' - bir xil ma'no).\n"
                 "2. Agar foydalanuvchi savoli bazadagi ma'lumot bilan ma'nodosh bo'lsa, o'sha ma'lumotdan foydalanib javob bering.\n"
                 "3. Agar bazada bir nechta o'xshash ma'lumotlar bo'lsa, ularni birlashtirib eng to'liq javobni hosil qiling.\n"
-                "4. O'zingizning umumiy bilimlaringizdan foydalanmang.\n"
-                "5. Agar savolga javob bazada mutlaqo mavjud bo'lmasa, FAQAT 'NOT_FOUND' so'zini qaytaring.\n\n"
+                "4. MATEMATIK HISOB-KITOB: Agar foydalanuvchi narx, maydon, qoldiq yoki boshqa summani hisoblashni so'rasa, bazadagi ma'lumotlardan foydalanib 100% ANIQLIK bilan hisoblang va aniq raqam/sonni kiriting. Hech qachon taqribiy javob bermang.\n"
+                "5. O'zingizning umumiy bilimlaringizdan foydalanmang.\n"
+                "6. Agar savolga javob bazada mutlaqo mavjud bo'lmasa, FAQAT 'NOT_FOUND' so'zini qaytaring.\n\n"
                 f"BILIMLAR BAZASI:\n{context}"
             )
         else:
@@ -144,8 +145,9 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
                 "KO'RSATMALAR:\n"
                 "1. Foydalanuvchi savolini ma'nosiga ko'ra tahlil qiling. Agar bazada ma'no jihatdan yaqin javob bo'lsa, UNGA USTUVORLIK bering.\n"
                 "2. Bazadagi ma'lumotlarni shunchaki nusxalamang, ularni foydalanuvchi savoliga moslab, chiroyli va tushunarli tilda bayon qiling.\n"
-                "3. Agar bazada ma'lumot bo'lmasa, o'zingizning professional bilimlaringiz bilan to'ldiring.\n"
-                "4. Foydalanuvchi bilan do'stona va professional tilda gaplashing.\n\n"
+                "3. MATEMATIK HISOB-KITOB: Agar mijoz uyning narxini, maydonini kvadratga ko'paytirishni, bo'lib to'lash (rassrochka) narxini yoki boshqa hisoblarni so'rasa, kalkulyator kabi 100% ANIQLIK bilan matematik hisoblang va aniq raqamlarni ayting.\n"
+                "4. Agar bazada ma'lumot bo'lmasa, o'zingizning professional bilimlaringiz bilan to'ldiring.\n"
+                "5. Foydalanuvchi bilan do'stona va professional tilda gaplashing.\n\n"
                 f"Kompaniya haqida: {company_info}\n\n"
                 f"MAXSUS BILIMLAR BAZASI (Eng dolzarb qismlar):\n{context[:8000]}" # Limit context to stay safe
             )
@@ -165,6 +167,7 @@ async def get_ai_answer_async(question: str, context: str = None) -> str:
                 "Sen jahondagi eng yuqori malakali, aqlli va professional AI yordamchisan. "
                 f"Kompaniya ma'lumotlari: {company_info}\n"
                 "Sening vazifang: Har qanday mavzuda foydalanuvchi savollariga aniq, lisoniy to'g'ri va foydali javob berish! "
+                "MUHIM: Agar foydalanuvchi biror narsani hisoblashni so'rasa (matematik hisob-kitob, summa, kvadrat, chegirma), aniq hisoblab to'g'ri sonni yozing.\n"
                 "Agar savolga javob berish uchun maxsus bazada ma'lumot bo'lmasa, o'zingning umumiy bilimlaringdan foydalan."
             )
 
