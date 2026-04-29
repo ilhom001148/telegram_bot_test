@@ -151,31 +151,23 @@ async def get_external_companies():
 
                     # 3. Mas'ul xodim
                     resp_name = (
-                        c.get("responsible_name") or c.get("uyqur_support_username") or
+                        c.get("uyqur_support_username") or c.get("responsible_name") or
                         c.get("staff_name") or c.get("support_name") or
                         c.get("agent_name") or c.get("manager_name") or
-                        c.get("owner_name") or c.get("director") or
-                        c.get("responsible_person") or c.get("contact_person") or
-                        c.get("responsible") or c.get("staff") or
-                        c.get("agent") or c.get("manager") or "Noma'lum"
+                        c.get("owner_name") or c.get("director") or "Noma'lum"
                     )
 
                     # 4. Telefon raqamlari
                     resp_phone = (
-                        c.get("responsible_phone") or c.get("uyqur_support_phone") or
-                        c.get("staff_phone") or c.get("support_phone") or
-                        c.get("agent_phone") or c.get("manager_phone") or
-                        c.get("phone_1") or c.get("mobile") or
-                        c.get("contact_phone") or c.get("phone") or ""
+                        c.get("uyqur_support_phone") or c.get("responsible_phone") or
+                        c.get("staff_phone") or c.get("phone") or ""
                     )
                     comp_phone = (
-                        c.get("phone") or c.get("phone_number") or
-                        c.get("contact") or c.get("contact_phone") or
-                        c.get("company_phone") or resp_phone or "Mavjud emas"
+                        c.get("phone") or c.get("phone_number") or resp_phone or "Mavjud emas"
                     )
 
                     # 5. Logo
-                    logo = c.get("logo_url") or c.get("image") or c.get("logo") or c.get("avatar") or None
+                    logo = c.get("icon") or c.get("logo_url") or c.get("image") or c.get("logo") or None
 
                     # 6. Status & Overrides
                     now_str = datetime.now().isoformat()
@@ -202,12 +194,12 @@ async def get_external_companies():
                     results.append({
                         "id": comp_id,
                         "name": comp_name,
-                        "brand_name": c.get("brand_name") or c.get("brand") or "",
+                        "brand_name": c.get("brand") or c.get("brand_name") or "",
                         "phone": comp_phone,
-                        "director": c.get("director") or c.get("owner") or c.get("leader") or "",
+                        "director": c.get("director") or c.get("owner") or "",
                         "responsible_name": resp_name,
                         "responsible_phone": resp_phone,
-                        "subscription_start": c.get("created_at") or c.get("start_date") or None,
+                        "subscription_start": c.get("subscription_start_date") or c.get("created_at") or None,
                         "subscription_end": iso_expired or exp_raw or None,
                         "status": calc_status,
                         "is_active": is_active,
